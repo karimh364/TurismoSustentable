@@ -69,6 +69,27 @@
                             </div>
                         </div>
 
+                        <div class="mb-3">
+                            <div class="form-floating">
+                                <input type="text"
+                                       class="form-control"
+                                       id="reg-nickname"
+                                       minlength="3"
+                                       maxlength="30"
+                                       autocomplete="username"
+                                       autocapitalize="none"
+                                       spellcheck="false"
+                                       aria-describedby="nickname-ayuda"
+                                       placeholder="Nombre de usuario"
+                                       required>
+                                <label for="reg-nickname">Nombre de usuario</label>
+                            </div>
+                            <small id="nickname-ayuda" class="form-text text-muted">
+                                Entre 3 y 30 caracteres. Comenzá con una letra de a a z.
+                                Podés usar letras sin tildes, números, punto, guion y guion bajo.
+                            </small>
+                        </div>
+
                         <div class="form-floating mb-3">
                             <input type="email"
                                    class="form-control"
@@ -83,20 +104,64 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <div class="form-floating">
-                                    <input type="date" class="form-control" id="reg-nacimiento" placeholder="Fecha de Nacimiento" required>
-                                    <label for="reg-nacimiento">Fecha de Nacimiento</label>
+                                    <input type="date"
+                                           class="form-control"
+                                           id="reg-nacimiento"
+                                           placeholder="Fecha de nacimiento"
+                                           required>
+                                    <label for="reg-nacimiento">Fecha de nacimiento</label>
                                 </div>
                             </div>
+
                             <div class="col-md-6">
-                                <select id="reg-genero" class="form-select" style="height: 58px;" required>
-                                    <option value="" disabled selected>Selecciona tu Género</option>
-                                    <option value="FEMENINO">Femenino</option>
-                                    <option value="MASCULINO">Masculino</option>
-                                    <option value="NO_BINARIO">No Binario</option>
-                                    <option value="OTRO">Otro</option>
-                                    <option value="PREFIERO_NO_DECIR">Prefiero no decir</option>
-                                </select>
+                                <div class="form-floating">
+                                    <select id="reg-genero"
+                                            class="form-select"
+                                            disabled
+                                            required>
+                                        <option value="" selected>Seleccioná una opción</option>
+                                    </select>
+                                    <label for="reg-genero">Género</label>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <select id="reg-tipo-documento"
+                                    class="form-select"
+                                    disabled
+                                    required>
+                                <option value="" selected>Seleccioná una opción</option>
+                            </select>
+                            <label for="reg-tipo-documento">Tipo de documento</label>
+                        </div>
+
+                        <div class="form-floating mb-3">
+                            <input type="text"
+                                   class="form-control"
+                                   id="reg-numero-documento"
+                                   maxlength="50"
+                                   autocomplete="off"
+                                   autocapitalize="characters"
+                                   spellcheck="false"
+                                   aria-describedby="documento-ayuda"
+                                   placeholder="Número de documento"
+                                   disabled
+                                   required>
+                            <label id="reg-documento-label" for="reg-numero-documento">Número de documento</label>
+                        </div>
+                        <small id="documento-ayuda" class="form-text text-muted d-block mb-3">
+                            Elegí el tipo de documento para ingresar su número.
+                        </small>
+
+                        <div class="form-floating mb-3">
+                            <select id="reg-pais-emisor"
+                                    class="form-select"
+                                    disabled
+                                    required>
+                                <option value="" selected>Seleccioná una opción</option>
+                            </select>
+                            <label for="reg-pais-emisor">País emisor del documento</label>
                         </div>
 
                         <div class="form-floating">
@@ -111,11 +176,20 @@
                             <label for="reg-password">Contraseña</label>
                         </div>
                         <small class="form-text text-muted px-1">
-                            Entre 6 y 64 caracteres, con 1 minúscula, 1 mayúscula,
-                            1 símbolo (ej.: !@#&amp;*) y sin espacios.
+                            Entre 6 y 64 caracteres, con una minúscula, una mayúscula
+                            y un signo de puntuación o símbolo (ej.: ? % _ + €), sin espacios.
                         </small>
 
-                        <button type="submit" class="btn btn-success w-100 py-3 fw-bold mt-4 rounded-pill">
+                        <p id="catalogos-status"
+                           class="small text-muted mt-3 mb-0"
+                           role="status">
+                            Cargando opciones de registro...
+                        </p>
+
+                        <button type="submit"
+                                id="registro-submit"
+                                class="btn btn-success w-100 py-3 fw-bold mt-4 rounded-pill"
+                                disabled>
                             Registrarme
                         </button>
                     </form>

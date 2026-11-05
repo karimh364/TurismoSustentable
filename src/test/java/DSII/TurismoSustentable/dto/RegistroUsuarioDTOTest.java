@@ -133,6 +133,12 @@ class RegistroUsuarioDTOTest {
                 "Abcdefg",
                 "Abc def#12",
                 " Clave#123 ",
+                "Abcde?\u00a0",
+                "Abcde?\u2003",
+                "Abcde?\u0085",
+                "Abcde?\t",
+                "Abcde?\n",
+                "Abcdeñ",
                 "Aa#" + "a".repeat(62)
         };
 
@@ -142,6 +148,29 @@ class RegistroUsuarioDTOTest {
 
             assertEquals(password, dto.getPassword());
             assertCampoInvalido(dto, "password");
+        }
+    }
+
+    @Test
+    void aceptaPuntuacionYSimbolosSinLimitarseALaListaAnterior() {
+        String[] passwords = {
+                "Abcde?",
+                "Abcde%",
+                "Abcde_",
+                "Abcde+",
+                "Abcde€",
+                "Abcde.",
+                "Abcde\\",
+                "Abcde\"",
+                "Abcde\uD83D\uDE00"
+        };
+
+        for (String password : passwords) {
+            RegistroUsuarioDTO dto = datosValidos();
+            dto.setPassword(password);
+
+            assertTrue(validator.validate(dto).isEmpty());
+            assertEquals(password, dto.getPassword());
         }
     }
 

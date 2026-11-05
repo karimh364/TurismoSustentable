@@ -1,10 +1,12 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.dto.SolicitarRecuperacionDTO;
 import DSII.TurismoSustentable.services.RecuperacionPasswordService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.Map;
 
 @RestController
@@ -24,16 +26,10 @@ public class RecuperacionPasswordController {
 
     @PostMapping("/solicitar")
     public ResponseEntity<String> solicitarRecuperacion(
-            @RequestBody(required = false)
-            Map<String, String> datos
+            @Valid @RequestBody SolicitarRecuperacionDTO datos
     ) {
-
-        String email = datos != null
-                ? datos.get("email")
-                : null;
-
         recuperacionPasswordService
-                .solicitarRecuperacion(email);
+                .solicitarRecuperacion(datos.getEmail());
 
         /*
          * Siempre se devuelve el mismo mensaje para no revelar

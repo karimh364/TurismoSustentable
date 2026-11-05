@@ -37,6 +37,7 @@ import static org.mockito.Mockito.*;
 class WebAuthenticationTest {
 
     private static final String EMAIL = "ana@example.com";
+    private static final String NICKNAME = "ana.perez";
     private static final String PASSWORD = "Clave#123";
 
     @Mock
@@ -81,7 +82,7 @@ class WebAuthenticationTest {
 
         Authentication resultado = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        " ANA@EXAMPLE.COM ",
+                        " ANA.PEREZ ",
                         PASSWORD
                 )
         );
@@ -102,7 +103,7 @@ class WebAuthenticationTest {
         assertNotEquals(PASSWORD, usuario.getPassword());
 
         verify(usuarioRepository)
-                .buscarPorEmailConDatosYRoles(EMAIL);
+                .findByNicknameIgnoreCase(NICKNAME);
     }
 
     @Test
@@ -116,7 +117,7 @@ class WebAuthenticationTest {
                 BadCredentialsException.class,
                 () -> authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
-                                EMAIL,
+                                NICKNAME,
                                 "OtraClave#123"
                         )
                 )
@@ -134,11 +135,30 @@ class WebAuthenticationTest {
                 DisabledException.class,
                 () -> authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(
+                                NICKNAME,
+                                PASSWORD
+                        )
+                )
+        );
+    }
+
+    @Test
+    void rechazaEmailComoIdentificadorDeIngreso() {
+        when(usuarioRepository.findByNicknameIgnoreCase(EMAIL))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                BadCredentialsException.class,
+                () -> authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
                                 EMAIL,
                                 PASSWORD
                         )
                 )
         );
+
+        verify(usuarioRepository).findByNicknameIgnoreCase(EMAIL);
+        verifyNoMoreInteractions(usuarioRepository);
     }
 
     private Usuario crearUsuario(boolean activo) {
@@ -182,7 +202,7 @@ class WebAuthenticationTest {
     }
 
     private void prepararBusqueda(Usuario usuario) {
-        when(usuarioRepository.buscarPorEmailConDatosYRoles(EMAIL))
+        when(usuarioRepository.findByNicknameIgnoreCase(NICKNAME))
                 .thenReturn(Optional.of(usuario));
     }
 }

@@ -47,17 +47,17 @@ if (loginForm) {
     loginForm.addEventListener('submit', async function(event) {
         event.preventDefault();
 
-        const emailInput = document.getElementById('login-email');
+        const nicknameInput = document.getElementById('login-nickname');
         const passwordInput = document.getElementById('login-password');
 
-        if(!emailInput || !passwordInput) return;
+        if (!nicknameInput || !passwordInput) return;
 
-        const email = emailInput.value;
+        const nickname = nicknameInput.value;
         const password = passwordInput.value;
         const statusDiv = document.getElementById('status-message');
 
         const params = new URLSearchParams();
-        params.append('email', email);
+        params.append('nickname', nickname);
         params.append('password', password);
 
         statusDiv.classList.remove('d-none', 'alert-danger', 'alert-success');
@@ -103,7 +103,7 @@ if (loginForm) {
             statusDiv.classList.add('alert-danger');
 
             if (error.response && error.response.status === 401) {
-                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Email o contraseña incorrectos.';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> Nombre de usuario o contraseña incorrectos.';
             } else {
                 statusDiv.innerHTML = '<i class="fas fa-wifi"></i> Error de conexión.';
             }

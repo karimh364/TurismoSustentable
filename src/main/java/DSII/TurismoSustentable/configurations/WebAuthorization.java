@@ -53,6 +53,14 @@ public class WebAuthorization {
                         "/api/estaciones"
                 ).permitAll()
 
+                // Catálogos necesarios para el registro público.
+                .antMatchers(
+                        HttpMethod.GET,
+                        "/api/catalogos/generos",
+                        "/api/catalogos/tipos-documento",
+                        "/api/catalogos/paises"
+                ).permitAll()
+
                 // 3. PÁGINAS PRIVADAS
                 .antMatchers(
                         "/alquiler.html",
@@ -129,7 +137,7 @@ public class WebAuthorization {
 
         // CONFIGURACION DEL LOGIN/LOGOUT (FormLogin) - Mantiene la configuración REST
         http.formLogin()
-                .usernameParameter("email")
+                .usernameParameter("nickname")
                 .passwordParameter("password")
                 .loginPage("/api/login");
 

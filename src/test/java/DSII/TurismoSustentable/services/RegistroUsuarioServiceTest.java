@@ -2,6 +2,7 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.RegistroUsuarioDTO;
 import DSII.TurismoSustentable.dto.UsuarioDTO;
+import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.*;
 import DSII.TurismoSustentable.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -293,8 +295,8 @@ class RegistroUsuarioServiceTest {
         when(rolRepository.findByCodigo("CLIENTE"))
                 .thenReturn(Optional.empty());
 
-        IllegalStateException error = assertThrows(
-                IllegalStateException.class,
+        ConfiguracionSistemaException error = assertThrows(
+                ConfiguracionSistemaException.class,
                 () -> registroUsuarioService.registrarUsuario(datos)
         );
 
@@ -340,6 +342,150 @@ class RegistroUsuarioServiceTest {
         verify(usuarioRolRepository).flush();
     }
 
+    @Test
+    void rechazaPasswordSuperiorA72BytesAntesDeConsultarOGuardar() {
+        String password = "Aa#" + "é".repeat(34) + "aX";
+        datos.setPassword(password);
+
+        assertEquals(39, password.length());
+        assertEquals(73, password.getBytes(StandardCharsets.UTF_8).length);
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> registroUsuarioService.registrarUsuario(datos)
+        );
+
+        assertEquals(
+                "La contraseña es demasiado larga. Probá con una más corta.",
+                error.getMessage()
+        );
+        assertEquals(password, datos.getPassword());
+        verifyNoInteractions(
+                usuarioRepository, personaRepository, generoRepository,
+                tipoDocumentoRepository, paisRepository, rolRepository,
+                usuarioRolRepository, passwordEncoder
+        );
+    }
+
+    @Test
+    void permitePasswordDe72BytesSinRecortarlaAntesDeHashear() {
+        String password = "Aa?" + "é".repeat(34) + "a";
+        datos.setPassword(password);
+        assertEquals(72, password.getBytes(StandardCharsets.UTF_8).length);
+
+        prepararGuardadoDePersona();
+        when(usuarioRolRepository.save(any(UsuarioRol.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+        when(usuarioRepository.saveAndFlush(any(Usuario.class)))
+                .thenAnswer(invocacion -> {
+                    Usuario usuario = invocacion.getArgument(0);
+                    usuario.setId(17);
+                    return usuario;
+                });
+
+        UsuarioDTO resultado = registroUsuarioService.registrarUsuario(datos);
+
+        assertEquals(17, resultado.getId());
+        assertEquals(password, datos.getPassword());
+        verify(passwordEncoder).encode(password);
+    }
+
+    @Test
+    void compruebaDuplicadoDeDniConElNumeroNormalizado() {
+        datos.setNumeroDocumento("00.123.456");
+        prepararCatalogos();
+        when(personaRepository
+                .existsByTipoDocumento_IdAndPaisEmisor_IdAndNumeroDocumento(
+                        1, 1, "00123456"
+                )).thenReturn(true);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> registroUsuarioService.registrarUsuario(datos)
+        );
+
+        verify(personaRepository)
+                .existsByTipoDocumento_IdAndPaisEmisor_IdAndNumeroDocumento(
+                        1, 1, "00123456"
+                );
+        comprobarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void rechazaDniConPaisEmisorDistintoDeArgentina() {
+        pais.setCodigo("CL");
+        prepararCatalogos();
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> registroUsuarioService.registrarUsuario(datos)
+        );
+
+        assertEquals(
+                "El DNI solo se admite con Argentina como país emisor.",
+                error.getMessage()
+        );
+        comprobarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void rechazaDniConLetrasSinConvertirloEnOtroNumero() {
+        datos.setNumeroDocumento("AB123");
+        prepararCatalogos();
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> registroUsuarioService.registrarUsuario(datos)
+        );
+
+        assertEquals("AB123", datos.getNumeroDocumento());
+        comprobarQueNoSeGuardoNada();
+    }
+
+    @Test
+    void rechazaDniDeNueveDigitosAntesDeGuardarOAsignarRoles() {
+        datos.setNumeroDocumento("123456789");
+        prepararCatalogos();
+
+        IllegalArgumentException error = assertThrows(
+                IllegalArgumentException.class,
+                () -> registroUsuarioService.registrarUsuario(datos)
+        );
+
+        assertEquals("El DNI no puede superar los 8 dígitos.", error.getMessage());
+        assertEquals("123456789", datos.getNumeroDocumento());
+        comprobarQueNoSeGuardoNada();
+        verifyNoInteractions(personaRepository, rolRepository);
+    }
+
+    @Test
+    void guardaPasaporteCanonicoConPaisExtranjero() {
+        tipoDocumento.setCodigo("PASAPORTE");
+        pais.setCodigo("CL");
+        datos.setNumeroDocumento(" ab 001234 ");
+        prepararGuardadoDePersona();
+        when(usuarioRolRepository.save(any(UsuarioRol.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+        when(usuarioRepository.saveAndFlush(any(Usuario.class)))
+                .thenAnswer(invocacion -> {
+                    Usuario usuario = invocacion.getArgument(0);
+                    usuario.setId(17);
+                    return usuario;
+                });
+
+        registroUsuarioService.registrarUsuario(datos);
+
+        ArgumentCaptor<Persona> personaCaptor = ArgumentCaptor.forClass(Persona.class);
+        verify(personaRepository).save(personaCaptor.capture());
+        assertEquals("AB001234", personaCaptor.getValue().getNumeroDocumento());
+        assertEquals("PASAPORTE", personaCaptor.getValue().getTipoDocumento().getCodigo());
+        assertEquals("CL", personaCaptor.getValue().getPaisEmisor().getCodigo());
+        verify(personaRepository)
+                .existsByTipoDocumento_IdAndPaisEmisor_IdAndNumeroDocumento(
+                        1, 1, "AB001234"
+                );
+    }
+
     private void prepararCatalogos() {
         when(generoRepository.findById(1)).thenReturn(Optional.of(genero));
         when(tipoDocumentoRepository.findById(1))
@@ -356,7 +502,7 @@ class RegistroUsuarioServiceTest {
         when(rolRepository.findByCodigo("CLIENTE"))
                 .thenReturn(Optional.of(rolCliente));
 
-        when(passwordEncoder.encode("Clave#123"))
+        when(passwordEncoder.encode(datos.getPassword()))
                 .thenReturn(HASH_SIMULADO);
 
         when(personaRepository.save(any(Persona.class)))

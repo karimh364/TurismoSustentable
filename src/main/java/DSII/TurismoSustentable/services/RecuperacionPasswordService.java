@@ -192,16 +192,23 @@ public class RecuperacionPasswordService {
     private void validarPassword(String password) {
 
         if (password == null
+                || password.length() < 6
+                || password.length() > 64
                 || !password.matches(
-                "^(?=.*[a-z])(?=.*[A-Z])"
-                        + "(?=.*[!@#$&*])"
-                        + "(?=\\S+$).{6,64}$"
+                "(?U)^(?=.*[a-z])(?=.*[A-Z])"
+                        + "(?=.*[\\p{P}\\p{S}])\\S+$"
         )) {
 
             throw new IllegalArgumentException(
-                    "La clave debe tener entre 6 y 64 caracteres, "
+                    "La contraseña debe tener entre 6 y 64 caracteres, "
                             + "una minúscula, una mayúscula, "
-                            + "un carácter especial y ningún espacio."
+                            + "un signo de puntuación o símbolo y ningún espacio."
+            );
+        }
+
+        if (password.getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException(
+                    "La contraseña es demasiado larga. Probá con una más corta."
             );
         }
     }

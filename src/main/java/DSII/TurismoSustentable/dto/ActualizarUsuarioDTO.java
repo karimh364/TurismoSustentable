@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.dto;
 
+import DSII.TurismoSustentable.validation.NormalizacionNombre;
+
 import javax.validation.constraints.*;
 import java.time.LocalDate;
 import java.util.Locale;
@@ -9,16 +11,16 @@ public class ActualizarUsuarioDTO {
     @NotBlank(message = "El nombre no puede estar vacío.")
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El nombre solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El nombre debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     private String nombre;
 
     @NotBlank(message = "El apellido no puede estar vacío.")
     @Size(max = 50, message = "El apellido no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El apellido solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El apellido debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     private String apellido;
 
@@ -50,7 +52,7 @@ public class ActualizarUsuarioDTO {
     }
 
     public void setNombre(String nombre) {
-        this.nombre = nombre == null ? null : nombre.trim();
+        this.nombre = NormalizacionNombre.normalizar(nombre);
     }
 
     public String getApellido() {
@@ -58,7 +60,7 @@ public class ActualizarUsuarioDTO {
     }
 
     public void setApellido(String apellido) {
-        this.apellido = apellido == null ? null : apellido.trim();
+        this.apellido = NormalizacionNombre.normalizar(apellido);
     }
 
     public String getEmail() {

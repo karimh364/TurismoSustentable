@@ -1,9 +1,11 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.validation.DocumentoIdentidad;
+import DSII.TurismoSustentable.validation.NormalizacionNombre;
+
 import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.time.LocalDate;
-import java.util.Locale;
 
 @Entity
 @Table(
@@ -28,8 +30,8 @@ public class Persona {
     @NotBlank(message = "El nombre no puede estar vacío.")
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El nombre solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El nombre debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     @Column(nullable = false, length = 50)
     private String nombre;
@@ -37,8 +39,8 @@ public class Persona {
     @NotBlank(message = "El apellido no puede estar vacío.")
     @Size(max = 50, message = "El apellido no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El apellido solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El apellido debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     @Column(nullable = false, length = 50)
     private String apellido;
@@ -60,10 +62,14 @@ public class Persona {
 
     @NotBlank(message = "El número de documento es obligatorio.")
     @Size(
-            max = 50,
+            max = DocumentoIdentidad.LONGITUD_MAXIMA,
             message = "El número de documento no puede superar los 50 caracteres."
     )
-    @Column(name = "numero_documento", nullable = false, length = 50)
+    @Pattern(
+            regexp = "^$|^[A-Z0-9]+$",
+            message = "El documento debe guardarse sin espacios o símbolos y con las letras en mayúsculas."
+    )
+    @Column(name = "numero_documento", nullable = false, length = DocumentoIdentidad.LONGITUD_MAXIMA)
     private String numeroDocumento;
 
     @NotNull(message = "El país emisor del documento es obligatorio.")
@@ -101,7 +107,7 @@ public class Persona {
     }
 
     public void setNombre(String nombre) {
-        this.nombre = nombre == null ? null : nombre.trim();
+        this.nombre = NormalizacionNombre.normalizar(nombre);
     }
 
     public String getApellido() {
@@ -109,7 +115,7 @@ public class Persona {
     }
 
     public void setApellido(String apellido) {
-        this.apellido = apellido == null ? null : apellido.trim();
+        this.apellido = NormalizacionNombre.normalizar(apellido);
     }
 
     public LocalDate getFechaNacimiento() {
@@ -134,6 +140,7 @@ public class Persona {
 
     public void setTipoDocumento(TipoDocumento tipoDocumento) {
         this.tipoDocumento = tipoDocumento;
+        setNumeroDocumento(this.numeroDocumento);
     }
 
     public String getNumeroDocumento() {
@@ -141,9 +148,10 @@ public class Persona {
     }
 
     public void setNumeroDocumento(String numeroDocumento) {
-        this.numeroDocumento = numeroDocumento == null
-                ? null
-                : numeroDocumento.trim().toUpperCase(Locale.ROOT);
+        this.numeroDocumento = DocumentoIdentidad.normalizar(
+                numeroDocumento,
+                tipoDocumento == null ? null : tipoDocumento.getCodigo()
+        );
     }
 
     public Pais getPaisEmisor() {

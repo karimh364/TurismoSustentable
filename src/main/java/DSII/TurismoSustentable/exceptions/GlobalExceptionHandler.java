@@ -1,6 +1,8 @@
 package DSII.TurismoSustentable.exceptions;
 
 import org.springframework.http.HttpStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -17,6 +19,17 @@ import java.util.stream.Collectors; // <-- Asegúrate de tener esta importación
 // Esta anotación hace que esta clase escuche errores en todos los @Controllers
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ExceptionHandler(ConfiguracionSistemaException.class)
+    public String handleConfiguracionSistema(ConfiguracionSistemaException ex) {
+        LOGGER.error("Configuración interna inconsistente al procesar una operación.", ex);
+        return "No se pudo completar la operación por un problema interno. " +
+                "Intentá nuevamente más tarde.";
+    }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)

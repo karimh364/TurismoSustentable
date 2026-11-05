@@ -27,6 +27,10 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
             String tokenRecuperacion
     );
 
+    @EntityGraph(attributePaths = {
+            "persona.genero",
+            "usuarioRoles.rol"
+    })
     Optional<Usuario> findByNicknameIgnoreCase(String nickname);
 
     boolean existsByNicknameIgnoreCase(String nickname);

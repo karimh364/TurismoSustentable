@@ -16,24 +16,33 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UsuarioController.class)
 @ContextConfiguration(classes = {
         UsuarioController.class,
-        WebAuthorization.class
+        WebAuthorization.class,
+        SecurityConfig.class
 })
 class WebAuthorizationTest {
 
@@ -41,6 +50,9 @@ class WebAuthorizationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @MockBean
     private UsuarioRepository usuarioRepository;
@@ -54,7 +66,7 @@ class WebAuthorizationTest {
     @MockBean
     private RegistroUsuarioService registroUsuarioService;
 
-    // El login se prueba aparte; aquí simulamos usuarios autenticados.
+    // Simulamos la carga de cuentas; los filtros y BCrypt son reales.
     @MockBean
     private UserDetailsService userDetailsService;
 
@@ -129,6 +141,88 @@ class WebAuthorizationTest {
         verify(usuarioRepository).buscarActivosConDatosYRoles();
         verify(usuarioRepository).buscarPorIdConDatosYRoles(17);
         verifyNoMoreInteractions(usuarioRepository);
+    }
+
+    @Test
+    void iniciaSesionConNicknameYConsultaPerfilEnLaMismaSesion()
+            throws Exception {
+
+        Usuario usuario = crearUsuario("CLIENTE");
+
+        String password = "Clave#123";
+        String passwordHasheada = passwordEncoder.encode(password);
+        usuario.setPassword(passwordHasheada);
+
+        when(userDetailsService.loadUserByUsername(usuario.getNickname()))
+                .thenReturn(
+                        User.withUsername(EMAIL)
+                                .password(passwordHasheada)
+                                .authorities("CLIENTE")
+                                .build()
+                );
+
+        when(usuarioRepository.buscarPorEmailConDatosYRoles(EMAIL))
+                .thenReturn(Optional.of(usuario));
+
+        MvcResult resultado = mockMvc.perform(
+                        post("/api/login")
+                                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                                .param("nickname", usuario.getNickname())
+                                .param("password", password)
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MockHttpSession sesion =
+                (MockHttpSession) resultado.getRequest().getSession(false);
+
+        assertNotNull(
+                sesion,
+                "El login debe crear una sesión autenticada."
+        );
+
+        mockMvc.perform(
+                        get("/api/usuarios/actual")
+                                .session(sesion)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(17))
+                .andExpect(jsonPath("$.email").value(EMAIL))
+                .andExpect(
+                        jsonPath("$.nickname").value(usuario.getNickname())
+                )
+                .andExpect(jsonPath("$.roles[0]").value("CLIENTE"));
+
+        verify(userDetailsService)
+                .loadUserByUsername(usuario.getNickname());
+
+        verify(usuarioRepository)
+                .buscarPorEmailConDatosYRoles(EMAIL);
+
+        verifyNoMoreInteractions(
+                userDetailsService,
+                usuarioRepository
+        );
+    }
+
+    @Test
+    void rechazaParametroEmailEnLugarDeNickname() throws Exception {
+        when(userDetailsService.loadUserByUsername(""))
+                .thenThrow(
+                        new UsernameNotFoundException("Usuario desconocido.")
+                );
+
+        mockMvc.perform(
+                        post("/api/login")
+                                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                                .param("email", EMAIL)
+                                .param("password", "Clave#123")
+                )
+                .andExpect(status().isUnauthorized());
+
+        verify(userDetailsService).loadUserByUsername("");
+        verifyNoMoreInteractions(userDetailsService);
+        verifyNoInteractions(usuarioRepository);
     }
 
     private void comprobarPerfilPropio(String codigoRol)

@@ -121,7 +121,7 @@ function alquilarBici(estacionId) {
 
                 setTimeout(() => {
                     document
-                        .getElementById('login-email')
+                        .getElementById('login-nickname')
                         ?.focus();
                 }, 600);
             }

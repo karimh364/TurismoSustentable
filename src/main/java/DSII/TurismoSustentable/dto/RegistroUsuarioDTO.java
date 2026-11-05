@@ -1,6 +1,8 @@
 package DSII.TurismoSustentable.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import DSII.TurismoSustentable.validation.DocumentoIdentidad;
+import DSII.TurismoSustentable.validation.NormalizacionNombre;
 
 import javax.validation.constraints.*;
 import java.time.LocalDate;
@@ -11,16 +13,16 @@ public class RegistroUsuarioDTO {
     @NotBlank(message = "El nombre no puede estar vacío.")
     @Size(max = 50, message = "El nombre no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El nombre solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El nombre debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     private String nombre;
 
     @NotBlank(message = "El apellido no puede estar vacío.")
     @Size(max = 50, message = "El apellido no puede superar los 50 caracteres.")
     @Pattern(
-            regexp = "^$|^[\\p{L}]+(?:[ '\\-][\\p{L}]+)*$",
-            message = "El apellido solo puede contener letras, espacios, apóstrofes o guiones."
+            regexp = NormalizacionNombre.PATRON,
+            message = "El apellido debe contener letras y separaciones simples por espacios, apóstrofes o guiones, sin separadores al inicio o al final."
     )
     private String apellido;
 
@@ -38,7 +40,7 @@ public class RegistroUsuarioDTO {
 
     @NotBlank(message = "El número de documento es obligatorio.")
     @Size(
-            max = 50,
+            max = DocumentoIdentidad.LONGITUD_MAXIMA,
             message = "El número de documento no puede superar los 50 caracteres."
     )
     private String numeroDocumento;
@@ -79,8 +81,8 @@ public class RegistroUsuarioDTO {
             message = "La clave debe tener entre 6 y 64 caracteres."
     )
     @Pattern(
-            regexp = "^$|^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$&*])(?=\\S+$).+$",
-            message = "La clave debe contener una minúscula, una mayúscula, al menos uno de !@#$&* y no debe tener espacios."
+            regexp = "(?U)^$|^(?=.*[a-z])(?=.*[A-Z])(?=.*[\\p{P}\\p{S}])\\S+$",
+            message = "La clave debe contener una minúscula, una mayúscula y al menos un signo de puntuación o símbolo, sin espacios."
     )
     private String password;
 
@@ -92,7 +94,7 @@ public class RegistroUsuarioDTO {
     }
 
     public void setNombre(String nombre) {
-        this.nombre = nombre == null ? null : nombre.trim();
+        this.nombre = NormalizacionNombre.normalizar(nombre);
     }
 
     public String getApellido() {
@@ -100,7 +102,7 @@ public class RegistroUsuarioDTO {
     }
 
     public void setApellido(String apellido) {
-        this.apellido = apellido == null ? null : apellido.trim();
+        this.apellido = NormalizacionNombre.normalizar(apellido);
     }
 
     public LocalDate getFechaNacimiento() {
@@ -132,9 +134,7 @@ public class RegistroUsuarioDTO {
     }
 
     public void setNumeroDocumento(String numeroDocumento) {
-        this.numeroDocumento = numeroDocumento == null
-                ? null
-                : numeroDocumento.trim().toUpperCase(Locale.ROOT);
+        this.numeroDocumento = DocumentoIdentidad.normalizarBase(numeroDocumento);
     }
 
     public Integer getPaisEmisorId() {

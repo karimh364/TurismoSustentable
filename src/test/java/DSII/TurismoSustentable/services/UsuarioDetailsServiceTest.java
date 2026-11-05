@@ -31,6 +31,7 @@ import static org.mockito.Mockito.*;
 class UsuarioDetailsServiceTest {
 
     private static final String EMAIL = "ana@example.com";
+    private static final String NICKNAME = "ana.perez";
     private static final String HASH = "hash-simulado-para-test";
 
     @Mock
@@ -48,7 +49,7 @@ class UsuarioDetailsServiceTest {
         prepararBusqueda(usuario);
 
         UserDetails resultado = usuarioDetailsService
-                .loadUserByUsername(" ANA@EXAMPLE.COM ");
+                .loadUserByUsername(" ANA.PEREZ ");
 
         assertEquals(EMAIL, resultado.getUsername());
         assertEquals(HASH, resultado.getPassword());
@@ -64,7 +65,7 @@ class UsuarioDetailsServiceTest {
         assertEquals(2, resultado.getAuthorities().size());
 
         verify(usuarioRepository)
-                .buscarPorEmailConDatosYRoles(EMAIL);
+                .findByNicknameIgnoreCase(NICKNAME);
         verifyNoMoreInteractions(usuarioRepository);
     }
 
@@ -77,19 +78,19 @@ class UsuarioDetailsServiceTest {
         prepararBusqueda(usuario);
 
         UserDetails resultado =
-                usuarioDetailsService.loadUserByUsername(EMAIL);
+                usuarioDetailsService.loadUserByUsername(NICKNAME);
 
         assertFalse(resultado.isEnabled());
     }
 
     @Test
     void rechazaUsuarioInexistente() {
-        when(usuarioRepository.buscarPorEmailConDatosYRoles(EMAIL))
+        when(usuarioRepository.findByNicknameIgnoreCase(NICKNAME))
                 .thenReturn(Optional.empty());
 
         assertThrows(
                 UsernameNotFoundException.class,
-                () -> usuarioDetailsService.loadUserByUsername(EMAIL)
+                () -> usuarioDetailsService.loadUserByUsername(NICKNAME)
         );
     }
 
@@ -100,7 +101,7 @@ class UsuarioDetailsServiceTest {
 
         UsernameNotFoundException error = assertThrows(
                 UsernameNotFoundException.class,
-                () -> usuarioDetailsService.loadUserByUsername(EMAIL)
+                () -> usuarioDetailsService.loadUserByUsername(NICKNAME)
         );
 
         assertEquals(
@@ -110,13 +111,13 @@ class UsuarioDetailsServiceTest {
     }
 
     @Test
-    void rechazaEmailNuloOVacioSinConsultarLaBase() {
+    void rechazaNicknameNuloOVacioSinConsultarLaBase() {
         String[] invalidos = {null, "", "   "};
 
-        for (String email : invalidos) {
+        for (String nickname : invalidos) {
             assertThrows(
                     UsernameNotFoundException.class,
-                    () -> usuarioDetailsService.loadUserByUsername(email)
+                    () -> usuarioDetailsService.loadUserByUsername(nickname)
             );
         }
 
@@ -131,12 +132,12 @@ class UsuarioDetailsServiceTest {
         prepararBusqueda(usuario);
 
         UserDetails primero =
-                usuarioDetailsService.loadUserByUsername(EMAIL);
+                usuarioDetailsService.loadUserByUsername(NICKNAME);
 
         ((CredentialsContainer) primero).eraseCredentials();
 
         UserDetails segundo =
-                usuarioDetailsService.loadUserByUsername(EMAIL);
+                usuarioDetailsService.loadUserByUsername(NICKNAME);
 
         assertNotSame(primero, segundo);
         assertNull(primero.getPassword());
@@ -145,7 +146,7 @@ class UsuarioDetailsServiceTest {
         assertEquals(Set.of("CLIENTE"), autoridades(segundo));
 
         verify(usuarioRepository, times(2))
-                .buscarPorEmailConDatosYRoles(EMAIL);
+                .findByNicknameIgnoreCase(NICKNAME);
     }
 
     private Usuario crearUsuario() {
@@ -187,7 +188,7 @@ class UsuarioDetailsServiceTest {
     }
 
     private void prepararBusqueda(Usuario usuario) {
-        when(usuarioRepository.buscarPorEmailConDatosYRoles(EMAIL))
+        when(usuarioRepository.findByNicknameIgnoreCase(NICKNAME))
                 .thenReturn(Optional.of(usuario));
     }
 

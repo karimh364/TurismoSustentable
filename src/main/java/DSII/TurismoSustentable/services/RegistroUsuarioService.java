@@ -2,6 +2,8 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.RegistroUsuarioDTO;
 import DSII.TurismoSustentable.dto.UsuarioDTO;
+import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
+import DSII.TurismoSustentable.validation.DocumentoIdentidad;
 import DSII.TurismoSustentable.models.Genero;
 import DSII.TurismoSustentable.models.Pais;
 import DSII.TurismoSustentable.models.Persona;
@@ -23,6 +25,7 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import java.nio.charset.StandardCharsets;
 
 @Service
 @Validated
@@ -63,6 +66,12 @@ public class RegistroUsuarioService {
             @Valid RegistroUsuarioDTO datos
     ) {
 
+        if (datos.getPassword().getBytes(StandardCharsets.UTF_8).length > 72) {
+            throw new IllegalArgumentException(
+                    "La contraseña es demasiado larga. Probá con una más corta."
+            );
+        }
+
         // Comprobar identificadores, incluyendo cuentas inactivas.
         if (usuarioRepository.existsByEmailIgnoreCase(datos.getEmail())) {
             throw new IllegalStateException(
@@ -93,11 +102,17 @@ public class RegistroUsuarioService {
                         "El país emisor seleccionado no existe."
                 ));
 
+        String numeroDocumento = DocumentoIdentidad.validarYNormalizar(
+                datos.getNumeroDocumento(),
+                tipoDocumento.getCodigo(),
+                paisEmisor.getCodigo()
+        );
+
         boolean documentoOcupado = personaRepository
                 .existsByTipoDocumento_IdAndPaisEmisor_IdAndNumeroDocumento(
                         datos.getTipoDocumentoId(),
                         datos.getPaisEmisorId(),
-                        datos.getNumeroDocumento()
+                        numeroDocumento
                 );
 
         if (documentoOcupado) {
@@ -109,7 +124,7 @@ public class RegistroUsuarioService {
 
         // El registro público siempre asigna CLIENTE desde el catálogo.
         Rol rolCliente = rolRepository.findByCodigo("CLIENTE")
-                .orElseThrow(() -> new IllegalStateException(
+                .orElseThrow(() -> new ConfiguracionSistemaException(
                         "El rol CLIENTE no está configurado."
                 ));
 
@@ -124,7 +139,7 @@ public class RegistroUsuarioService {
                 datos.getFechaNacimiento(),
                 genero,
                 tipoDocumento,
-                datos.getNumeroDocumento(),
+                numeroDocumento,
                 paisEmisor
         );
 

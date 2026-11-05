@@ -25,19 +25,19 @@ public class UsuarioDetailsService implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) {
+    public UserDetails loadUserByUsername(String nickname) {
 
-        if (email == null || email.trim().isEmpty()) {
+        if (nickname == null || nickname.trim().isEmpty()) {
             throw new UsernameNotFoundException(
                     "Usuario desconocido."
             );
         }
 
-        String emailNormalizado =
-                email.trim().toLowerCase(Locale.ROOT);
+        String nicknameNormalizado =
+                nickname.trim().toLowerCase(Locale.ROOT);
 
         Usuario usuario = usuarioRepository
-                .buscarPorEmailConDatosYRoles(emailNormalizado)
+                .findByNicknameIgnoreCase(nicknameNormalizado)
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Usuario desconocido."
                 ));
@@ -53,6 +53,7 @@ public class UsuarioDetailsService implements UserDetailsService {
             );
         }
 
+        // Conservamos la identidad interna que usan los demás servicios.
         return new User(
                 usuario.getEmail(),
                 usuario.getPassword(),
