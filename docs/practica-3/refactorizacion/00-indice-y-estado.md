@@ -1,6 +1,6 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 4 de noviembre de 2026.
+Actualizado: 7 de noviembre de 2026.
 
 ## Cómo leer la documentación
 
@@ -10,6 +10,10 @@ Actualizado: 4 de noviembre de 2026.
 - **Verificada**: requiere pruebas ejecutadas con su resultado y evidencia. Una prueba escrita en un documento no equivale a una prueba superada.
 
 El estado actual del código y sus verificaciones se consulta en [37-implementacion-entidades.md](37-implementacion-entidades.md). Los documentos de diseño conservan sus antecedentes y aprobaciones históricas; sus frases originales sobre implementación no reemplazan ese registro. Las mejoras surgidas de la comparación de copias están en [38-mejoras-futuras-desde-version-companero.md](38-mejoras-futuras-desde-version-companero.md) y siguen pendientes de confirmación.
+
+La corrección de inventario aprobada el 6 de noviembre, [RN-INV-01, sección 7 del documento 26](26-revision-estaciones-tipos-y-bicicletas.md), conserva BICICLETA.borrado_bici separado de DE_BAJA e incorpora ESTACION.es_publica para Taller interno. Baja definitiva y borrado se registran solo desde Taller; INACTIVA no exige traslado y la presencia física conserva su ocupación. El 7 de noviembre se confirmó que, por el momento, Uso se fija al crear y no se reclasifica en la edición común. Los artefactos Mermaid y TXT siguen representando 29 entidades y 55 FK/relaciones. La separación pública/interna de estaciones y el conteo físico ya tienen implementación y comprobaciones; la migración de estados de bicicleta y el recorrido completo de baja/archivo desde Taller siguen pendientes. La antigua propuesta de eliminar el flag queda corregida.
+
+Último bloque verificado, 7 de noviembre: las etapas 81 a 95 del documento 37 registran la corrección de sesión, 59 pruebas Java y 17 JavaScript superadas, y la ronda manual de estaciones (altas pública/interna, mapa, Uso, edición, formulario desactualizado, capacidad y bajas). No equivale a completar todo el DERv5 ni a haber probado la expiración real por tiempo. Se prepara el siguiente bloque de inventario: convertir los catálogos todavía representados como enums, comenzando por TIPO_BICICLETA, sin fijar silenciosamente tarifas o intervalos aún pendientes.
 
 ## Fuentes que deben contrastarse antes de proponer cambios
 
@@ -23,7 +27,7 @@ El 28 de octubre de 2026 el usuario ratificó que el desarrollo principal es est
 
 Se inspeccionaron en modo lectura las copias entrega-v3.2-registro-imagenes-admin y entrega-v3.6-correos-y-libro-diario. La comparación de la v3.6 con la v3.2 confirmó nuevas funciones de correo, comprobantes y cierre diario, pero conserva diferencias con las reglas aprobadas de este repositorio. No se integraron esas copias ni se reprodujeron sus pruebas durante la revisión. El documento 38 registra propuestas de mejora, no una autorización para sustituir esta base ni importar su SQL.
 
-Como referencia histórica, el diagnóstico anterior a la implementación tomó main en ab91d6a, su CommandLineRunner y el enum de rol único. Esa descripción no es el estado actual de la refactorización. El trabajo continúa en codex/refactorizacion-practicas-iii; el avance manual, la retirada de datos duplicados y carga inicial antigua, el registro mediante DTO y las comprobaciones efectivas están documentados en el archivo 37. Rol ya se incorporó como entidad; el enum CodigoRol permanece solo durante la adaptación de sus consumidores y no es el modelo final.
+Como referencia histórica, el diagnóstico anterior a la implementación tomó main en ab91d6a, su CommandLineRunner y el enum de rol único. Esa descripción no es el estado actual de la refactorización. El trabajo continúa en codex/refactorizacion-practicas-iii; el avance manual, la retirada de datos duplicados y carga inicial antigua, el registro mediante DTO y las comprobaciones efectivas están documentados en el archivo 37. Rol, UsuarioRol y su clave compuesta ya se incorporaron como entidades; CodigoRol ya no existe ni tiene referencias en src. TipoBicicleta y EstadoBicicleta todavía son enums del modelo anterior, pendientes de adaptación conforme al DERv5.
 
 ## Documentos y decisiones
 
@@ -54,7 +58,7 @@ Como referencia histórica, el diagnóstico anterior a la implementación tomó 
 | [23-pasarela-mercadopago-y-pruebas.md](23-pasarela-mercadopago-y-pruebas.md) | Mercado Pago elegido, responsabilidades del sistema, pruebas y propuesta de adaptador local | Pasarela elegida para futura integración; modalidad y simulador pendientes, no implementado |
 | [24-propuesta-historial-financiero.md](24-propuesta-historial-financiero.md) | Historial completo de estados de cada pago y reembolso, sin sobrescribir intentos ni duplicar dinero | Incorporación aprobada y conservada en el DER vigente; sin implementación en Java ni base de datos |
 | [25-revision-personas-usuarios-y-roles.md](25-revision-personas-usuarios-y-roles.md) | Campos, claves, documento obligatorio, catálogos, nickname y roles | Las tres incorporaciones aprobadas e integradas al Mermaid, con unicidad documental compuesta y email/nickname independientes; diseño físico y código pendientes |
-| [26-revision-estaciones-tipos-y-bicicletas.md](26-revision-estaciones-tipos-y-bicicletas.md) | Campos, capacidad física, tarifa por tipo, preventiva, ubicación y RN-EST-01 | Baja exclusivamente lógica de estación aprobada y aclarada en el Mermaid; se preservan referencias y auditoría; no implementada en Java ni base de datos |
+| [26-revision-estaciones-tipos-y-bicicletas.md](26-revision-estaciones-tipos-y-bicicletas.md) | Campos, capacidad física, tarifa por tipo, preventiva, RN-EST-01 y RN-INV-01 | Aprobados baja lógica de estación, Taller interno, borrado separado de DE_BAJA y sus condiciones; nuevos campos reflejados en el DER; código efectivo en documento 37 |
 | [27-revision-ordenes-e-historial-mantenimiento.md](27-revision-ordenes-e-historial-mantenimiento.md) | Campos y relaciones de mantenimiento, transiciones, asignaciones y costos | Historial ampliado y renombrado a HISTORIAL_ORDEN_MANTENIMIENTO conforme a RN-TRZ-01; se mantienen diagnóstico y ARS; Java y base sin cambios |
 | [28-revision-alquiler-y-detalles.md](28-revision-alquiler-y-detalles.md) | Claves, fechas, importes, cierre operativo, liquidación y trazabilidad por unidad | Se agrega incidencia_corte_id opcional, FK/UK, conforme a RN-TRZ-01; conserva unicidad alquiler/bicicleta y tipo contratado; Java y base sin cambios |
 | [29-propuesta-precision-tiempo-y-redondeos.md](29-propuesta-precision-tiempo-y-redondeos.md) | RN-ALQ-10: segundos completos, redondeos por detalle y suma del conjunto | Aprobada y reflejada en comentarios del DER; ejemplos verificados aritméticamente, implementación Java y SQL pendientes |
@@ -69,6 +73,8 @@ Como referencia histórica, el diagnóstico anterior a la implementación tomó 
 | [38-mejoras-futuras-desde-version-companero.md](38-mejoras-futuras-desde-version-companero.md) | Mejoras técnicas, cola de correos, comprobantes, reporte financiero, último ADMIN y cierres opcionales | Propuestas documentadas a pedido; pendientes de confirmación; sin cambios al DER o Java |
 
 Modelo editable asociado: [der-v5-propuesto.mmd](der-v5-propuesto.mmd). No sustituye ni sobrescribe DERv4.txt.
+
+Exportación Mermaid sincronizada para entregar: [DERv5.txt](../entregables/DERv5.txt). La corrección de inventario no agrega un estado al catálogo. El Word de estados entregado anteriormente no se regeneró en esta corrección; las condiciones administrativas vigentes se consultan en RN-INV-01 y el diccionario de trabajo del documento 08.
 
 ## Próximo punto de definición
 

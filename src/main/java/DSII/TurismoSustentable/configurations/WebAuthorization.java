@@ -154,8 +154,23 @@ public class WebAuthorization {
         http.csrf().disable();
         http.headers().frameOptions().disable();
 
-        http.exceptionHandling().authenticationEntryPoint((req, res, exc) ->
-                res.sendError(HttpServletResponse.SC_UNAUTHORIZED));
+        http.exceptionHandling()
+                .authenticationEntryPoint((req, res, exc) -> {
+                    if (esPaginaPrivada(req)) {
+                        res.sendRedirect(req.getContextPath()
+                                + "/index.html?sesion=requerida#login-anchor");
+                    } else {
+                        res.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                    }
+                })
+                .accessDeniedHandler((req, res, exc) -> {
+                    if (esPaginaPrivada(req)) {
+                        res.sendRedirect(req.getContextPath()
+                                + "/index.html?acceso=denegado#login-anchor");
+                    } else {
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN);
+                    }
+                });
 
         http.formLogin().successHandler((req, res, auth) ->
                 clearAuthenticationAttributes(req));
@@ -164,6 +179,17 @@ public class WebAuthorization {
                 res.sendError(HttpServletResponse.SC_UNAUTHORIZED));
 
         return http.build();
+    }
+
+    // Solo las páginas privadas redirigen; las APIs conservan 401/403.
+    private boolean esPaginaPrivada(HttpServletRequest request) {
+        if (!"GET".equals(request.getMethod())) {
+            return false;
+        }
+        String ruta = request.getServletPath();
+        return "/admin.html".equals(ruta)
+                || "/alquiler.html".equals(ruta)
+                || "/mis_alquileres.html".equals(ruta);
     }
 
     // Función de utilidad requerida por el successHandler

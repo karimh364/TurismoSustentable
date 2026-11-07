@@ -14,7 +14,16 @@ public interface EstacionRepository extends JpaRepository<Estacion, Integer> {
 
     // Útil para buscar una estación por su nombre
     Optional<Estacion> findByNombre(String nombre);
+
+    boolean existsByNombreIgnoreCase(String nombre);
+
+    boolean existsByNombreIgnoreCaseAndIdNot(
+            String nombre,
+            Integer id
+    );
+
     List<Estacion> findByBorradoEstacionFalse();
+    List<Estacion> findByBorradoEstacionFalseAndEsPublicaTrue();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Estacion e " +

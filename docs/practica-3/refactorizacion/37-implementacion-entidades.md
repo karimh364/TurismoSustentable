@@ -3622,3 +3622,2936 @@ código de producción o tests en esta intervención.
   suman a ese total JUnit. La entrega por Mailjet sigue pendiente de una
   configuración y casilla reales; no bloquea la constatación local de las
   validaciones, pero no debe darse por verificada.
+
+## Bloque 5 Adaptación de estaciones
+
+### Etapa 1 Versionado optimista de la entidad
+
+Fecha: 5 de noviembre de 2026.
+
+Estado: implementado manualmente por el usuario y revisado en el archivo.
+El usuario informó compileJava correcto en 9 s, una tarea ejecutada. En esta
+revisión no se repitió la compilación ni se reinició la aplicación.
+
+- El bloque anterior quedó guardado en el commit 72943b5, «Completar registro,
+  recuperacion y pruebas de usuarios», en codex/refactorizacion-practicas-iii.
+  Al revisar, el único fuente modificado desde ese commit era Estacion.java.
+- Se verificaron el import JsonProperty, el campo Integer version con
+  @Version de javax.persistence, @Column(name="version", nullable=false),
+  acceso JSON READ_ONLY y getter público sin setter. Los cambios coinciden
+  con el paso propuesto; no se alteraron otros campos o relaciones.
+- El atributo ya figura en ESTACION del DER v5. Hibernate administra su
+  versión al persistir/actualizar; no reemplaza los bloqueos transaccionales
+  que coordinan capacidad, ingresos o baja lógica.
+- Esto no detecta por sí solo un formulario antiguo: la edición todavía
+  recibe la entidad y no compara una versión esperada del cliente. Falta
+  exponer la versión en EstacionDTO y adaptar luego el contrato/servicio de
+  actualización. No se declara ese recorrido implementado o probado.
+- El siguiente paso manual propuesto es agregar version al DTO de salida,
+  copiarla en su constructor y exponer su getter, sin modificar conteos de
+  disponibilidad/ocupación ni el frontend. Aún no se implementó ese paso
+  durante esta revisión. Tampoco se verificó la nueva columna contra MySQL;
+  se conservaron las cuentas QA, la instancia activa y la configuración.
+
+### Etapa 2 Versión incluida en la respuesta de estaciones
+
+Fecha: 5 de noviembre de 2026.
+
+Estado: el usuario informó haber completado el paso y se verificó el archivo.
+En esta revisión no se ejecutaron compilación, pruebas o reinicio; no se
+presenta una nueva salida de compileJava que no fue aportada en este turno.
+
+- EstacionDTO incorpora Integer version, la asignación desde
+  estacion.getVersion() en el constructor y el getter público getVersion().
+  El diff confirma únicamente esas tres incorporaciones en el DTO; los
+  datos anteriores y cálculos de bicicletas/espacios permanecen iguales.
+- La respuesta queda preparada para incluir la versión de la entidad una
+  vez cargada por Hibernate. El cambio no agrega ni modifica una columna
+  por sí mismo; tampoco comprueba que el formulario envíe una versión o
+  que el servicio rechace una edición obsoleta. Ese control sigue pendiente.
+- El siguiente paso manual propuesto es ActualizarEstacionDTO, con los
+  cinco datos editables de la estación y una versión esperada obligatoria
+  y no negativa. Se mantendrán los tipos actuales de las coordenadas y
+  el tamaño implícito existente de 255 para nombre/dirección; sus rangos
+  se alinearán con los aprobados en el documento 26. La entidad sigue
+  siendo la propietaria de @Version, no el DTO de entrada.
+- Ese archivo no se creó durante esta revisión: la conexión de ese DTO
+  con el servicio, controlador y formulario se hará en los siguientes
+  pasos. Se conserva la modalidad manual solicitada y no se alteraron
+  fuentes, bases, sesiones, Git ni los usuarios de prueba.
+
+### Etapa 3 Contrato de edición de estaciones
+
+Fecha: 5 de noviembre de 2026.
+
+Estado: ActualizarEstacionDTO fue creado manualmente por el usuario y se
+revisó su contenido. No se ejecutaron nuevas pruebas, compilación o arranque
+durante esta revisión; la validación HTTP del nuevo DTO aún no está conectada.
+
+- Se verificaron el paquete dto, constructor vacío, seis atributos y sus
+  getters/setters: nombre, direccion, capacidad, latitud, longitud y version.
+  Nombre/dirección se normalizan unificando espacios y recortando extremos;
+  son obligatorios y tienen máximo 255, como la capacidad SQL implícita actual.
+  Capacidad es Integer obligatoria/mínimo uno. Coordenadas son Double
+  obligatorios con rangos inclusivos [-90,90] y [-180,180]. La versión esperada
+  es Integer obligatoria/no negativa, recibida con setter y sin @Version.
+- El código coincide con la propuesta. No incorpora identificador, flag
+  de baja o colecciones como datos editables y no modifica la entidad,
+  contratos HTTP o frontend actuales por el solo hecho de existir.
+- Se releyó el recorrido de EstacionController y los repositorios para
+  preparar el servicio. Faltan una consulta de nombre ocupado por otra
+  estación, incluyendo filas de baja, y el conteo de todas las bicicletas
+  físicamente asociadas sin excluir borradoBici. Este último criterio ya
+  figura en el documento 26: una baja lógica no equivale a una salida física.
+- El siguiente paso manual propone existsByNombreIgnoreCaseAndIdNot en
+  EstacionRepository y countByUbicacionActual en BicicletaRepository. No se
+  agregaron en esta revisión. Se conservarán los métodos anteriores porque
+  todavía tienen consumidores; el nuevo servicio usará estas dos consultas.
+  No se declara implementada la ocupación física v5 en los otros flujos.
+- Solo se actualizó este diario. Se preservaron el staging y los cambios
+  del usuario; no se hizo SQL, reinicio, commit, push o modificación de fuentes.
+
+### Etapa 4 Consultas necesarias para editar estaciones
+
+Fecha: 5 de noviembre de 2026.
+
+Estado: el usuario informó haber agregado, guardado y compilado las consultas;
+se revisaron ambos archivos y sus diferencias. En esta revisión no se repitió
+la compilación, ejecutó contexto Spring/SQL o reinició la instancia local.
+
+- EstacionRepository incorpora existsByNombreIgnoreCaseAndIdNot(String,
+  Integer), sin filtro de baja lógica. Excluye el ID editado y contempla
+  también nombres de estaciones de baja. BicicletaRepository incorpora
+  countByUbicacionActual(Estacion), sin excluir unidades por borradoBici.
+  Ambos nombres corresponden a propiedades existentes de las entidades.
+- Se conservaron los métodos y bloqueos anteriores con sus consumidores.
+  No se declara verificada la derivación de consultas contra MySQL solo
+  porque compileJava haya sido informado como exitoso.
+- Se revisó el siguiente incremento: EstacionService transaccional y solo
+  ADMIN, usando el bloqueo existente de estación, comprobación de versión
+  esperada, nombre ocupado por otra fila y capacidad frente a ocupación
+  física total. Todas las comprobaciones precederán a los setters y el
+  flush se hará antes de construir el DTO de salida.
+- El mismo incremento deberá corregir únicamente el conteo físico de
+  espacios en EstacionDTO para incluir toda unidad aún asociada; el filtro
+  de disponibilidad se conserva. Esto evita que el servicio controle una
+  ocupación y el DTO informe otra al excluir bajas que no salieron.
+- Son instrucciones para el siguiente paso manual, no código ya añadido.
+  No se creó el servicio ni se cambió el conteo en esta intervención. Su
+  conexión al controlador/formulario, pruebas y auditoría administrativa
+  siguen pendientes. Solo se actualizó este diario, conservando fuentes,
+  staging, sesión, base local y cuentas de prueba.
+
+### Etapa 5 Servicio de edición y conteo físico coherente
+
+Fecha: 5 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar únicamente los puntos
+1 y 2 de la propuesta, reservándose el punto 3 de guardar y comprobar.
+Se aplicó el código propuesto y se revisó estáticamente, sin compilar,
+ejecutar tests, arrancar/reiniciar la aplicación o realizar SQL.
+
+- Se creó EstacionService con inyección por constructor de EstacionRepository
+  y BicicletaRepository, @Service, @Validated y actualizarEstacion transaccional
+  restringido a ADMIN. El ID es obligatorio/positivo y los datos obligatorios
+  se validan mediante @Valid ActualizarEstacionDTO al invocar el bean.
+- Se utiliza buscarActivaPorIdConBloqueo; una estación inexistente o de baja
+  produce EntityNotFoundException. Se compara la versión esperada con la de
+  la entidad mediante Objects.equals y se lanza OptimisticLockException si
+  no coincide. No se permite asignar manualmente la versión de Hibernate.
+- Se comprueba nombre ocupado por otra fila y capacidad frente a todas las
+  bicicletas físicamente asociadas. Los conflictos producen IllegalStateException
+  antes de cambiar datos. Solo después se asignan nombre, dirección, capacidad
+  y coordenadas, se hace flush y se prepara el DTO de respuesta con la versión
+  de la entidad. No se modifican baja lógica, ID o relaciones desde el DTO.
+- EstacionDTO calcula ocupación con bicicletasEnEstacion.size(), incluyendo
+  unidades dadas de baja que continúan físicamente allí. Se conserva intacto
+  el filtro de bicicletasDisponibles, la lectura de versión y los demás campos.
+  La misma ocupación física se utiliza en el servicio y en los espacios libres.
+- La comparación SHA-256 con el inicio de esta intervención confirmó solo
+  dos archivos de src modificados/agregados: EstacionService nuevo y el
+  conteo de EstacionDTO. No se eliminaron fuentes ni se tocaron otros archivos
+  de src. Se hizo revisión estática y git diff --check, no una comprobación
+  de compilación, persistencia, seguridad o concurrencia en ejecución.
+- Este diario es el único documento actualizado. No se tocaron controlador,
+  frontend, repositorios, entidad, DTO de entrada, configuración, staging,
+  commits, base local o cuentas QA. El usuario conserva la comprobación con
+  compileJava. La conexión al controlador, respuestas HTTP, envío de versión
+  desde el formulario, pruebas y auditoría administrativa siguen pendientes;
+  no se presenta la edición de estaciones v5 como un circuito ya terminado.
+
+### Etapa 6 Revisión de compilación y conexión propuesta al controlador
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario aportó compileJava con BUILD SUCCESSFUL en 8 s, una
+tarea ejecutada. Se releyeron EstacionService y EstacionDTO y se confirmó
+que conservan el código implementado en la etapa 5. No se ejecutaron nuevas
+pruebas o compilación en esta revisión ni se modificaron fuentes.
+
+- El servicio sigue usando bloqueo de estación, versión esperada, nombre
+  único, ocupación física total y flush antes del DTO. El conteo físico del
+  DTO incluye todas las asociadas; su filtro de disponibilidad se conserva.
+- EstacionController aún contiene la actualización anterior: recibe una
+  entidad, cuenta con borradoBici=false y no llama al nuevo servicio. Se
+  propone cambiar exclusivamente ese PUT para recibir ActualizarEstacionDTO
+  y delegar en EstacionService, agregando su inyección y los imports necesarios.
+- La propuesta elimina @Transactional únicamente del PUT: la transacción
+  debe completarse en el servicio antes de que el controlador convierta
+  excepciones en HTTP. Se conserva @Transactional del DELETE y su import.
+  No se cambia todavía GET, POST, DELETE o la política de baja lógica.
+- Se propone mapear ausencia de estación a 404, validaciones a 400 y
+  conflictos de nombre/capacidad/versión/integridad a 409, sin exponer SQL.
+  Las denegaciones de seguridad seguirán su recorrido 403, sin un catch
+  genérico que las convierta en errores de datos.
+- El frontend todavía no envía version. La instrucción manual siguiente
+  será preparar primero el controlador y comprobar compilación, sin probar
+  aún la edición desde el panel ni reiniciar. Después se conectará el envío
+  de versión y la presentación de errores para evitar declarar ese circuito
+  funcional antes de completar ambos lados.
+- Solo se actualizó este diario. No hubo escritura de fuentes, staging,
+  commit, push, arranque/reinicio, SQL o cambios a las cuentas de prueba.
+
+### Etapa 7 Implementación de la delegación del PUT
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar únicamente los puntos
+1 a 3 de la propuesta del controlador, reservándose el punto 4 de guardar y
+comprobar. Se aplicó el cambio y se revisó estáticamente, sin compilar ni
+ejecutar pruebas.
+
+- Se agregaron los imports de ActualizarEstacionDTO, EstacionService y las
+  excepciones específicas, y la inyección de EstacionService mediante
+  @Autowired. El PUT recibe @Valid @RequestBody ActualizarEstacionDTO y
+  delega la actualización en el servicio; ya no duplica las reglas de edición.
+- Se eliminó @Transactional exclusivamente del PUT. La transacción se
+  completa en el servicio antes de convertir errores en respuestas HTTP;
+  se conservan intactos @Transactional del DELETE y su import.
+- Se mapean las validaciones del servicio y los argumentos inválidos a 400,
+  la estación inexistente o de baja a 404, y los conflictos de capacidad,
+  nombre, versión o integridad a 409. Los mensajes de concurrencia e
+  integridad no exponen SQL. La validación del cuerpo conserva el handler
+  global existente. No se agrega catch genérico ni se interceptan las
+  denegaciones de seguridad, que mantienen su recorrido 403.
+- La comparación del contenido con el inicio de esta intervención confirmó
+  que GET, POST y DELETE permanecen idénticos. La comparación SHA-256 de
+  src confirmó un único archivo fuente modificado: EstacionController.java,
+  sin altas ni eliminaciones de fuentes. git diff --check terminó sin errores.
+- Este diario es el único documento actualizado. No se modificaron otros
+  controladores, servicio, DTO, entidad, repositorios, frontend, configuración,
+  staging, commits, base local o cuentas de prueba. No se arrancó ni reinició
+  la aplicación. La compilación con compileJava queda a cargo del usuario.
+- El frontend todavía no envía version: antes de probar la edición desde
+  Administración hay que conectar ese dato y la presentación de errores.
+  Las pruebas de este circuito y la auditoría administrativa siguen pendientes;
+  este incremento no declara terminado el módulo de estaciones v5.
+
+### Etapa 8 Compilación del controlador y enlace propuesto con el formulario
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava con BUILD SUCCESSFUL en 2 s, una
+tarea ejecutada. Se releyó EstacionController y se confirmó que conserva
+la delegación de la etapa 7. No se ejecutaron compilación o pruebas nuevas.
+
+- Se revisaron el modal de estaciones en admin.html, abrirModalEstacion,
+  editarEstacion y guardarEstacion en admin.js, ActualizarEstacionDTO y la
+  salida EstacionDTO. El GET incluye version, pero el formulario actual
+  todavía no la conserva ni la envía al PUT.
+- El siguiente paso manual propuesto agrega un campo oculto estacion-version,
+  lo limpia al preparar un alta y lo carga al editar. El valor 0 es válido:
+  no debe confundirse con un campo sin versión.
+- Antes de enviar una edición, guardarEstacion deberá comprobar que haya
+  una versión entera no negativa e incluirla numéricamente solo en el PUT.
+  La comprobación visual no sustituye el control del servicio ni @Version.
+  No se modifica el contrato del POST ni se asigna una versión en el alta.
+- Se propone sustituir únicamente el catch de guardarEstacion para mostrar
+  los mensajes de texto del backend o los validationErrors existentes, sin
+  los prefijos técnicos de campo, utilizando texto y no HTML. Si faltan
+  detalles se conserva un mensaje genérico, sin inventar un motivo de fallo.
+- Estas son instrucciones, no cambios ya implementados en el frontend.
+  Solo se actualizó este diario. No hubo cambios de fuentes, configuración,
+  staging, commits, SQL, arranque/reinicio o cuentas QA. La comprobación
+  funcional de persistencia, concurrencia, permisos y mensajes sigue pendiente;
+  compileJava no comprueba JavaScript ni demuestra ese circuito en ejecución.
+
+### Etapa 9 Revisión del pegado y comprobaciones aisladas del formulario
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que agregó y guardó los cambios de la etapa 8
+y que compileJava terminó correctamente. Se revisaron los archivos y el
+diff del frontend. Los cambios están en los lugares indicados: no hay
+modificaciones ajenas al bloque en admin.html o admin.js respecto de HEAD.
+
+- admin.html contiene una única entrada oculta estacion-version, dentro
+  de modalEstacion e inmediatamente después de estacion-id. Se conserva
+  la carga de Bootstrap, Axios, SweetAlert y admin.js al final de la página.
+- abrirModalEstacion limpia la versión sin quitar los campos anteriores;
+  editarEstacion carga e.version con ??, conservando el valor 0. El control
+  de guardarEstacion está después de construir data y antes del try; agrega
+  version numéricamente solo en una edición. El POST no la envía.
+- El catch sustituido pertenece únicamente a guardarEstacion. Se conservan
+  PUT, POST, cierre del modal, recarga de estaciones, aviso de éxito y las
+  demás funciones de usuarios, estaciones, bicicletas y alquileres. Los
+  errores se muestran como texto y no cierran ni limpian el formulario.
+- Se ejecutó node --check sobre admin.js sin errores. Además se cargó el
+  archivo en node:vm con DOM, Axios, Bootstrap y SweetAlert simulados. Se
+  comprobaron nueve grupos: ubicación/unicidad del campo; limpieza al crear;
+  carga de versión 0; PUT con versión numérica y datos previos; POST sin
+  versión; bloqueo de versiones vacías, en blanco, negativas, decimales o
+  no numéricas; mensaje de conflicto sin cerrar el modal; errores de
+  validación sin prefijos ni duplicados; fallo de red con mensaje genérico.
+  Todos pasaron. Las comprobaciones se ejecutaron en memoria, sin crear
+  archivos de pruebas ni generar solicitudes HTTP reales.
+- Se detectó un detalle preexistente y ajeno al pegado: editarEstacion usa
+  e.latitud || '' y e.longitud || '', por lo que coordenadas válidas con
+  valor 0 quedan vacías. Se recomienda sustituir ambos || por ?? en esas
+  asignaciones. No se aplicó el cambio en esta revisión.
+- Solo se actualizó este diario. No se editaron fuentes, configuración,
+  staging o commits, ni se ejecutaron Gradle, SQL, arranques/reinicios o
+  acciones en el navegador. La compilación Java fue informada por el usuario;
+  los resultados aislados de JavaScript no sustituyen las pruebas reales
+  de persistencia, concurrencia, permisos y presentación visual pendientes.
+
+### Etapa 10 Coordenadas revisadas y pruebas del servicio propuestas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: se comprobó que el usuario sustituyó || por ?? únicamente en las
+asignaciones de latitud y longitud de editarEstacion. node --check terminó
+correctamente; una comprobación aislada con node:vm confirmó que ambas
+coordenadas 0 y la versión 0 se conservan, y que coordenadas null dejan
+los campos vacíos. No se generaron solicitudes HTTP reales ni SQL.
+
+- Se releyeron EstacionService, ActualizarEstacionDTO, EstacionDTO, Estacion,
+  los dos repositorios involucrados, build.gradle y el patrón de pruebas
+  existente en UsuarioServiceTest. Todavía no existe EstacionServiceTest.
+- El siguiente bloque manual propuesto es crear EstacionServiceTest en
+  src/test/java/DSII/TurismoSustentable/services, usando JUnit 5 y Mockito.
+  Comprobará edición válida con versión 0 y coordenadas 0, estación ausente,
+  versión desactualizada, nombre ocupado y capacidad menor que la ocupación
+  informada por el repositorio. En los rechazos se comprobará que no se
+  alteraron los datos previos ni se solicitó flush.
+- Son pruebas unitarias de la lógica del servicio con repositorios simulados:
+  no prueban consultas SQL, incremento real de @Version, bloqueos simultáneos,
+  rollback transaccional, validación mediante proxy, seguridad o respuestas
+  HTTP. Esas comprobaciones siguen pendientes y no se consideran cubiertas
+  por un test que invoque directamente al servicio construido con Mockito.
+- Se dará un comando filtrado exclusivamente a EstacionServiceTest, sin
+  ejecutar el test general de la aplicación que puede usar la base real.
+  El archivo y su ejecución quedan a cargo del usuario; en esta intervención
+  no se creó ningún test Java ni se ejecutó Gradle o se reinició la aplicación.
+- Solo se actualizó este diario. Se conservaron fuentes, staging, commits,
+  base de datos y cuentas QA. git diff --check no informó errores.
+
+### Etapa 11 Implementación puntual de EstacionServiceTest
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a crear exclusivamente el bloque
+de pruebas propuesto en la etapa 10, reservándose la parte 3 de guardar y
+comprobar. Se creó EstacionServiceTest.java con el código presentado, sin
+compilar ni ejecutar pruebas.
+
+- El archivo está en src/test/java/DSII/TurismoSustentable/services, con el
+  package correcto, JUnit 5, MockitoExtension, los dos repositorios @Mock
+  y EstacionService @InjectMocks. No carga un contexto Spring ni una base.
+- Se preparan una estación con versión 0 y un DTO válido por prueba. Los
+  campos ID y versión de la entidad se fijan con ReflectionTestUtils solo
+  en el test: no se agregan setters ni cambios al modelo de producción.
+- Se incluyen exactamente las cinco pruebas propuestas: actualización válida
+  con versión y coordenadas 0; estación no encontrada; versión distinta;
+  nombre ocupado; capacidad menor que el conteo físico simulado. Se verifica
+  el uso del nuevo conteo sin excluir bajas y el flush en la edición válida.
+- En los cuatro rechazos se comprueba que nombre, dirección, capacidad,
+  coordenadas, versión y baja lógica no cambien ni se solicite flush. En
+  los rechazos que preceden al conteo no se consulta BicicletaRepository.
+- Se releyó el archivo y se contrastaron los nombres de métodos, tipos y
+  constructor con el código vigente. La comparación SHA-256 de todo src
+  con el inicio de esta intervención confirmó solo un alta, el nuevo test,
+  sin modificar ni eliminar ningún archivo previo. Se preservó el staging.
+- Este diario es el único documento actualizado. No se modificaron fuentes
+  de producción, pruebas existentes, configuración, frontend, commits, base
+  de datos o cuentas QA; no se ejecutó Gradle, SQL ni arranque/reinicio.
+- El usuario conserva la ejecución filtrada: ./gradlew.bat test --tests
+  "EstacionServiceTest". La compilación y el resultado están pendientes.
+  Estos mocks no incrementan la versión como Hibernate: las comprobaciones
+  de transacciones, concurrencia real, consultas, proxies y permisos HTTP
+  siguen pendientes y no se declaran cubiertas por estas pruebas unitarias.
+
+### Etapa 12 Resultado verificado de EstacionServiceTest
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó ./gradlew.bat test --tests "EstacionServiceTest"
+e informó BUILD SUCCESSFUL en 8 s, tres tareas ejecutadas y una actualizada.
+Se leyó el XML generado en build/test-results/test para corroborarlo:
+tests=5, skipped=0, failures=0, errors=0; ejecución del 6 de noviembre.
+
+- El reporte contiene las cinco pruebas creadas: actualización válida,
+  estación no encontrada, versión desactualizada, nombre ocupado y capacidad
+  menor que la ocupación física simulada. Todas finalizaron correctamente.
+- El resultado comprueba la lógica aislada del servicio; no demuestra el
+  incremento de versión de Hibernate, las consultas o bloqueos en MySQL,
+  transacciones reales, autorización mediante proxy, validación del cuerpo
+  HTTP o la interacción del panel con la aplicación ejecutándose.
+- El siguiente bloque propuesto es verificar el contrato del PUT con un
+  EstacionControllerTest aislado: respuesta satisfactoria y delegación al
+  servicio, rechazo de cuerpos inválidos con el handler de validaciones,
+  y conversión de las excepciones previstas a 400, 404 y 409. Sin arrancar
+  la aplicación ni usar la base real. Ese archivo todavía no se creó.
+- Solo se actualizó este diario; no se modificaron fuentes o configuración,
+  staging, commits, base local o cuentas QA. No se ejecutaron nuevas pruebas,
+  Gradle, SQL, arranques/reinicios o acciones de navegador en esta revisión.
+
+### Etapa 13 Propuesta manual de EstacionControllerTest
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar con el siguiente bloque. Se releyeron
+EstacionController, ActualizarEstacionDTO, GlobalExceptionHandler y el
+patrón standalone de RecuperacionPasswordControllerTest. Se preparan
+instrucciones para un único archivo nuevo de pruebas, sin crearlo todavía.
+
+- Se propone EstacionControllerTest en el package controllers de src/test,
+  con JUnit 5, Mockito y MockMvc standalone. Se inyecta un EstacionService
+  simulado en el controlador y se utiliza el handler global real existente.
+  No se carga el contexto Boot, repositorios JPA o una base de datos.
+- Los casos previstos son respuesta 200 y DTO normalizado enviado al
+  servicio; campos obligatorios ausentes; valores inválidos; cuerpo ausente,
+  nulo o JSON malformado; estación no encontrada con 404; conflictos de
+  negocio con 409; ambas excepciones de versión con 409; integridad con
+  mensaje genérico sin detalles internos; argumentos inválidos con 400.
+- En los rechazos previos a la invocación se verificará que el servicio no
+  recibió llamadas. Las respuestas conflictivas conservarán el mensaje de
+  negocio o usarán los mensajes seguros ya definidos en el controlador.
+- El servicio simulado no ejecuta @PreAuthorize, @Validated o transacciones.
+  MockMvc standalone sin filtros de seguridad comprueba enlace HTTP,
+  conversión JSON, @Valid del cuerpo y respuestas, no los permisos de la
+  configuración real ni el control concurrente en MySQL. No se presentará
+  este test como una comprobación de esos aspectos pendientes.
+- Se dará un comando filtrado a EstacionControllerTest y EstacionServiceTest.
+  No se creó ni ejecutó el archivo propuesto, no se modificaron fuentes,
+  frontend, configuración, staging, commits o base, y no se reinició la app.
+  Solo se actualizó este diario de implementación.
+
+### Etapa 14 EstacionControllerTest creado y catorce pruebas verificadas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario creó EstacionControllerTest.java y ejecutó el comando
+filtrado a EstacionControllerTest y EstacionServiceTest, con BUILD SUCCESSFUL
+en 5 s, dos tareas ejecutadas y dos actualizadas. Se releyó el archivo y se
+corroboró que contiene las nueve pruebas propuestas en su package correcto,
+sin contexto Boot ni acceso a una base de datos.
+
+- Se verificaron ambos XML de build/test-results/test: controlador, tests=9;
+  servicio, tests=5. Ambos reportes tienen skipped=0, failures=0 y errors=0,
+  y corresponden a la ejecución conjunta del 6 de noviembre de 2026. Total:
+  catorce pruebas satisfactorias, no solamente una compilación exitosa.
+- Las pruebas comprueban la lógica aislada del servicio y el contrato HTTP
+  del PUT con servicio simulado: enlace de JSON, normalización, @Valid,
+  cuerpo ausente/malformado, mensajes de validación y estados 200/400/404/409.
+  No comprueban permisos reales, transacciones en MySQL, consultas derivadas,
+  incremento real de @Version o la interacción del navegador con la app.
+- Sigue pendiente una comprobación funcional controlada de la edición desde
+  el panel y de su persistencia real: guardado, versión devuelta, rechazo de
+  un formulario desactualizado y permisos. Antes de iniciar/reiniciar se debe
+  tener presente la recreación de datos del perfil refactor con create-drop.
+  No se ejecutó esa comprobación ni se declara terminado todo estaciones.
+- Solo se actualizó este diario. Se preservaron los archivos agregados y el
+  staging parcial del usuario; no se modificaron fuentes o configuración ni
+  se ejecutaron nuevas pruebas, Gradle, Git de escritura, SQL o reinicios.
+
+### Etapa 15 Preparación manual de la prueba funcional de estaciones
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar con la comprobación real. Se releyeron
+application-refactor.properties, el main, CargaCatalogosRefactor, la entidad
+UsuarioRol y las referencias de login por nickname. El perfil apunta a
+MySQL local, base turismo_sustentable, y conserva create-drop. El main no
+crea datos; la carga de catálogos tampoco crea cuentas de administrador.
+
+- La inspección de puertos no mostró listeners en 8080 o 3306. No se inició
+  ni detuvo ningún proceso. Tampoco se consultaron o modificaron tablas.
+- El siguiente paso propuesto al usuario es iniciar MySQL desde XAMPP
+  (Apache solo para utilizar phpMyAdmin) y arrancar la aplicación con el
+  perfil refactor y puerto 8080. Antes se advierte expresamente que ese
+  perfil recrea las tablas al iniciar y las elimina al cerrar, y que no debe
+  arrancarse de esa forma si hay datos locales que se quieran conservar.
+- Se espera que el usuario confirme el arranque antes de continuar con una
+  cuenta local de prueba y su asignación administrativa controlada. No se
+  agrega un inicializador temporal ni se reintroducen usuarios en el main.
+  No se asignaron roles, no se registró ninguna cuenta ni se ejecutó SQL.
+- Las comprobaciones reales del PUT, incremento de versión, formulario
+  desactualizado, mensajes y permisos siguen pendientes. Esta etapa es de
+  preparación e instrucciones, no evidencia de un arranque o test realizado.
+- Solo se actualizó este diario. Se preservaron código, configuración,
+  pruebas, frontend, staging, commits, base y cuentas existentes. No se
+  ejecutó Gradle ni hubo modificaciones en la aplicación en esta revisión.
+
+### Etapa 16 Arranque informado y preparación de cuenta administrativa QA
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó Tomcat escuchando en 8080 y arranque de la
+aplicación en 4,8 s, proceso 4920. El aviso de open-in-view no es un fallo
+de inicio; no se propone desactivarlo en esta prueba, dado que los DTO y
+consultas vigentes todavía pueden usar relaciones lazy.
+
+- Se intentaron dos GET locales de solo lectura, a registro.html y a
+  /api/estaciones, pero el entorno de herramientas denegó el acceso al
+  socket. No se obtuvo respuesta HTTP ni un conteo válido de estaciones;
+  no se interpreta la salida vacía como ausencia de datos. El arranque se
+  documenta a partir del log aportado por el usuario, no de esos intentos.
+- Se revisaron el formulario de registro, las claves de UsuarioRol y el
+  login por nickname. Se proponen datos ficticios para una cuenta local
+  admin.estaciones, inicialmente CLIENTE por el flujo de registro normal.
+- El usuario registrará la cuenta desde registro.html sin iniciar sesión
+  todavía. La asignación de ADMIN se guiará después sobre la fila concreta,
+  sin introducir usuarios hardcodeados ni un inicializador temporal.
+- No se registró ninguna cuenta, se asignaron roles ni se ejecutó SQL desde
+  el asistente. El panel y las operaciones de estaciones siguen pendientes
+  de comprobación real; el arranque por sí solo no acredita esos recorridos.
+- Solo se actualizó este diario; no hubo modificaciones de fuentes,
+  configuración, staging, commits, arranques/reinicios o ejecución de Gradle.
+
+### Etapa 17 Cuenta QA verificada en MySQL sin modificar permisos
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que registró la cuenta y pidió verificarla
+directamente en la base. Se consultó MySQL local en 127.0.0.1:3306 mediante
+el cliente de XAMPP, seleccionando explícitamente turismo_sustentable y
+usando START TRANSACTION READ ONLY. El primer intento fue bloqueado por
+el entorno; el reintento con permiso de acceso terminó correctamente.
+
+- Se confirmó una única cuenta con nickname admin.estaciones: usuario ID 1,
+  email admin.estaciones@example.com, activa, versión 0 y persona ID 1.
+  La persona relacionada contiene nombre Admin y apellido Prueba.
+- La unión con usuario_rol y rol confirmó exclusivamente CLIENTE para esta
+  cuenta. Todavía no dispone de ADMIN. No se presupusieron IDs de roles ni
+  se reemplazó o agregó ninguna asignación durante la consulta.
+- No se consultaron ni mostraron password, hashes, tokens de recuperación
+  o número de documento. No se registraron usuarios ni se ejecutaron INSERT,
+  UPDATE, DELETE, DDL o cambios de permisos. El COMMIT cerró una transacción
+  expresamente de solo lectura.
+- La asignación administrativa controlada de esta cuenta QA sigue siendo
+  el siguiente paso, antes de probar el panel. Las pruebas funcionales de
+  estaciones continúan pendientes; esta revisión solo acredita el registro
+  persistido y sus relaciones actuales.
+- Solo se actualizó este diario. No se modificaron código, configuración,
+  staging, commits o datos de la aplicación ni se ejecutó Gradle o reinicios.
+
+### Etapa 18 Asignación manual de ADMIN propuesta para la cuenta QA
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: tras aclarar el modelo usuario-rol y su PK compuesta, el usuario
+pidió continuar. Se repitió una consulta local de solo lectura: usuario
+admin.estaciones ID 1, email admin.estaciones@example.com, activo=1;
+rol ADMIN ID 1, CLIENTE ID 2; asignación existente (usuario=1, rol=2).
+El asistente no agregó ni eliminó asignaciones.
+
+- Se propone ejecutar desde SQL de phpMyAdmin un INSERT SELECT acotado
+  exclusivamente a la cuenta QA por nickname, email y activo, y al rol por
+  codigo=ADMIN. Se utiliza turismo_sustentable explícitamente. No se fijan
+  IDs de roles o usuarios en el INSERT ni se modifica CLIENTE.
+- El LEFT JOIN con usuario_rol y el filtro de asignación ausente evitan
+  repetir la inserción si ADMIN ya está asignado. La PK compuesta conserva
+  además la restricción de no duplicar el mismo par usuario/rol.
+- Se acompaña una consulta de lectura de las asignaciones de esa cuenta;
+  después de la ejecución manual se espera ADMIN y CLIENTE. Si existía una
+  sesión previa de CLIENTE, se debe cerrar e iniciar nuevamente para que
+  Spring Security cargue las autoridades actualizadas.
+- Esta es preparación de datos locales de prueba, no implementación del
+  flujo administrativo de asignación de roles ni un cambio al registro
+  público, que sigue asignando CLIENTE. La ejecución manual y la entrada
+  al panel todavía no se comprobaron y no se presentan como realizadas.
+- Solo se actualizó este diario. No hubo cambios de código, configuración,
+  staging, commits, contraseñas, datos o permisos desde el asistente; no
+  se ejecutaron SQL de escritura, Gradle o reinicios.
+
+### Etapa 19 Acceso ADMIN observado y primera estación QA propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que inició sesión y ve el panel administrativo.
+Una consulta MySQL de solo lectura confirmó ADMIN y CLIENTE para usuario
+admin.estaciones ID 1. La asignación manual fue realizada por el usuario;
+el asistente no ejecutó escrituras. La consulta de estacion no devolvió
+filas y bicicleta tiene cero filas en este entorno local de prueba.
+
+- Se leyó el skill de control de aplicaciones y sus referencias de guía y
+  confirmaciones. Siguiendo su preferencia por la interfaz específica de
+  navegador, se observó la pestaña existente del navegador integrado con
+  la API de navegador. La pantalla mostró admin.html, Admin Prueba activo
+  y la columna Rol con ADMIN. No se presionaron botones, navegaron páginas,
+  cambiaron campos, guardaron datos ni cerró sesión durante esa observación.
+- Se contrastó admin.js: la fila muestra u.rol. UsuarioDTO conserva ese
+  campo de compatibilidad priorizando ADMIN, pero también expone roles
+  completo. La falta de CLIENTE en la grilla no indica pérdida de permisos.
+- Se propone al usuario cambiar solo la celda a u.roles.join(', ') y el
+  encabezado Rol a Roles, sin tocar getRol, la sesión o las reglas de
+  seguridad. Es un ajuste de presentación aún no aplicado por el asistente;
+  para cargarlo basta recargar la página, no reiniciar la aplicación.
+- El siguiente paso funcional propuesto es crear desde Estaciones una fila
+  ficticia Estación QA Centro, dirección Calle de Prueba 100, capacidad 5,
+  latitud -53.7865 y longitud -67.7045. Tras la creación se verificará en
+  MySQL la versión inicial antes de probar edición y formulario desactualizado.
+  La creación no se ejecutó ni se da por correcta en esta intervención.
+- La creación usa el POST existente como preparación; no acredita su
+  adaptación completa a v5. Edición real, incremento de versión, concurrencia,
+  permisos de clientes y demás recorridos siguen pendientes de evidencia.
+- Solo se actualizó este diario. No se modificaron fuentes, configuración,
+  staging, commits, datos o permisos desde el asistente, ni hubo Gradle o
+  reinicios. El uso de navegador fue exclusivamente de lectura.
+
+### Etapa 20 Estación QA creada y versión inicial verificada
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que creó y guardó la estación desde el panel.
+Se consultó MySQL local con turismo_sustentable explícita y transacción de
+solo lectura. El listado confirmó exactamente una estación, identificada
+por ID 1; bicicleta continúa sin filas. No hubo escrituras del asistente.
+
+- Datos persistidos: nombre Estación QA Centro, dirección Calle de Prueba
+  100, capacidad 5, latitud -53.7865, longitud -67.7045, version=0 y
+  borrado_estacion=0. Queda registrada la versión inicial real, no simulada.
+- La búsqueda inicial por nombre con literal acentuado no devolvió filas;
+  se resolvió consultando el listado y la PK, que mostraron la fila esperada.
+  No se concluye por ello que el registro faltara ni se atribuye una causa
+  de codificación no diagnosticada. Las verificaciones siguientes usarán ID.
+- Se verificaron también los cambios manuales de presentación: admin.js
+  muestra u.roles.join(', ') y admin.html dice Roles. node --check no detectó
+  errores de sintaxis. No se alteró la compatibilidad rol ni la seguridad.
+- El siguiente paso manual propuesto es editar exclusivamente la dirección
+  a Calle de Prueba 200 y la capacidad a 6 desde el lápiz del panel. Se
+  conservarán nombre y coordenadas. Después se comprobará por ID 1 que los
+  datos persistan y que la versión real pase de 0 a 1, sin reiniciar la app.
+  Esa edición aún no se realizó ni se declara comprobada en esta etapa.
+- La creación prepara el escenario utilizando el POST existente; no prueba
+  aún la edición nueva, su concurrencia, la capacidad con stock, permisos
+  de clientes o la adaptación completa del alta/baja al DER v5.
+- Solo se actualizó este diario. No se modificaron fuentes, configuración,
+  staging, commits o datos desde el asistente, ni se ejecutó Gradle, SQL de
+  escritura, acciones de navegador o reinicios.
+
+### Etapa 21 Edición real persistida e incremento de versión verificado
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que editó la estación desde el panel siguiendo
+la etapa 20. Una consulta MySQL de solo lectura a turismo_sustentable,
+filtrada por PK id=1, confirmó dirección Calle de Prueba 200, capacidad 6
+y version=1. En la etapa anterior la misma fila tenía dirección 100,
+capacidad 5 y version=0. La tabla conserva una sola estación.
+
+- Nombre Estación QA Centro, latitud -53.7865, longitud -67.7045 y
+  borrado_estacion=0 permanecieron iguales. Se verificó persistencia de
+  la edición y aumento real de versión, sin SQL de escritura del asistente.
+- El siguiente caso propuesto es formulario desactualizado: abrir la edición
+  de esta estación en dos pestañas autenticadas antes de guardar ninguna;
+  guardar dirección Calle de Prueba 300 desde A y luego intentar Calle de
+  Prueba 400 desde B, que conserva la versión anterior. Capacidad y demás
+  campos permanecerán iguales. Si otra pestaña no conserva sessionStorage,
+  se iniciará sesión con la misma cuenta antes de abrir los formularios.
+- Se espera que A guarde y que B muestre el conflicto sin sobrescribir A.
+  La verificación posterior deberá encontrar dirección 300 y version=2.
+  No se realizó aún ese caso ni se presume que ya esté aprobado.
+- Es una prueba secuencial de formulario obsoleto, no una prueba de carga
+  o de dos transacciones realmente simultáneas. Capacidad con stock y
+  permisos de clientes siguen pendientes de comprobación real.
+- Solo se actualizó este diario. Se realizaron únicamente consultas SQL
+  de lectura; no hubo cambios de fuentes, configuración, staging, commits,
+  datos o sesiones desde el asistente ni ejecución de Gradle o reinicios.
+
+### Etapa 22 Formulario desactualizado rechazado y datos de A conservados
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que la pestaña B mostró el aviso de estación
+modificada y rechazó el guardado. La consulta MySQL de solo lectura por
+id=1 confirmó dirección Calle de Prueba 300 y version=2. Capacidad 6,
+nombre, coordenadas y borrado_estacion=0 se conservaron; hay una estación
+y cero bicicletas. No quedó persistida la dirección 400 propuesta desde B.
+
+- Quedan comprobados conjuntamente el aviso informado desde el navegador
+  y la conservación en MySQL de los datos de A. El intento rechazado de B
+  no produjo un nuevo incremento de versión respecto del guardado de A.
+  No se capturó el tráfico de red para afirmar un código HTTP observado.
+- El caso demuestra rechazo de una edición con versión obsoleta en dos
+  formularios reales. No se confunde con una prueba de dos transacciones
+  simultáneas o de carga, que no se ejecutó.
+- El siguiente escenario propuesto es capacidad con ocupación física real:
+  cerrar B y recargar A; crear dos bicicletas QA disponibles en esta estación
+  mediante el panel existente, con códigos QA-B01 y QA-B02, tipo Montaña y
+  precio/hora ficticio 1; intentar después reducir capacidad a 1. Se espera
+  rechazo con mensaje de dos bicicletas presentes y conservación de capacidad 6.
+- Se revisaron los campos del modal y el envío de guardarBicicleta para
+  preparar ese escenario. Se usa la flota legacy solo como datos locales
+  de prueba: no se agregan modelos o lógica temporales ni se considera
+  implementada la tarifa por tipo o el resto de la flota DER v5.
+- Las bicicletas y el intento de reducción todavía no se crearon ni
+  ejecutaron en esta etapa. Permisos de cliente, otros errores de edición
+  y adaptación completa de altas/bajas continúan pendientes.
+- Solo se actualizó este diario. No se modificaron fuentes, configuración,
+  staging, commits, datos o sesiones desde el asistente; no hubo SQL de
+  escritura, acciones de navegador, ejecución de Gradle o reinicios.
+
+### Etapa 23 Capacidad inferior a la ocupación rechazada y verificada
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó que el panel rechazó capacidad 1 al detectar
+dos bicicletas. Se verificó MySQL local en una transacción de solo lectura,
+con base turismo_sustentable y consultas acotadas a la estación ID 1 y los
+códigos QA-B01 y QA-B02. La tabla bicicleta contiene exactamente dos filas.
+
+- QA-B01: ID 1, MONTANA, DISPONIBLE, precio_por_hora 6.00, estacion_id 1,
+  borrado_bici=0. QA-B02: ID 2, MONTANA, DISPONIBLE, precio_por_hora 5.00,
+  estacion_id 1, borrado_bici=0. Ambas están físicamente asociadas a la
+  estación de prueba; no se presupusieron los precios ficticios propuestos
+  de 1, ya que los valores realmente guardados por el usuario son 6 y 5.
+- La estación conserva capacidad 6, dirección Calle de Prueba 300,
+  version=2, nombre Estación QA Centro, latitud -53.7865, longitud -67.7045
+  y borrado_estacion=0. El conteo físico directo de bicicleta por estacion_id
+  es 2. El intento rechazado no redujo la capacidad ni incrementó la versión.
+- Se acredita este caso de edición con ocupación real y aviso informado
+  por el usuario. No se capturó la respuesta HTTP ni se presentan estos
+  resultados como prueba de tarifas por tipo, bicicletas de baja todavía
+  presentes, carreras simultáneas o autorización de clientes; esos casos
+  no se ejecutaron en esta intervención.
+- Solo se actualizó este diario. El asistente no creó o modificó bicicletas,
+  estaciones, precios, roles o sesiones. No hubo cambios de fuentes,
+  configuración, staging, commits, Gradle, SQL de escritura o reinicios.
+
+### Etapa 24 Prueba propuesta de bicicleta de baja físicamente presente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se revisaron el DELETE de bicicletas,
+su llamada desde borrarBici y la regla de ocupación ya asentada en la
+revisión de estaciones del DER v5. El código legacy marca borradoBici=true
+y estado INACTIVA, conserva la fila y no elimina ubicacionActual.
+
+- Se propone al usuario dar de baja exclusivamente QA-B02 desde el panel,
+  conservando QA-B01. Son datos ficticios de este escenario descartable.
+  No se implementa ni modifica el recorrido de baja de flota v5 en este paso.
+- Después se recargará el panel, se abrirá una edición nueva de Estación
+  QA Centro y se intentará capacidad 1, sin cambiar otros campos. Aunque
+  la lista de bicicletas oculte la baja, la ocupación física deberá seguir
+  siendo 2 mientras QA-B02 conserve estacion_id=1.
+- Se espera el mismo rechazo por ocupación real y conservación de capacidad
+  6. La consulta posterior deberá comprobar que ambas filas siguen presentes,
+  que solo QA-B02 tiene baja lógica y que la capacidad no se alteró. No se
+  da por realizada o aprobada la prueba antes de la respuesta del usuario.
+- Se distingue explícitamente el conteo físico total del conteo de bicicletas
+  disponibles o sin baja. Esta regla ya estaba aprobada; no se añade una
+  entidad, estado nuevo o condición de negocio mediante esta prueba.
+- Solo se actualizó este diario. El asistente no dio de baja bicicletas,
+  modificó datos, roles o sesiones, ni ejecutó SQL, Gradle, reinicios o
+  acciones de navegador. Se preservaron fuentes, configuración y staging.
+
+### Etapa 25 Baja lógica presente y faltante operativo de retiro identificado
+
+Fecha: 6 de noviembre de 2026.
+
+**Aclaración posterior — ver etapa 26:** la prueba se realizó sobre una
+bicicleta con borrado lógico legacy, no sobre el estado DE_BAJA de v5.
+La explicación de esta etapa no debe interpretarse como equivalencia entre
+borrado del registro y retiro definitivo del servicio.
+
+Estado: el usuario informó que el intento de capacidad 1 volvió a rechazarse
+tras dar de baja QA-B02, y preguntó cómo se resuelve su presencia física en
+la operación real. La consulta MySQL de solo lectura confirmó QA-B01 ID 1
+DISPONIBLE, estacion_id=1, borrado_bici=0; QA-B02 ID 2 INACTIVA,
+estacion_id=1, borrado_bici=1; estación ID 1 con capacidad 6 y version=2.
+
+- Queda verificado el rechazo por ocupación total incluso con una baja
+  lógica físicamente presente. No hay orfandad referencial: la fila de
+  QA-B02 y su FK a estación existen. Sí hay una limitación operativa real
+  del código legacy: el GET de bicicletas excluye las bajas y el PUT las
+  rechaza. El administrador no dispone de ese recorrido de salida desde
+  el panel actual; no se da por terminado el módulo de flota.
+- Se contrastó con la revisión aprobada de estaciones/tipos/bicicletas y
+  el diccionario de estados propuesto: DE_BAJA no implica salida física
+  automática, ni borra el historial. Mientras permanezca en la estación
+  consume un espacio. La regla del servicio de estaciones es coherente.
+- Para el bloque Bicicleta del DER v5 queda explícito conectar la operación
+  ya prevista: ADMIN puede consultar las unidades DE_BAJA y registrar una
+  salida física real, conservando el estado de baja y las referencias
+  históricas. Al confirmar el retiro fuera de las estaciones se vacía la
+  FK de presencia actual y se registra actor, fecha, motivo y ubicación
+  anterior/nueva mediante AUDITORIA_SISTEMA. Solo entonces se libera espacio.
+- Si se registra un traslado a otra estación, no se trata como desaparición:
+  la estación receptora necesita sus comprobaciones de capacidad y el
+  movimiento conserva trazabilidad. No se inventa una estación para la baja
+  ni se libera la FK por pulsar la papelera.
+- Se registra como recorrido pendiente de la implementación v5, no como
+  nuevo estado o tabla aprobados ni como cambio ya aplicado. No se abre
+  la edición genérica de las bajas ni se reactiva la bicicleta para moverla.
+- Solo se actualizó este diario. No se modificaron código, configuración,
+  DER, staging, commits, datos o roles desde el asistente; no hubo SQL de
+  escritura, acciones de navegador, ejecución de Gradle o reinicios.
+
+### Etapa 26 Corrección conceptual: DE_BAJA no equivale a borrado lógico
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario aclaró expresamente que las bicicletas DE_BAJA y las
+bicicletas borradas son conceptos distintos. Se releyó su DER v4 original:
+BICICLETA contiene bit borrado_bici y estado_bicicleta_id como atributos
+separados. El asistente reconoce que su explicación anterior los asimiló
+indebidamente. No se toma ese supuesto como una condición aprobada.
+
+- DE_BAJA pertenece al estado operativo y representa retiro definitivo del
+  servicio. Borrado lógico del registro es otra decisión administrativa.
+  Ninguno de esos datos representa por sí solo una salida física; la FK
+  de estación sigue describiendo presencia real mientras no se registre
+  el movimiento correspondiente.
+- El código actual conserva borradoBici y un enum que todavía no incluye
+  DE_BAJA. La QA-B02 de la prueba está INACTIVA con borrado_bici=1; no se
+  afirma que se haya probado DE_BAJA en el backend ni su transición v5.
+  Los resultados físicos y de capacidad observados permanecen válidos.
+- Se detectó una divergencia del borrador v5 respecto de la separación del
+  usuario: der-v5-propuesto.mmd omite borrado_bici y la sección 4 del documento
+  26 había tratado su coexistencia con DE_BAJA como duplicación. Esa decisión
+  de diseño necesita corrección/revisión; no puede usarse para volver a
+  confundir ambos conceptos o eliminar automáticamente el flag del código.
+- Queda pendiente reflejar la separación en los artefactos v5 y precisar
+  las condiciones de borrado lógico y su gestión administrativa, sin
+  atribuir al usuario una restricción aún no aprobada sobre presencia física,
+  historial, procesos abiertos o recuperación del registro. No se agregan
+  reglas por inferencia ni se implementan parches en esta explicación.
+- Solo se actualizó este diario, incluyendo la advertencia en la etapa 25.
+  No se modificaron DER, entregables, otros documentos, código, datos,
+  permisos, configuración, staging o commits; no hubo SQL ni reinicios.
+
+### Etapa 27 Propuesta de taller interno y cierre pendiente del borrado
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario preguntó si cerrar esta distinción antes de continuar
+y agregó una idea: permitir bajas definitivas, borrado lógico e inactivación
+desde una ubicación Taller o Taller mantenimiento que funcione como depósito;
+mantener en estaciones públicas bicicletas disponibles o pendientes de
+atención técnica. Es una propuesta del usuario, no una regla ya implementada.
+
+- Se utilizaron los skills de lectura de documentos y PDF, con el runtime
+  de dependencias suministrado, para releer íntegramente el diccionario
+  original y las páginas 2 a 5 completas del PDF de visión. Se contrastaron
+  también las reglas aprobadas de reserva, preventiva y mantenimiento.
+  No se hicieron cambios a esos originales ni una revisión de maquetación.
+- Se propone conservar la separación de estado, borrado y presencia física:
+  reincorporar borrado_bici al diseño de BICICLETA y representar taller como
+  fila de ESTACION con un nuevo indicador es_publica. Esta distinción de
+  dos clases no necesita una nueva tabla; el nombre Taller no será la regla.
+- La ubicación interna no se ofrecería en mapa, contratación ni devolución
+  por clientes, tanto en las consultas como en validaciones de escritura del
+  backend. ADMIN la usaría para movimientos físicos autorizados, depósito y
+  gestión de mantenimiento, con capacidad y auditoría coherentes.
+- Se precisa una omisión de la idea inicial: RESERVADA también puede estar
+  físicamente en una estación pública hasta su retiro. Se recomienda permitir
+  además INACTIVA temporal allí para bloquear inmediatamente una bicicleta
+  por motivo administrativo, sin esperar a que sea trasladada al taller.
+  Esta excepción se presenta a aprobación, no se impone al usuario.
+- Se propone gestionar DE_BAJA y borrado lógico desde el taller, conservando
+  la distinción entre ambas acciones y exigiendo que no haya reservas, viajes,
+  órdenes o incidencias abiertas de la unidad. Un borrado no simularía salida
+  física ni borraría filas o historial; el inventario físico administrativo
+  debe permitir consultar incluso las unidades archivadas que siguen allí.
+- Las unidades conservan su ocupación hasta una salida física registrada.
+  Movimientos requieren autorización, capacidad si hay estación receptora y
+  auditoría de actor, fecha, motivo y ubicación anterior/nueva. No se cambia
+  una FK automáticamente por pulsar borrar, dar de baja o inactivar.
+- Se pide aprobar el conjunto antes de actualizar DER, diccionario o fuentes.
+  No se considera cerrado este punto, no se agrega un estado o entidad por
+  inferencia y no se crean inicializadores o código temporal para el taller.
+- Solo se actualizó este diario. No se modificaron otros documentos,
+  entregables, DER, código, configuración, staging, commits, sesiones o datos;
+  no hubo SQL, acciones de navegador, ejecución de Gradle o reinicios.
+
+### Etapa 28 Aclaración del usuario sobre las acciones y su ubicación
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario resumió el criterio que está definiendo: para borrar
+lógicamente o pasar a DE_BAJA la unidad tendría que estar en Taller;
+INACTIVA puede aplicarse desde la misma estación; RESERVADA y DISPONIBLE
+mantienen su recorrido existente. Se responde a esa interpretación sin
+ejecutar cambios de modelo o datos.
+
+- Se conserva la independencia entre estado operativo, borrado lógico y
+  ubicación física. INACTIVA no traslada automáticamente; DE_BAJA tampoco
+  archiva por sí misma ni un borrado representa retirar materialmente la bici.
+- La nueva condición de ubicación no habilita eludir reservas, viajes,
+  órdenes u otras operaciones abiertas. El taller sería una ubicación
+  interna no ofrecida al cliente, con consulta administrativa de su stock
+  físico incluso para registros archivados y trazabilidad de movimientos.
+- No se añaden nuevas restricciones a DISPONIBLE o RESERVADA por inferencia
+  en esta aclaración; se mantienen los controles de contratación y retiro
+  ya aprobados. La ocupación continúa basada en la presencia física real.
+- La confirmación final del conjunto y su reflejo en artefactos v5 siguen
+  separados de esta explicación. No se modificaron DER, diccionario, fuentes,
+  otros documentos, configuración, staging, commits, sesiones o datos.
+  Solo se actualizó este diario; no hubo SQL, Gradle o reinicios.
+
+### Etapa 29 RN-INV-01 aprobada e incorporada al DER v5
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario aprobó expresamente el criterio para corregir el DER,
+sin implementar todavía código. Se actualizó el modelo lógico editable
+y su exportación TXT, y la documentación de diseño directamente afectada.
+
+- ESTACION incorpora boolean es_publica obligatorio: true pública y false
+  Taller/depósito interno. BICICLETA recupera boolean borrado_bici independiente
+  del estado, inicialmente false. No se crean entidades, estados o FK nuevas.
+- La sección 7 del documento 26 conserva RN-INV-01 con fecha de aprobación,
+  representación, restricciones de clientes, permisos ADMIN, condiciones de
+  Taller para DE_BAJA/archivo, INACTIVA en la estación actual, ocupación real,
+  consulta de archivadas, auditoría y seis criterios de aceptación pendientes.
+- Se corrige la propuesta de eliminar el flag en el documento 22 y se
+  alinean 00, 08, 13, 20 y 21. Se conserva la diferencia entre disponibilidad,
+  reserva, atención técnica, baja definitiva, borrado y presencia física.
+- La condición nueva y exclusiva de Taller restringe la excepción anterior
+  de baja de una EXTRAVIADA no recuperada: conserva EXTRAVIADA mientras esté
+  ausente y no se inventa una recepción. Se explicitó en los documentos
+  relacionados sin modificar el cierre del detalle o su liquidación.
+- La comparación estructural antes/después del Mermaid confirmó 29 entidades
+  y 55 relaciones, todas las PK/FK y atributos anteriores intactos, y solo
+  dos atributos añadidos: ESTACION.es_publica y BICICLETA.borrado_bici. Cada
+  relación sigue refiriendo entidades declaradas. No se eliminaron campos.
+- Mermaid y DERv5.txt tienen el mismo contenido y SHA-256. La comprobación
+  es estructural y de consistencia, no una renderización visual del diagrama
+  ni una ejecución de SQL. git diff --check no informó errores de contenido.
+- Los hashes de todo src y el diff staged se compararon con el inicio de
+  esta intervención: sin modificaciones, altas o bajas en fuentes y con
+  staging preservado. Los cambios Java y frontend anteriores del usuario
+  se conservaron; no se mezcló esta corrección de diseño con implementación.
+- No se tocaron los originales del usuario ni el Word entregado anteriormente.
+  El índice aclara que no se regeneró el Word y remite a las condiciones
+  vigentes de los documentos 08 y 26. No se crearon copias o fuentes paralelas.
+- No hubo cambios de datos, clasificación de estaciones existentes, precarga
+  de Taller, migraciones, ajustes de la QA-B02, configuración, commits o
+  permisos. No se ejecutaron Gradle, SQL, navegador o reinicios. La regla
+  nueva no se considera implementada o probada por actualizar el DER; las
+  pruebas previas de edición no cubren es_publica o las nuevas condiciones.
+
+### Etapa 30 Diferencia entre backend vigente y diseño de inventario aprobado
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió aclarar que borrado_bici ya existía, el tratamiento
+actual de los estados y sus ubicaciones, el caso EXTRAVIADA y el tipo de
+es_publica. Se releyeron EstadoBicicleta, BicicletaController y las referencias
+de AlquilerService, y se contrastó RN-INV-01. No se proponen reglas nuevas.
+
+- borradoBici ya existe en Java, en la base legacy y en el DER v4. La etapa
+  29 lo reincorporó al DER v5, donde se había omitido indebidamente; no lo
+  creó en el código o la base ni convirtió un estado en indicador de borrado.
+- El enum vigente contiene solo DISPONIBLE, ALQUILADA, MANTENIMIENTO e
+  INACTIVA. Crear fuerza DISPONIBLE; iniciar alquiler asigna ALQUILADA y
+  vacía ubicación; finalizar vuelve a DISPONIBLE en la estación de devolución.
+  El PUT protege ALQUILADA y no permite asignarla manualmente, pero todavía
+  no aplica el nuevo circuito de estados y Taller del DER v5.
+- El DELETE actual rechaza estado ALQUILADA y, en los demás casos, marca
+  borradoBici=true y estado INACTIVA conservando la ubicación. No exige
+  Taller; sus consultas ocultan las borradas y su PUT las rechaza. Es el
+  comportamiento legacy observado en QA-B02, no la regla nueva aprobada.
+- EXTRAVIADA y DE_BAJA todavía no están implementadas en el enum o como
+  catálogo/recorrido del backend. La separación en siete estados, el cierre
+  por incidencia, la recuperación y las restricciones de Taller son diseño
+  aprobado, no funcionalidad ya disponible. Se explican ambas situaciones
+  sin atribuir al código actual el flujo futuro.
+- es_publica es un booleano previsto para ESTACION: true/1 pública y false/0
+  interna/Taller. No es otro estado de bicicleta. Afectará mapa, consultas y
+  validaciones de contratación/devolución; no basta ocultar un marcador.
+  No se ha incorporado todavía a Java ni al circuito de la aplicación.
+- Solo se actualizó este diario. No se modificaron DER, otros documentos,
+  fuentes, configuración, staging, commits, datos o permisos, ni se ejecutaron
+  SQL, Gradle, reinicios o acciones de navegador.
+
+### Etapa 31 Primer paso manual propuesto para esPublica
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar con el nuevo cambio de estaciones.
+Se releyeron Estacion y EstacionDTO. La entidad todavía no tiene esPublica;
+se ofrecen instrucciones manuales para agregarlo, sin editar fuentes.
+
+- El bloque propuesto agrega en Estacion boolean esPublica = true, con
+  @Column(name = "es_publica", nullable = false), y sus métodos isEsPublica
+  y setEsPublica. No necesita imports nuevos porque javax.persistence.*
+  ya está presente. No se cambian ID, versión, relaciones o constructores.
+- El inicializador true conserva como públicos los objetos nuevos creados
+  mediante los constructores anteriores. No es un DEFAULT SQL ni migra
+  filas existentes; la persistencia real se comprobará cuando corresponda
+  aplicar el esquema, respetando la advertencia de create-drop.
+- El usuario comprobará con las catorce pruebas filtradas de controlador
+  y servicio, sin MySQL. No se debe reiniciar aún ni crear Taller: DTO,
+  consultas y validaciones de contratación/devolución todavía no están
+  conectados a la clasificación, y el campo aislado no implementa RN-INV-01.
+- El archivo y la ejecución quedan a cargo del usuario. En esta intervención
+  solo se actualizó este diario; no se modificaron fuentes, DER, otros
+  documentos, configuración, staging, commits, datos o permisos, ni hubo
+  SQL, Gradle, navegador o reinicios.
+
+### Etapa 32 esPublica incorporado puntualmente a Estacion
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar únicamente los
+puntos 1 y 2 de la etapa 31, reservándose la parte 3 de guardar y comprobar.
+Se agregó el atributo y sus dos accesores tal como se propusieron; no se
+ejecutaron compilación o pruebas.
+
+- Estacion contiene @Column(name = "es_publica", nullable = false) y
+  private boolean esPublica = true debajo de borradoEstacion. Se agregan
+  isEsPublica y setEsPublica antes de getVersion. No hay imports nuevos.
+- Se conservaron íntegros ambos constructores, ID, versión, relaciones,
+  validaciones, otros accesores, equals y hashCode. El valor inicial solo
+  se aplica a objetos nuevos: no es una migración de datos o DEFAULT SQL.
+- La comparación del archivo excluyendo exactamente los dos bloques
+  agregados coincidió con su contenido inicial. Los hashes de todo src
+  confirmaron un solo archivo modificado, Estacion.java, sin altas o bajas;
+  la comparación del diff cached confirmó staging preservado.
+- Solo se actualizó además este diario. No se modificaron DTO, servicio,
+  consultas, controladores, pruebas, frontend, DER, configuración, commits,
+  base local o permisos; no hubo SQL, Gradle, navegador o reinicios.
+- La parte 3 queda a cargo del usuario con el comando filtrado a
+  EstacionControllerTest y EstacionServiceTest. No se debe reiniciar ni
+  crear todavía Taller: faltan DTO, consultas y validaciones del circuito
+  público/interno. Este campo aislado no acredita implementar RN-INV-01.
+
+### Etapa 33 Pruebas de entidad verificadas y DTO de salida propuesto
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado a EstacionControllerTest
+y EstacionServiceTest con BUILD SUCCESSFUL en 8 s, cuatro tareas ejecutadas.
+Se leyeron los XML: controlador 9 tests y servicio 5; ambos sin errores,
+fallos u omitidos, en la ejecución del 6 de noviembre de 2026.
+
+- Se releyeron el nuevo atributo y accesores de Estacion, EstacionDTO y
+  la prueba de respuesta válida del controlador. Las catorce pruebas previas
+  siguen pasando, pero todavía no comprueban la clasificación en el DTO.
+- Se propone un bloque manual para EstacionDTO: atributo boolean esPublica,
+  asignación desde estacion.isEsPublica() en el constructor y getter
+  isEsPublica. No se agregaría setter al DTO de salida ni se modificarían
+  capacidad, ocupación, disponibilidad o versión.
+- En EstacionControllerTest se propone ampliar la respuesta pública válida
+  con jsonPath esPublica=true y agregar una prueba de respuesta con una
+  entidad interna esPublica=false. Se reutilizarían los mocks y helpers
+  existentes, sin imports, clases o dependencias adicionales. El total
+  esperado al ejecutar ambos archivos sería quince pruebas.
+- Estos casos solo comprobarán serialización y copia de la clasificación;
+  no demuestran filtrado o autorización de clientes. La edición no expone
+  todavía ese indicador como campo mutable en ActualizarEstacionDTO.
+- El asistente solo actualizó este diario. No se modificaron DTO o tests,
+  otras fuentes, configuración, DER, staging, commits, datos o permisos;
+  no se ejecutaron nuevas pruebas, Gradle, SQL, navegador o reinicios.
+  Se mantiene la instrucción de no reiniciar ni crear Taller hasta conectar
+  consultas, entradas y validaciones de ubicaciones internas.
+
+### Etapa 34 esPublica agregado al DTO y comprobaciones de respuesta preparadas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar únicamente los puntos
+1 y 2 del bloque propuesto en la etapa 33, reservándose la parte 3 de guardar
+y comprobar. Se realizaron los cambios acordados sin compilar ni ejecutar
+pruebas.
+
+- EstacionDTO incorpora private boolean esPublica, copia el valor desde
+  estacion.isEsPublica() en su constructor y expone isEsPublica. No se agregó
+  setter. Se conservaron ID, versión y todos los cálculos de disponibilidad,
+  ocupación y espacios, sin modificar el DTO de entrada o la clasificación.
+- EstacionControllerTest agrega la comprobación jsonPath esPublica=true a
+  la respuesta válida existente y una prueba devuelveEsPublicaFalseParaUnaEstacionInterna
+  para una respuesta con esPublica=false. Reutiliza mocks, imports y helpers
+  existentes. El Taller de ese caso es un objeto en memoria, no una fila real.
+- Se comparó el contenido con el inicio, excluyendo exactamente los bloques
+  agregados: el resto de EstacionDTO y los tests/helpers anteriores coincidió.
+  Los hashes de todo src confirmaron solo esos dos archivos modificados,
+  sin altas o bajas de fuentes. El diff staged se conservó sin cambios.
+- Hay diez métodos @Test en el controlador y cinco en el servicio. El total
+  esperado de la siguiente ejecución filtrada es quince, todavía pendiente
+  de comprobar. Los nuevos casos comprueban copia/serialización, no filtrado,
+  autorización de clientes o persistencia de la clasificación en MySQL.
+- Solo se actualizó además este diario. No se modificaron entidad, servicio,
+  repositorios, controlador de producción, frontend, DTO de entrada, DER,
+  configuración, staging, commits, base local o permisos. No hubo Gradle,
+  SQL, navegador o reinicios. El usuario conserva la parte 3 y se mantiene
+  la instrucción de no reiniciar la app ni crear todavía un Taller real.
+
+### Etapa 35 Quince pruebas verificadas y consulta pública propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado a controlador y servicio con
+BUILD SUCCESSFUL en 4 s, tres tareas ejecutadas y una actualizada. Se leyeron
+los XML: EstacionControllerTest tiene 10 pruebas y EstacionServiceTest 5;
+ambos con failures=0, errors=0 y skipped=0 en la ejecución del 6 de noviembre.
+
+- Queda verificada la regresión anterior y la serialización de esPublica
+  tanto true como false. El resultado no demuestra aún consultas filtradas,
+  seguridad, clasificación persistida o implementación de Taller en MySQL.
+- Se releyeron EstacionRepository y los GET del controlador. El listado
+  actual todavía utiliza findByBorradoEstacionFalse, sin separar internas.
+- El siguiente bloque manual propuesto agrega solo
+  findByBorradoEstacionFalseAndEsPublicaTrue, devolviendo List<Estacion>,
+  junto a la consulta existente. No requiere imports nuevos. Se conserva
+  findByBorradoEstacionFalse para la futura consulta administrativa que
+  incluirá ubicaciones internas activas.
+- Después se conectarán las rutas de lectura pública y administrativa y
+  los consumidores correspondientes; la mera declaración del método no
+  cambia todavía el endpoint ni impide operar con Taller. Los controles de
+  alquiler/devolución seguirán pendientes de implementación y prueba.
+- Solo se actualizó este diario. El asistente no agregó consultas o fuentes,
+  no modificó configuración, DER, staging, commits, datos o permisos ni
+  ejecutó pruebas, Gradle, SQL, navegador o reinicios. La compilación del
+  siguiente cambio queda a cargo del usuario y no sustituye validar la
+  consulta derivada en un contexto JPA real. No reiniciar aún ni crear Taller.
+
+### Etapa 36 Consulta pública revisada y separación de lecturas propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava con BUILD SUCCESSFUL en 1 s, una
+tarea ejecutada. Se releyó EstacionRepository: conserva la consulta general
+y agrega correctamente findByBorradoEstacionFalseAndEsPublicaTrue. No se
+ejecutó una nueva compilación o consulta real de ese método.
+
+- Se revisaron EstacionService, los consumidores /api/estaciones, el prefijo
+  del controlador estadístico y las reglas de WebAuthorization. El siguiente
+  bloque manual propuesto afecta servicio, controlador de estaciones y
+  únicamente cargarEstaciones del JS administrativo.
+- Se proponen dos lecturas en EstacionService, con transacción readOnly
+  para construir los DTO mientras sus relaciones están disponibles:
+  obtenerEstacionesPublicas con el nuevo método filtrado, y
+  obtenerEstacionesAdministracion con la consulta general y @PreAuthorize
+  ADMIN. Se conservan el constructor y actualizarEstacion sin cambios.
+- El GET /api/estaciones delegará en la lectura pública. Se agregará
+  GET /api/admin/estaciones dentro de EstacionController, sin alterar los
+  otros endpoints. WebAuthorization ya protege /api/admin/**; no es necesario
+  modificar el controlador de estadísticas o las reglas de seguridad.
+- Solo cargarEstaciones de admin.js cambiará su GET al endpoint de
+  Administración. Se conservarán el GET público usado para elegir una
+  devolución normal, el mapa, alquiler y mis viajes, y POST/PUT/DELETE.
+- El usuario ejecutará las quince pruebas existentes como regresión.
+  Todavía deberán agregarse pruebas de las nuevas lecturas y permisos;
+  los flujos de alquiler/devolución y consultas de bicicletas requieren
+  sus controles propios. No basta separar estos GET para cerrar RN-INV-01.
+- Solo se actualizó este diario. No se implementaron esos métodos o rutas
+  ni se modificaron fuentes, configuración, DER, staging, commits, datos o
+  permisos. No hubo Gradle, SQL, navegador o reinicios. Se mantiene la
+  instrucción de no reiniciar ni crear Taller antes de conectar el circuito.
+
+### Etapa 37 Lecturas pública y administrativa conectadas en el código
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar exclusivamente los
+puntos 1 a 3 de la etapa 36, reservándose la parte 4 de guardar y comprobar.
+Se aplicaron los bloques propuestos sin ejecutar compilación o pruebas.
+
+- EstacionService incorpora imports List y Collectors y los métodos
+  obtenerEstacionesPublicas y obtenerEstacionesAdministracion, ambos con
+  transacción readOnly para preparar DTO dentro del contexto de persistencia.
+  La lectura pública utiliza el filtro nuevo; la administrativa conserva
+  todas las ubicaciones sin baja y exige ADMIN mediante @PreAuthorize.
+- El GET /api/estaciones delega en el servicio público. Se agrega
+  GET /api/admin/estaciones dentro de EstacionController para la lectura
+  administrativa. No se modificó WebAuthorization: /api/admin/** ya exige
+  ADMIN. Tampoco se modificó el controlador de estadísticas.
+- Solo cargarEstaciones de admin.js cambia su GET al endpoint administrativo.
+  Se conserva la consulta pública de selección de devolución en la función
+  de finalizar alquiler, y todas las llamadas de escritura y demás funciones.
+- La comparación del contenido excluyendo los bloques propuestos confirmó
+  el constructor y actualizarEstacion intactos; imports/inyección y GET por
+  ID, POST, PUT y DELETE del controlador intactos; y una sola sustitución de
+  URL en el JS. Los hashes de todo src confirmaron tres archivos modificados,
+  sin altas o bajas, y el diff staged permaneció igual.
+- Solo se actualizó además este diario. No se cambiaron modelos, DTO,
+  repositorios, pruebas, otros archivos frontend, DER, configuración,
+  commits, datos o permisos. No hubo Gradle, ejecución de tests, SQL,
+  navegador o reinicios; git diff --check no señaló errores de contenido.
+- El usuario conserva la ejecución de las quince pruebas existentes como
+  regresión. Nuevas pruebas de lecturas/permisos, consultas de bicicletas
+  y validaciones de alquiler/devolución siguen pendientes. No se declara
+  terminado RN-INV-01 ni verificado este incremento en ejecución real.
+- No reiniciar ni crear Taller todavía. Antes de recargar el panel se debe
+  coordinar el arranque del backend actualizado: una instancia anterior no
+  conoce /api/admin/estaciones y podría responder 404 al JS nuevo. Este
+  paso prepara los archivos para ese arranque, no actualiza Java en memoria.
+
+### Etapa 38 Regresión de lecturas verificada y cuatro pruebas propuestas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado con BUILD SUCCESSFUL en 4 s,
+cuatro tareas ejecutadas. Los XML actuales muestran 10 pruebas del controlador
+y 5 del servicio, sin fallos, errores u omitidas, en la ejecución del
+6 de noviembre de 2026. Se releyeron ambos archivos de pruebas y el diario.
+
+- El siguiente bloque manual propuesto agrega dos pruebas a EstacionServiceTest:
+  la lectura pública usa la consulta filtrada y no la general; la lectura
+  administrativa usa la general y conserva la clasificación interna en el
+  DTO. Los repositorios seguirán simulados; no es una prueba del predicado
+  SQL, del estado de baja de filas reales o de sus anotaciones AOP.
+- Se proponen dos pruebas GET en EstacionControllerTest con MockMvc standalone:
+  /api/estaciones delega a la lectura pública y /api/admin/estaciones devuelve
+  el listado administrativo del servicio simulado. Se agrega un pequeño
+  helper reutilizado para construir DTO públicos e internos en memoria.
+- Se requieren únicamente java.util.List en ambos archivos y el import
+  estático get en el controlador de pruebas. Se conservan todos los tests
+  anteriores. El total esperado después del cambio sería 19, no ejecutados
+  todavía: 12 del controlador y 7 del servicio.
+- Estos casos no incorporan filtros de Spring Security ni contexto JPA:
+  no acreditan permisos efectivos o consultas en MySQL. Esas comprobaciones
+  y las validaciones de alquiler/devolución continúan pendientes.
+- Solo se actualizó este diario. No se agregaron pruebas o código, ni se
+  modificaron DER, configuración, staging, commits, datos o permisos. No
+  se ejecutó Gradle, SQL, navegador o reinicios. Se mantiene el trabajo con
+  pruebas aisladas antes de recargar o reiniciar el entorno funcional.
+
+### Etapa 39 Cuatro pruebas de lecturas incorporadas sin ejecutarlas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó al asistente a implementar únicamente los
+puntos 1 y 2 propuestos en la etapa 38, reservándose la parte 3 de guardar
+y comprobar. Se agregaron exactamente las cuatro pruebas acordadas.
+
+- EstacionServiceTest incorpora import List y dos pruebas: la lectura
+  pública usa findByBorradoEstacionFalseAndEsPublicaTrue sin usar la general;
+  la administrativa usa la general y conserva un DTO interno esPublica=false.
+  En ambos casos se verifica que no interviene BicicletaRepository.
+- EstacionControllerTest incorpora imports List y get, dos pruebas de los
+  GET público y administrativo, y estacionParaListado como helper compartido
+  para preparar DTO en memoria. Comprueban respuestas y delegación al método
+  de servicio correspondiente, sin arrancar la app o crear registros reales.
+- La comparación de contenido, excluyendo exactamente los bloques e imports
+  agregados, coincidió con los tests y helpers anteriores. Los hashes de
+  todo src confirmaron solo esos dos archivos de pruebas modificados, sin
+  altas o bajas; se conservó el diff staged del usuario sin cambios.
+- Hay doce métodos @Test del controlador y siete del servicio. El total
+  esperado en la ejecución filtrada es diecinueve, pendiente de ejecutar
+  por el usuario. No se presenta la revisión estática como prueba superada.
+- No se cargan filtros de seguridad o repositorios JPA reales: estos casos
+  no acreditan permisos, el predicado SQL, transacciones o concurrencia real.
+  Las comprobaciones específicas de seguridad y del circuito de alquiler
+  siguen pendientes, conforme al alcance de RN-INV-01.
+- Solo se actualizó además este diario. No se modificaron código de
+  producción, pruebas anteriores, frontend, DER, configuración, staging,
+  commits, datos o permisos, ni se ejecutaron Gradle, SQL, navegador o
+  reinicios. El usuario conserva la parte 3; no recargar o reiniciar aún.
+
+### Etapa 40 Diecinueve pruebas verificadas y seguridad de lecturas pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado con BUILD SUCCESSFUL en 3 s,
+dos tareas ejecutadas y dos actualizadas. Se verificaron los XML de la
+ejecución actual: EstacionControllerTest 12 pruebas y EstacionServiceTest 7,
+ambos sin fallos, errores u omitidas. Las cuatro pruebas nuevas pasaron.
+
+- Quedan comprobadas en forma aislada la selección de consulta del servicio
+  y las rutas/respuestas de lectura pública y administrativa. No se presenta
+  este resultado como prueba de los permisos o del predicado SQL real.
+- Se releyó WebAuthorizationTest: usa @WebMvcTest y las configuraciones
+  de seguridad reales con dependencias simuladas; tiene nueve pruebas
+  previas y no registra todavía EstacionController en ese contexto.
+- El siguiente bloque propuesto es ampliar ese mismo test, sin modificar
+  seguridad productiva: registrar también EstacionController y simular
+  EstacionService, EstacionRepository y BicicletaRepository. El contexto
+  seguirá siendo de MVC/seguridad, sin repositorios JPA o MySQL reales.
+- Se proponen tres pruebas nuevas: GET público anónimo 200, GET administrativo
+  anónimo 401 y GET administrativo con ADMIN 200. Se agregará la ruta
+  /api/admin/estaciones al helper existente que comprueba 403 para CLIENTE
+  y TECNICO, verificando que no llegue a invocarse el servicio de estaciones.
+  Esto permite comprobar cinco escenarios sin duplicar las dos pruebas
+  de roles que ya existen. El total previsto de los tres archivos sería
+  31 pruebas, pendiente de implementar y ejecutar: 12 + 7 + 12.
+- Estos tests comprobarán los filtros HTTP con los controladores registrados;
+  no la transacción, el predicado JPA o el proxy de servicio de una ejecución
+  completa con MySQL. Alquiler/devolución seguirán necesitando sus controles.
+- Solo se actualizó este diario. No se modificaron tests, fuentes, DER,
+  configuración, staging, commits, datos o permisos, ni se ejecutaron
+  Gradle, SQL, navegador o reinicios. No recargar/reiniciar el panel todavía.
+
+### Etapa 41 Acceso técnico a la ubicación aprobado y siguiente bloque manual
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario aprobó la separación entre administración de estaciones
+y consulta técnica de la ubicación en las órdenes asignadas. Se asentó en
+RN-MAN-02 y RN-INV-01: TECNICO podrá conocer el Taller de la bicicleta desde
+su orden, pero no acceder al listado administrativo completo ni modificar
+estaciones por ese permiso. ADMIN mantiene la gestión y CLIENTE/visitante
+solo el listado público. La consulta técnica se implementará con mantenimiento;
+no se crea un endpoint provisional ni se declara implementado ese módulo.
+
+- Se releyó WebAuthorizationTest y se conserva el siguiente bloque manual
+  propuesto en la etapa 40: registrar EstacionController y sus dependencias
+  simuladas en el slice MVC existente; agregar tres pruebas de acceso y
+  ampliar el helper de denegación que usan CLIENTE y TECNICO.
+- La ampliación prevista verifica la ruta pública anónima (200), el listado
+  administrativo anónimo (401), el acceso administrativo de ADMIN (200)
+  y la denegación a CLIENTE/TECNICO (403). No prueba todavía la consulta
+  técnica dentro de una orden asignada, que no está implementada.
+- Se entregan instrucciones manuales sobre el archivo existente, sin
+  reemplazar sus pruebas anteriores. Comando filtrado propuesto para el
+  usuario: WebAuthorizationTest, EstacionControllerTest y EstacionServiceTest;
+  total esperado 31 pruebas, pendiente de realizar los cambios y ejecutar.
+- Solo se modificó documentación. No se editaron Java, frontend, DER,
+  configuración, staging o commits; no se ejecutaron Gradle, SQL, navegador
+  ni reinicios. La base y las fuentes existentes permanecen intactas.
+
+### Etapa 42 Pruebas de acceso a estaciones implementadas, ejecución pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente el bloque
+propuesto sobre WebAuthorizationTest y reservó para sí la parte 3, guardar
+y comprobar. Se releyó el archivo antes de modificarlo y se aplicó el cambio
+sin editar fuentes productivas ni sustituir las pruebas previas.
+
+- Se agregaron los cuatro imports propuestos y EstacionController a
+  @WebMvcTest y @ContextConfiguration. Se conservaron UsuarioController,
+  WebAuthorization y SecurityConfig en la configuración del contexto.
+- Se incorporaron @MockBean de EstacionService, EstacionRepository y
+  BicicletaRepository. Estos sustituyen las dependencias del controlador;
+  el contexto continúa siendo de MVC/seguridad, sin MySQL ni JPA reales.
+- Se agregaron tres pruebas: visitante con lectura pública 200, visitante
+  con listado administrativo 401 y ADMIN con listado administrativo 200.
+  Los casos permitidos comprueban la llamada al método de consulta correcto;
+  el caso anónimo denegado verifica que no se invoca el servicio.
+- El helper de rutas administrativas conserva sus tres rutas anteriores y
+  añade /api/admin/estaciones. Las pruebas existentes de CLIENTE y TECNICO
+  comprueban así su denegación 403 y que no se invocan UsuarioRepository
+  ni EstacionService. No se habilita el listado completo para TECNICO.
+- La revisión estática confirmó doce @Test en el archivo, las nueve pruebas
+  previas con su código íntegro y los helpers de perfil y creación de
+  usuario sin cambios. La comparación SHA-256 de todas las fuentes mostró
+  únicamente WebAuthorizationTest modificado; no se eliminó ninguna fuente.
+  El diff de staging permaneció idéntico y diff --check no informó errores.
+- También se actualizó este diario. No se modificaron seguridad productiva,
+  controladores, servicios, repositorios, frontend, DER, configuración o
+  datos; no se ejecutaron Gradle, SQL, navegador, reinicios ni commits.
+- La parte 3 queda para el usuario: ejecutar las tres clases filtradas
+  WebAuthorizationTest, EstacionControllerTest y EstacionServiceTest. Se
+  esperan 31 pruebas en total, todavía sin acreditar su ejecución tras
+  este cambio. No necesita reiniciar la aplicación para estos tests.
+- La consulta técnica de ubicaciones dentro de órdenes asignadas conserva
+  su condición de diseño aprobado, pendiente del módulo de mantenimiento;
+  estas pruebas no la implementan ni verifican transacciones o SQL real.
+
+### Etapa 43 Treinta y una pruebas verificadas y baja de estación pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó las tres clases filtradas y obtuvo BUILD SUCCESSFUL
+en 5 s. Se leyeron los XML de esa ejecución: WebAuthorizationTest 12 pruebas,
+EstacionControllerTest 12 y EstacionServiceTest 7; total 31, sin fallos,
+errores u omitidas. Los reportes corresponden al 6 de noviembre, 23:07 UTC.
+
+- Se acreditan los casos de lectura y los filtros HTTP de acceso descritos
+  en las etapas anteriores, con sus dependencias simuladas. No se extiende
+  el resultado a SQL real, a la consulta técnica de órdenes aún inexistente,
+  a movimientos físicos ni a los controles pendientes de alquiler/devolución.
+- Se releyeron los DTO, servicio y controlador de estaciones. Se identificó
+  una brecha puntual que ya estaba pendiente: eliminarEstacionLogico usa
+  countByUbicacionActualAndBorradoBiciFalse, a diferencia de la actualización
+  de capacidad, que cuenta todas las bicicletas físicamente asociadas.
+  Podría permitir la baja de una estación que solo conserva archivadas.
+- El siguiente bloque propuesto es sustituir ese contador por
+  countByUbicacionActual y corregir su comentario, conservando bloqueo,
+  respuesta 409, baja lógica y demás comportamiento. Aplica la ocupación
+  física ya aprobada en RN-INV-01, sin agregar reglas de negocio.
+- La prueba específica de baja con una bicicleta archivada sigue pendiente;
+  las 31 pruebas actuales no cubren el DELETE. Esta corrección puntual no
+  completaría por sí sola la auditoría y las restantes condiciones v5 de baja.
+- Solo se actualizó este diario. No se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. El próximo cambio se propone para implementación manual.
+
+### Etapa 44 Contador de baja corregido y pruebas DELETE propuestas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó haber realizado el cambio. Se releyó el método
+eliminarEstacionLogico y se confirmó countByUbicacionActual(estacion), con
+el comentario actualizado. Se conserva la búsqueda activa con bloqueo,
+404 si no se encuentra, 409 si existe ocupación y baja lógica con 204
+solo cuando el contador devuelve cero. No se ejecutó el endpoint.
+
+- Se releyó EstacionControllerTest: conserva doce pruebas; la configuración
+  standalone tiene EstacionService simulado y todavía no declara los dos
+  repositorios requeridos por las operaciones DELETE actuales.
+- El siguiente bloque manual propuesto agrega esos dos @Mock, los imports
+  necesarios y tres pruebas nuevas sin reemplazar las previas: rechazo de
+  baja con una bicicleta archivada físicamente asociada; baja exclusivamente
+  lógica de una estación vacía; 404 cuando no existe una estación activa.
+- La primera conserva una bicicleta archivada en memoria y simula que el
+  contador total devuelve uno. Comprueba que se usa ese contador y no el
+  filtrado por borrado, que la estación no se marca de baja y que no hay
+  guardados ni eliminaciones. No acredita el predicado SQL del repositorio.
+- El caso vacío comprueba el indicador, save y ausencia de operaciones
+  adicionales sobre los repositorios; el caso ausente no cuenta bicicletas
+  ni guarda. Los tests son MVC con repositorios simulados; no prueban el
+  bloqueo o una transacción real, ni completan la auditoría v5 pendiente.
+- Tras el cambio se esperan quince pruebas de EstacionControllerTest y
+  treinta y cuatro junto con WebAuthorizationTest y EstacionServiceTest.
+  Implementación y ejecución de ese bloque siguen pendientes del usuario.
+- Solo se actualizó el diario. No se editaron fuentes, configuración,
+  frontend, DER, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Se conserva la modalidad de instrucciones manuales.
+
+### Etapa 45 Pruebas DELETE implementadas, comprobación reservada al usuario
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar solamente el bloque
+de pruebas propuesto y reservó la parte 3, guardar y comprobar. Se releyeron
+EstacionControllerTest y el DELETE actual antes de editar. Se modificó
+únicamente ese archivo de pruebas, además de esta anotación en el diario.
+
+- Se agregaron los siete imports propuestos y @Mock de EstacionRepository
+  y BicicletaRepository. Se conservan EstacionService simulado, InjectMocks,
+  el armado de MockMvc y el manejador global de excepciones anteriores.
+- Se agregaron tres pruebas antes de estacionParaListado: 409 con una
+  bicicleta archivada físicamente asociada, 204 con baja exclusivamente
+  lógica de estación vacía y 404 al no encontrar una estación activa.
+- El caso ocupado crea los objetos solo en memoria y simula el conteo
+  total en uno; exige countByUbicacionActual y prohíbe el contador que
+  excluye archivadas. Comprueba que no se marca de baja la estación y
+  que no hay guardados ni otras operaciones de repositorio. Esto no
+  acredita el predicado SQL real del contador.
+- El caso vacío comprueba borradoEstacion=true y save; la verificación de
+  ausencia de interacciones adicionales rechaza una eliminación física.
+  El caso ausente no permite contar bicicletas ni guardar datos.
+- La comparación estática, retirando solamente las adiciones propuestas,
+  recuperó íntegro el contenido anterior: las doce pruebas, helpers,
+  imports previos y configuración. Ahora hay quince @Test en el archivo.
+  La comparación SHA-256 de todas las fuentes confirmó que solo cambió
+  EstacionControllerTest, sin archivos eliminados, y el staging se conservó.
+- No se editaron fuentes productivas, seguridad, frontend, DER,
+  configuración o datos; no se ejecutaron Gradle, SQL, navegador, reinicios
+  ni commits. No se acredita todavía la ejecución de estas nuevas pruebas,
+  ni se extiende su alcance a transacciones, bloqueos o auditoría v5.
+- El usuario conserva la parte 3: ejecutar WebAuthorizationTest,
+  EstacionControllerTest y EstacionServiceTest. Se esperan 34 pruebas en
+  total (12 + 15 + 7), pendientes de comprobar tras esta implementación.
+
+### Etapa 46 Treinta y cuatro pruebas verificadas y siguiente alta de estaciones
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó BUILD SUCCESSFUL en 1 s, con las cuatro tareas
+UP-TO-DATE. Ese comando reutilizó resultados; no se describe como una
+ejecución nueva. Se leyeron los XML disponibles del 6 de noviembre a las
+23:16 UTC: WebAuthorizationTest 12, EstacionControllerTest 15 y
+EstacionServiceTest 7; total 34, sin fallos, errores u omitidas. Se confirmó
+además la presencia de las tres pruebas DELETE nuevas por sus nombres.
+
+- Quedan acreditados los escenarios aislados de DELETE propuestos, con
+  repositorios simulados; no la consulta SQL real, las transacciones, el
+  bloqueo o la auditoría. No se vuelve a ejecutar Gradle para revisar esto.
+- Se revisó el alta actual: crearEstacion todavía recibe la entidad cruda;
+  no existe CrearEstacionDTO y el panel no tiene selector de esPublica.
+  El próximo bloque propuesto es completar el alta de estaciones/talleres,
+  comenzando por ese DTO con los campos permitidos y validación de
+  clasificación obligatoria, conservando las reglas de RN-INV-01.
+- El recorrido posterior será conectar la creación con EstacionService,
+  el controlador y el selector administrativo, y añadir sus pruebas.
+  No se propone un cambio libre de clasificación de estaciones existentes
+  ni se modifica el DTO de actualización sin definir esos controles.
+- Se verificó también que los alquileres actuales aún no rechazan Taller
+  como origen/destino en el backend y que bicicletas/disponibles no filtra
+  estaciones internas. Esos controles deberán completarse antes de una
+  prueba funcional con Taller real. La devolución y las altas/traslados
+  actuales de bicicletas también conservan contadores que excluyen
+  archivadas y requieren alinearse con la ocupación física aprobada.
+- Solo se actualizó este diario. No se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. El siguiente bloque se mantiene propuesto para trabajo manual.
+
+### Etapa 47 Propuesta manual de CrearEstacionDTO
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se contrastaron ActualizarEstacionDTO,
+Estacion y RN-INV-01; se confirmó que CrearEstacionDTO aún no existe.
+Se entregan instrucciones para que el usuario cree esa clase en el paquete
+dto existente, sin editar otros archivos de Java en este paso.
+
+- Contendrá únicamente nombre, direccion, capacidad, latitud, longitud y
+  esPublica. No recibe id, version, borradoEstacion ni asociaciones de bicicletas.
+- Nombre y dirección conservan las reglas ya usadas al actualizar: no
+  blancos, máximo 255 y normalización de espacios en sus setters. Capacidad
+  obligatoria y mínima uno; coordenadas obligatorias dentro de sus rangos.
+- esPublica es Boolean sin valor predeterminado y @NotNull: omitir la
+  clasificación no equivale a elegir Taller. true identifica pública y
+  false interna; false es válido. Se proponen getEsPublica/setEsPublica.
+- No es una entidad ni crea otra tabla. Las restricciones no estarán
+  conectadas al POST hasta adaptar servicio y controlador en el bloque
+  siguiente. No se habilita el cambio libre de clasificación al editar.
+- Se propone compileJava como comprobación manual, sin iniciar la app o
+  usar MySQL. Creación y compilación del DTO pendientes del usuario.
+  Solo se actualizó este diario; no se ejecutaron Gradle, SQL o reinicios,
+  ni se modificaron fuentes, DER, frontend, configuración, staging o commits.
+
+### Etapa 48 CrearEstacionDTO revisado y alta en servicio propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario creó CrearEstacionDTO y reportó compileJava exitoso.
+Se leyó la clase completa: contiene los seis campos, sus restricciones,
+normalización y accesores propuestos. La diferencia informada está solo
+en el mensaje de esPublica, que ahora menciona estación/taller interno;
+no altera la validación. Se recomienda la expresión estación de uso
+interno como denominación general de talleres/depósitos, sin agregar
+tipos ni modificar las condiciones aprobadas para esas ubicaciones.
+
+- Se revisaron EstacionService, EstacionRepository y el POST actual.
+  Todavía no existe el método de alta del servicio ni la consulta de
+  existencia por nombre sin excluir un identificador.
+- El siguiente bloque manual propuesto agrega existsByNombreIgnoreCase
+  al repositorio y crearEstacion al servicio, con @Transactional,
+  @PreAuthorize ADMIN y @Valid/@NotNull en el DTO de entrada.
+- El alta comprueba duplicados incluyendo las estaciones de baja lógica,
+  construye una entidad nueva con los datos permitidos, asigna esPublica
+  y usa saveAndFlush antes de convertir a EstacionDTO. Identificador,
+  versión y baja lógica no se toman de la petición. La consulta previa
+  no sustituye la restricción única de la base ni sus errores concurrentes.
+- No se modifica todavía el POST ni el formulario; su conexión y manejo
+  de errores seguirán en el bloque siguiente. No se habilita cambiar
+  libremente la clasificación de una estación existente.
+- El código se entrega para implementación manual y compileJava por el
+  usuario. Solo se actualizó este diario; no se editaron fuentes, DER,
+  frontend o configuración, ni se ejecutaron Gradle, SQL, reinicios o Git.
+
+### Etapa 49 Alta en repositorio y servicio implementada, compilación pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente el
+bloque propuesto y reservó la parte 3, guardar y comprobar. Se releyeron
+repositorio, servicio y DTO antes de aplicar las adiciones. El DTO ya
+contenía el mensaje estación de uso interno y se conservó sin cambios.
+
+- EstacionRepository incorpora existsByNombreIgnoreCase(String nombre)
+  después de findByNombre, conservando todos sus métodos anteriores.
+- EstacionService importa CrearEstacionDTO e incorpora crearEstacion
+  después del constructor, con @Transactional, @PreAuthorize ADMIN y
+  @NotNull/@Valid en el parámetro. Comprueba nombre duplicado, construye
+  una Estacion nueva con los cinco datos básicos, asigna esPublica,
+  persiste con saveAndFlush y devuelve EstacionDTO.
+- No se reciben id, version, borradoEstacion ni asociaciones desde el DTO.
+  La búsqueda de duplicados no excluye bajas lógicas ni sustituye la
+  restricción única de la base frente a concurrencia.
+- La revisión estática confirmó que, retirando las adiciones propuestas,
+  el contenido anterior de ambos archivos queda íntegro. La comparación
+  SHA-256 de todas las fuentes mostró únicamente los dos archivos
+  autorizados modificados, ninguno eliminado, y el staging sin cambios.
+- Se actualizó además este diario. No se modificaron DTO, controlador,
+  formulario, pruebas, seguridad, DER, configuración o datos; no se
+  ejecutaron Gradle, SQL, navegador, reinicios ni commits.
+- La parte 3 queda para el usuario con compileJava. No se acredita aún
+  la compilación o ejecución de este método; el POST continúa usando
+  su implementación anterior hasta conectarlo en el próximo bloque.
+
+### Etapa 50 Compilación del alta confirmada y conexión POST propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava exitoso en 1 s, con la tarea
+ejecutada. Se releyeron servicio y controlador y se confirmó la presencia
+de las clases compiladas de EstacionService y EstacionRepository con
+fecha de modificación 6 de noviembre, 20:29:58 local. No se ejecutaron
+pruebas o compilación por parte del asistente.
+
+- Se revisaron GlobalExceptionHandler y guardarEstacion del frontend:
+  la validación MVC ya devuelve validationErrors con 400 y el formulario
+  sabe mostrar esa lista o un mensaje de texto. No hay todavía selector
+  de esPublica en el alta administrativa.
+- El próximo bloque manual propuesto agrega el import CrearEstacionDTO
+  al controlador y reemplaza exclusivamente crearEstacion: recibe el DTO
+  con @Valid, delega al servicio y devuelve 201. Los duplicados lógicos
+  y conflictos de integridad se traducen a 409, sin exponer detalles SQL;
+  las violaciones de validación del servicio se traducen a 400. No se
+  captura AccessDeniedException ni se agrega transacción al controlador.
+- Los demás métodos y dependencias del controlador se conservan, porque
+  GET por id y DELETE todavía requieren la entidad y los repositorios.
+- Después será necesario conectar la clasificación al formulario de alta.
+  Hasta entonces el formulario anterior omite esPublica y la nueva versión
+  del POST rechazaría el alta con 400; no se considera funcionalmente
+  cerrado este recorrido ni se propone reiniciar/probar el panel todavía.
+- Solo se actualizó este diario; no se editaron fuentes, frontend, DER,
+  configuración, staging, commits o datos, ni se ejecutaron Gradle, SQL,
+  navegador o reinicios. El siguiente cambio queda para el usuario.
+
+### Etapa 51 POST de estaciones conectado al servicio, compilación pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente la
+conexión propuesta y reservó la parte 3, guardar y comprobar. Se releyó
+EstacionController antes de editar y se conservaron sus cambios anteriores.
+
+- Se agregó el import CrearEstacionDTO y se reemplazó solamente el método
+  crearEstacion. Recibe @Valid @RequestBody CrearEstacionDTO, delega en
+  estacionService.crearEstacion y devuelve 201 con el DTO de respuesta.
+- El controlador ya no comprueba duplicados ni persiste directamente
+  durante el alta. Traduce ConstraintViolationException del servicio a
+  400, IllegalStateException a 409 y DataIntegrityViolationException a
+  409 con texto seguro. La validación MVC sigue usando el manejador global.
+  No se capturan denegaciones de acceso ni se agrega transacción al POST.
+- La comparación estática confirmó que, excluyendo ese método y el nuevo
+  import, todo el contenido anterior del controlador permanece idéntico.
+  La comparación SHA-256 de las fuentes mostró únicamente ese archivo
+  modificado, ninguno eliminado y el staging sin cambios. diff --check
+  no informó errores.
+- Se actualizó además este diario. DTO, servicio, repositorios, métodos
+  GET/PUT/DELETE, frontend, pruebas, seguridad, DER y configuración no se
+  modificaron. No se ejecutaron Gradle, SQL, navegador, reinicios o commits.
+- La parte 3 queda para el usuario: compileJava. No se acredita aún su
+  compilación ni la ejecución del POST después del cambio. El selector
+  público/interno del formulario continúa pendiente; no reiniciar ni
+  probar el alta desde el panel hasta conectar ese dato obligatorio.
+
+### Etapa 52 Compilación del POST y selector de uso propuesto
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava exitoso en 1 s, tarea ejecutada.
+Se confirmó la clase compilada del controlador con fecha de modificación
+6 de noviembre, 20:34:49 local. Se leyeron el modal de estaciones y las
+funciones actuales abrirModalEstacion, editarEstacion y guardarEstacion.
+
+- Se propone agregar al modal un selector Uso de la estación, con opción
+  vacía, Pública (true) y Uso interno (false), usando los estilos existentes.
+  Un texto aclara que al editar solo se muestra, sin permitir cambios.
+- En el alta se limpia y habilita; en la edición refleja esPublica y se
+  bloquea. Si el dato no fuera booleano, no se inventa una clasificación.
+- guardarEstacion validará la selección y enviará esPublica como booleano
+  real únicamente en POST. Se conservan el control de version en PUT,
+  los demás campos, endpoints y mensajes existentes. No se altera el
+  DTO de actualización ni se permite cambiar libremente la clasificación.
+- Es un bloque manual propuesto sobre admin.html y admin.js. Todavía no
+  se editaron esos archivos ni se considera probado el alta. compileJava
+  no verifica HTML/JavaScript; no se propone usarlo como evidencia de
+  validación de estos cambios visuales.
+- El siguiente paso será comprobar el alta y sus validaciones mediante
+  pruebas aisladas. Antes de una prueba funcional con ubicaciones internas
+  reales siguen pendientes los controles de alquiler/devolución y ofertas
+  de bicicletas; no se propone reiniciar todavía el perfil create-drop.
+- Solo se actualizó este diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios.
+
+### Etapa 53 Selector de uso implementado, comprobación reservada al usuario
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar solamente el selector
+y las tres incorporaciones JavaScript propuestas, reservando la parte 3.
+Se releyeron los bloques antes de editar y se modificaron admin.html y
+admin.js, además de esta anotación del diario.
+
+- El modal de estaciones incorpora Uso de la estación después de capacidad,
+  con opción vacía, Pública y Uso interno, label asociado y estilos existentes.
+  Se aclara que en edición el dato se muestra sin permitir cambios.
+- abrirModalEstacion limpia y habilita el selector; editarEstacion carga
+  el booleano existente, sin inventarlo si no viene, y deshabilita el campo.
+- guardarEstacion exige una selección válida únicamente al crear y envía
+  esPublica como booleano real en POST. Conserva el control de version
+  en PUT, demás campos, peticiones, mensajes y operaciones anteriores.
+- La comparación estática recuperó íntegro el contenido previo de ambos
+  archivos al retirar exclusivamente las adiciones propuestas; el selector
+  tiene identificador único coincidente con sus referencias JavaScript.
+  La comparación SHA-256 de todas las fuentes confirmó que solo cambiaron
+  estos dos archivos, ninguno eliminado, y el staging permaneció idéntico.
+- No se modificaron backend, pruebas, DER, configuración, datos o estilos
+  CSS; no se ejecutaron Gradle, JavaScript, SQL, navegador, reinicios o commits.
+- Se comprobó que existe el ejecutable Node del runtime local para ofrecer
+  al usuario una comprobación --check de admin.js sin ejecutar el archivo
+  ni abrir la aplicación. Su ejecución y resultado quedan pendientes del
+  usuario. No comprueba por sí sola el HTML, comportamiento visual o alta.
+- Continúan pendientes las pruebas aisladas del alta y los controles de
+  alquiler/devolución y oferta de bicicletas internas antes de una prueba
+  funcional con ubicaciones internas reales. No reiniciar todavía.
+
+### Etapa 54 Sintaxis JavaScript comprobada por el usuario y pruebas de alta propuestas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó Node --check sobre admin.js y mostró el retorno
+al prompt sin errores. Se registra como comprobación de sintaxis, no como
+prueba de DOM, HTML, peticiones HTTP, seguridad o persistencia.
+
+- Se releyeron EstacionServiceTest, EstacionDTO y crearEstacion del servicio.
+  La clase de pruebas conserva siete casos y aún no cubre el alta.
+- El siguiente bloque manual propuesto añade el import CrearEstacionDTO,
+  tres pruebas y dos helpers, sin reemplazar casos anteriores: alta pública,
+  alta interna y rechazo de nombre duplicado sin persistir.
+- Los casos válidos comprobarán nombre/dirección normalizados, datos
+  permitidos y clasificación, con entidad inicialmente sin id/versión y
+  sin baja lógica. saveAndFlush simulado asignará id y versión para
+  comprobar que el DTO de respuesta usa el resultado del guardado.
+- El rechazo verificará mensaje y ausencia de persistencia. Son pruebas
+  unitarias con Mockito: no prueban el índice SQL, búsqueda real sin
+  distinguir mayúsculas, transacción, validación por proxy ni permisos.
+  La validación HTTP del DTO y los permisos de POST siguen pendientes.
+- Se esperan diez pruebas de servicio y treinta y siete con las otras
+  dos clases filtradas. Código y ejecución de este bloque pendientes del
+  usuario. No se ejecutan pruebas o reinicios desde el asistente.
+- Solo se actualizó este diario; fuentes, frontend, configuración, DER,
+  staging, commits y datos permanecen sin modificaciones en este turno.
+
+### Etapa 55 Pruebas unitarias del alta implementadas, ejecución pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar solamente las pruebas
+de alta propuestas y reservó para sí guardar y comprobar. Se releyeron
+EstacionServiceTest, CrearEstacionDTO y crearEstacion antes de editar.
+
+- Se agregó el import CrearEstacionDTO y tres @Test: creaEstacionPublica,
+  creaEstacionDeUsoInterno y rechazaAltaConNombreDuplicadoSinGuardar.
+  Dos helpers nuevos construyen los datos de alta y comparten las
+  comprobaciones de los dos recorridos válidos, sin tocar helpers anteriores.
+- Los casos válidos comprueban normalización de nombre/dirección, campos
+  básicos, conservación de esPublica true/false y ausencia inicial de
+  id asignado, version, baja lógica y bicicletas asociadas. El guardado
+  simulado asigna id y version, y se comprueba su reflejo en EstacionDTO,
+  con disponibilidad cero y capacidad libre completa.
+- El duplicado exige el mensaje previsto y comprueba que no se guarda ni
+  se realizan operaciones adicionales. Ningún caso consulta bicicletas.
+- La revisión estática, retirando solo las adiciones propuestas, recuperó
+  íntegro el archivo anterior con sus siete pruebas, helpers y preparación.
+  Ahora hay diez @Test. La comparación SHA-256 de las fuentes confirmó que
+  solo cambió EstacionServiceTest, sin eliminaciones y sin cambios de staging.
+- Se actualizó además este diario. No se modificaron código productivo,
+  otros tests, frontend, DER, configuración o datos; no se ejecutaron
+  Gradle, JavaScript, SQL, navegador, reinicios o commits.
+- El usuario conserva la comprobación mediante el comando filtrado de
+  WebAuthorizationTest, EstacionControllerTest y EstacionServiceTest.
+  Total esperado 37 pruebas (12 + 15 + 10), pendiente de ejecutar.
+- Son tests unitarios con repositorios simulados: no acreditan validación
+  por proxy, autorización de métodos, búsqueda SQL real o índice único,
+  transacción ni persistencia. Siguen las pruebas HTTP del alta.
+
+### Etapa 56 Treinta y siete pruebas verificadas y validación HTTP del alta pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado con BUILD SUCCESSFUL en 8 s,
+tres tareas ejecutadas y una actualizada. Se leyeron los XML de esa
+ejecución, del 6 de noviembre a las 23:56 UTC: WebAuthorizationTest 12,
+EstacionControllerTest 15 y EstacionServiceTest 10; total 37, sin fallos,
+errores u omitidas. Las tres pruebas nuevas del alta figuran por nombre
+y pasaron; se conserva el alcance unitario descrito en la etapa anterior.
+
+- Se revisaron el test del controlador, el POST actual y CrearEstacionDTO.
+  El slice standalone ya dispone del manejador global y servicio simulado,
+  pero todavía no tiene pruebas POST. Los repositorios se conservan como
+  mocks para comprobar que el alta no accede directamente a ellos.
+- El siguiente bloque propuesto es ampliar exclusivamente ese archivo de
+  pruebas: respuestas 201 para clasificación pública e interna, recepción
+  de datos normalizados y booleano false; 400 ante campos obligatorios
+  ausentes, datos inválidos o cuerpo ilegible; 409 ante duplicado y
+  conflicto de integridad sin exponer detalles SQL.
+- Se aprovecharán los helpers existentes cuando corresponda, sin sustituir
+  las quince pruebas anteriores ni cambiar código productivo. Son pruebas
+  de MVC y validación con servicio simulado: no prueban SQL, transacciones,
+  autorización real del método o filtros HTTP, que tienen su bloque propio.
+- Solo se actualizó este diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. La ampliación del test queda pendiente de implementación.
+
+### Etapa 57 Instrucciones manuales para siete pruebas HTTP del alta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se releyeron el encabezado y los
+helpers de EstacionControllerTest y el POST productivo. Se proponen dos
+imports, siete pruebas y tres helpers nuevos en ese único archivo,
+conservando sus quince pruebas y helpers actuales.
+
+- Dos casos 201, pública e interna, comparten una comprobación de respuesta
+  y captura del CrearEstacionDTO normalizado, incluyendo false válido.
+- Los obligatorios se prueban ausentes y nulos, incluida la clasificación.
+  Se prueban blancos, exceso de longitud, capacidad no positiva y ambos
+  extremos inválidos de coordenadas, esperando validationErrors con 400.
+- Cuerpo ausente, null, JSON malformado y tipos incompatibles devuelven
+  400 sin llegar al servicio. Los rechazos de entrada no usan repositorios.
+- Duplicado e integridad simulados devuelven 409; la integridad devuelve
+  texto seguro sin detalles SQL. La creación delega en el servicio y no
+  consulta directamente a los repositorios del controlador.
+- Los nuevos helpers generan un mapa de alta independiente del PUT,
+  envían POST y comparten las comprobaciones válidas. Se reutiliza
+  estacionParaListado para el DTO simulado de respuesta.
+- Total previsto tras implementar: 22 pruebas del controlador y 44 junto
+  con WebAuthorizationTest (12) y EstacionServiceTest (10). No se acreditan
+  ejecución, filtros de seguridad, SQL o transacciones con esta propuesta.
+- Solo se actualizó el diario; no se editaron Java, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Implementación y comprobación pendientes del usuario.
+
+### Etapa 58 Siete pruebas HTTP del alta implementadas, ejecución pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente el
+bloque propuesto, reservando la parte 3 de guardar y comprobar. Se
+releyeron los puntos de inserción y el POST actual antes de editar.
+
+- EstacionControllerTest incorpora los imports CrearEstacionDTO y post,
+  siete @Test y los tres helpers datosAltaValidos, enviarAlta y
+  comprobarAlta201. Se reutiliza estacionParaListado sin modificarlo.
+- Los dos recorridos válidos comprueban 201, respuesta y DTO recibido
+  normalizado, con todos sus campos y true/false conservados. El caso
+  interno verifica que false no se interpreta como dato ausente.
+- Se prueban doce combinaciones de campos obligatorios ausentes/nulos,
+  diez valores inválidos y siete cuerpos/tipos ilegibles. Los errores
+  de restricciones esperan 400 con validationErrors del campo, y los
+  ilegibles 400; en ambos casos no se invoca servicio ni repositorios.
+- Los dos conflictos simulados esperan 409: el duplicado conserva el
+  mensaje del servicio y el de integridad devuelve el texto seguro
+  previsto, sin detalles SQL. El POST delega en el servicio y no usa
+  directamente los repositorios.
+- La comparación estática, retirando únicamente las adiciones propuestas,
+  recuperó íntegro el archivo anterior con sus quince pruebas, helpers
+  y configuración. Ahora hay 22 @Test. La comparación SHA-256 de todas
+  las fuentes confirmó únicamente EstacionControllerTest modificado,
+  ningún archivo eliminado y staging sin cambios. diff --check sin errores.
+- Se actualizó además este diario. No se modificaron código productivo,
+  otros tests, frontend, DER, configuración o datos; no se ejecutaron
+  Gradle, JavaScript, SQL, navegador, reinicios o commits.
+- El usuario conserva la parte 3 mediante las tres clases filtradas:
+  WebAuthorizationTest, EstacionControllerTest y EstacionServiceTest.
+  Total esperado 44 pruebas (12 + 22 + 10), aún pendiente de ejecutar.
+  Estos tests no acreditan filtros de seguridad, SQL o transacciones reales.
+
+### Etapa 59 Cuarenta y cuatro pruebas verificadas y permisos POST pendientes
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó el comando filtrado y obtuvo BUILD SUCCESSFUL
+en 7 s, con dos tareas ejecutadas y dos actualizadas. Se leyeron los XML
+de la ejecución del 7 de noviembre a las 00:15 UTC, correspondiente al
+6 de noviembre a las 21:15 en Argentina: WebAuthorizationTest 12,
+EstacionControllerTest 22 y EstacionServiceTest 10; total 44, sin fallos,
+errores u omitidas. Se confirmaron por nombre los siete casos POST nuevos.
+
+- Quedan acreditados los escenarios MVC/validación descritos en la etapa
+  anterior con el servicio simulado. No se presentan como prueba de SQL,
+  persistencia, transacciones, navegador o autorización de métodos reales.
+- Se releyeron WebAuthorizationTest y las reglas de WebAuthorization:
+  POST /api/estaciones queda bajo la regla administrativa existente.
+  El test de seguridad actual cubre lecturas, pero no esa operación POST.
+- El próximo bloque propuesto amplía únicamente WebAuthorizationTest:
+  dos pruebas nuevas, visitante 401 y ADMIN 201 con cuerpo válido y
+  servicio simulado; el helper actual de rutas bloqueadas agregará el
+  mismo POST para las pruebas ya existentes de CLIENTE y TECNICO (403),
+  comprobando que no se invoca el servicio en los rechazos.
+- Se prevén catorce pruebas de seguridad y 46 entre las tres clases,
+  pendiente de implementar y ejecutar. No se modifican las reglas
+  productivas ni se otorga administración de estaciones a TECNICO.
+- Solo se actualizó el diario. No se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Continúan pendientes las restricciones del circuito de
+  alquiler/devolución y oferta de bicicletas internas antes de QA real.
+
+### Etapa 60 Instrucciones manuales para permisos POST de estaciones
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se leyó WebAuthorizationTest completo
+y se contrastó con la regla administrativa POST existente. Se entregan
+instrucciones para modificar únicamente el archivo de pruebas.
+
+- Agregar tres imports de DTO/entidad y una constante JSON válida con
+  los seis campos del alta, compatible con Java 11 sin text blocks.
+- Agregar dos pruebas: visitante sin sesión recibe 401 y ADMIN recibe
+  201 con el DTO simulado por el servicio. La estación de prueba es un
+  objeto en memoria con id/version simulados, no una inserción SQL.
+- Ampliar comprobarRutasAdministrativasBloqueadas conservando sus cuatro
+  rutas GET y añadiendo POST /api/estaciones con el mismo JSON válido.
+  Las pruebas existentes de CLIENTE y TECNICO comprobarán 403 y que
+  servicio y repositorios no reciben llamadas en esos rechazos.
+- Se conservan los doce @Test anteriores, anotaciones, contexto y mocks.
+  Total previsto catorce en WebAuthorizationTest y 46 entre las tres
+  clases filtradas (14 + 22 + 10), pendiente de implementar y ejecutar.
+- El alcance son los filtros HTTP reales con controlador real y servicio
+  simulado; no SQL, persistencia, transacciones o autorización del método
+  de servicio por su proxy. No se cambian reglas productivas ni permisos.
+- Solo se actualizó el diario; no se editaron Java, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. La implementación sigue a cargo del usuario en este paso.
+
+### Etapa 61 Pruebas de permisos POST implementadas, ejecución pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente el
+bloque propuesto y reservó para sí la parte 3. Se releyó el archivo antes
+de editar; solo se modificó WebAuthorizationTest y este diario.
+
+- Se agregaron los tres imports de DTO/entidad y ALTA_ESTACION_JSON con
+  los seis campos válidos del alta, usando cadenas compatibles con Java 11.
+- Se agregaron visitanteNoPuedeCrearEstaciones (401, sin invocar servicio
+  o repositorios) y administradorPuedeCrearEstaciones (201). El caso ADMIN
+  usa una estación en memoria con id/version simulados, comprueba respuesta
+  y delegación única al servicio, y prohíbe llamadas a los repositorios.
+- comprobarRutasAdministrativasBloqueadas conserva sus cuatro GET y añade
+  POST /api/estaciones con el mismo cuerpo válido, esperando 403. Lo usan
+  los casos existentes de CLIENTE y TECNICO. Se amplió además la comprobación
+  de ausencia de interacciones a ambos repositorios de estaciones/bicicletas.
+- La revisión estática confirmó que, revirtiendo solamente las adiciones
+  y la ampliación prevista del helper, se recupera todo el contenido anterior:
+  las doce pruebas, otros helpers, contexto y mocks. Ahora hay catorce @Test.
+  La comparación SHA-256 de fuentes mostró solo WebAuthorizationTest
+  modificado, ningún archivo eliminado y el staging intacto. diff --check
+  no informó errores.
+- No se modificaron seguridad productiva, controladores, servicios,
+  repositorios, otros tests, frontend, DER, configuración o datos. No se
+  ejecutaron Gradle, JavaScript, SQL, navegador, reinicios o commits.
+- La parte 3 queda al usuario con el comando filtrado de las tres clases.
+  Total esperado 46 pruebas (14 + 22 + 10), todavía sin acreditar ejecución
+  tras este cambio. El alcance son filtros HTTP con servicio simulado,
+  no SQL, transacciones ni el proxy de autorización del servicio real.
+
+### Etapa 62 Cuarenta y seis pruebas verificadas y siguiente protección del alquiler
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario ejecutó las tres clases filtradas y obtuvo BUILD
+SUCCESSFUL en 6 s, dos tareas ejecutadas y dos actualizadas. Se leyeron
+los XML del 7 de noviembre a las 00:22 UTC, correspondientes al 6 de
+noviembre a las 21:22 de Argentina: WebAuthorizationTest 14,
+EstacionControllerTest 22 y EstacionServiceTest 10; total 46, sin fallos,
+errores u omitidas. Pasaron los nuevos casos de visitante y ADMIN y los
+casos existentes de CLIENTE/TECNICO que ahora incluyen POST denegado.
+
+- Quedan acreditados los escenarios de permisos HTTP del alta, con
+  servicio simulado. Esto no cierra toda RN-INV-01 ni acredita persistencia,
+  transacciones, el proxy de servicio o el formulario en navegador.
+- Se releyeron RN-INV-01, crearAlquiler, finalizarAlquiler y el listado de
+  bicicletas disponibles. La creación solo comprueba origen no nulo, la
+  devolución todavía admite una ubicación interna activa y cuenta solo
+  bicicletas no archivadas; el listado disponible tampoco filtra internas.
+- El siguiente bloque propuesto es una modificación puntual en
+  AlquilerService: rechazar origen no público/inactivo antes de crear el
+  viaje, rechazar destino interno antes de modificar el alquiler y contar
+  toda ocupación física al devolver. No se alterarán tarifas, precios,
+  emails, propietarios, seguridad o estados en ese bloque.
+- Después se alineará la oferta de bicicletas con estaciones públicas
+  activas. Hasta completar ambos controles y sus pruebas no se propone
+  un alquiler/devolución de prueba con una ubicación interna real.
+- No hay todavía tests de AlquilerService/Bicicleta en el árbol consultado;
+  su cobertura específica se agregará sin iniciar MySQL. La implementación
+  de los controles sigue pendiente, no se declara realizada en este turno.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios.
+
+### Etapa 63 Instrucciones manuales para proteger retiro y devolución
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario confirmó los tres criterios explicados y pidió continuar.
+Se leyeron AlquilerService y AlquilerController completos y las búsquedas
+activas con bloqueo de EstacionRepository. Se entrega un bloque puntual
+de instrucciones sobre AlquilerService, sin cambiar las demás clases.
+
+- En crearAlquiler, después del control de estación no nula y antes de
+  duración/precio/mutaciones, se propone rechazar borradoEstacion=true
+  o esPublica=false con IllegalStateException y mensaje comprensible.
+- En finalizarAlquiler, se conserva la búsqueda activa con bloqueo por
+  nombre, que ya excluye bajas lógicas, y se propone rechazar esPublica=false
+  con IllegalArgumentException antes de contar o modificar el alquiler.
+- En el mismo punto se sustituye el contador que excluye archivadas por
+  countByUbicacionActual(nuevaEstacion). La comprobación existente de
+  capacidad permanece y conserva su IllegalStateException por estación llena.
+- AlquilerController actual devuelve 400 para esos rechazos de entrada
+  (el POST captura Exception y el PATCH IllegalArgumentException), y
+  mantiene 409 para estación llena en PATCH. No se proponen cambios en él.
+- Son controles del flujo normal de alquiler/devolución, no un permiso
+  para trasladar bicicletas al depósito mediante la devolución de un cliente.
+  Los movimientos administrativos conservan su recorrido diferenciado.
+- No se modifican precios, cotización, tiempos, correos, estados, titularidad,
+  firma de endpoints o bloqueos existentes. No se afirma que estos cambios
+  prueben concurrencia o completen todo el recorrido v5 del alquiler.
+- Se propone compileJava por el usuario. Pruebas específicas y filtrado
+  del listado de bicicletas disponibles seguirán después; no iniciar QA real.
+- Solo se actualizó este diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Implementación del bloque pendiente del usuario.
+
+### Etapa 64 Controles de estaciones en alquiler implementados, cierre manual pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar únicamente los tres
+controles propuestos, reservando la parte 3, y preguntó por las pruebas
+manuales de estaciones. Se aclaró que ese bloque no se considera cerrado:
+las 46 pruebas previas son automatizadas con dependencias simuladas y no
+sustituyen la comprobación del formulario, mapa y persistencia reales.
+
+- Se modificó únicamente AlquilerService: después del control de origen
+  no nulo se rechaza estación de retiro borrada lógicamente o interna,
+  antes de calcular importes o modificar bicicleta/alquiler.
+- En la devolución se conserva la búsqueda activa con bloqueo y se
+  rechaza esPublica=false antes de contar o registrar la devolución.
+- Se cambió el contador de destino por countByUbicacionActual, incluyendo
+  archivadas físicamente presentes. Se conserva el control de capacidad.
+- La revisión estática, retirando los dos controles nuevos y restaurando
+  contador/comentario previos, recuperó el resto del código íntegro,
+  salvo la normalización del salto de línea final. No se alteraron
+  permisos/propietario, transacciones/bloqueos, fechas, estados, precios,
+  cotización, correos ni firmas. Las comprobaciones nuevas preceden
+  a las mutaciones de la operación correspondiente.
+- La comparación SHA-256 de fuentes mostró solamente AlquilerService
+  modificado, ningún archivo eliminado y staging intacto. Se actualizó
+  además este diario; no se modificaron otros fuentes, frontend, DER,
+  configuración o datos. diff --check no informó errores.
+- No se ejecutaron Gradle, SQL, navegador, reinicios o commits. El usuario
+  conserva compileJava como parte 3. No se acredita aún la compilación
+  ni pruebas específicas de estos controles con el cambio realizado.
+- Seguimos completando RN-INV-01, no refactorizando ahora todo alquiler:
+  faltan sus pruebas y el filtro de oferta en estaciones públicas activas.
+  Después debe realizarse una verificación manual de esta entrega de
+  estaciones: alta pública/interna, visibilidad pública y administrativa,
+  edición/control de versión, capacidad y baja lógica, con revisión de
+  persistencia. No dar el bloque por cerrado sin registrar esa evidencia.
+- El reinicio del perfil refactor con create-drop debe hacerse de forma
+  controlada, advirtiendo el descarte de los datos de prueba existentes;
+  no se realizó todavía. Auditoría y otras condiciones v5 dependientes
+  de entidades aún pendientes no se declaran implementadas por este bloque.
+
+### Etapa 65 Compilación de controles confirmada y cierre de oferta pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava exitoso en 2 s, tarea ejecutada.
+Se releyeron los tres controles en AlquilerService y se confirmó la clase
+compilada con modificación del 6 de noviembre a las 21:40:16 local.
+Compilar no acredita todavía el comportamiento de esos nuevos controles.
+
+- Se revisaron BicicletaRepository, getBicicletasDisponibles y BicicletaDTO.
+  El listado sigue usando el filtro antiguo que no comprueba la estación;
+  el DTO accede al nombre de la ubicación. La búsqueda de referencias
+  mostró que findByBorradoBiciFalseAndEstado solo se declara en ese
+  repositorio y se usa en ese método del controlador.
+- El siguiente bloque propuesto sustituirá esa consulta por otra de nombre
+  explícito, con estado solicitado, bici no archivada, ubicación no nula,
+  pública y no dada de baja. Se precargará ubicacionActual con EntityGraph
+  para mapear el DTO sin depender de una carga diferida posterior.
+- Se actualizará la llamada del listado, sin cambiar su URL, respuesta
+  o permisos; la consulta anterior se reemplazará, no se dejará huérfana.
+  El inventario administrativo general y el filtrado por tipo no se alterarán.
+- Siguen pendientes los dos contadores de altas/traslados administrativos
+  de BicicletaController que excluyen archivadas. Se propone alinearlos
+  con countByUbicacionActual en el mismo bloque de consistencia de capacidad,
+  conservando sus bloqueos y demás condiciones; no es una refactorización
+  completa de bicicletas ni una implementación de sus nuevos estados.
+- Después corresponderán las comprobaciones específicas y la prueba manual
+  de esta entrega de estaciones ya comprometida. No se da por cerrado
+  RN-INV-01 ni se propone reiniciar antes de preparar el descarte create-drop.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. La consulta y el cambio de contadores siguen propuestos.
+
+### Etapa 66 Instrucciones de oferta pública y contadores de ingreso
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se leyeron BicicletaRepository y
+BicicletaController completos, el mapeo de Bicicleta y el uso existente
+de EntityGraph en UsuarioRepository. Se comprobó otra vez que la consulta
+antigua de disponibles solo se usa en ese controlador.
+
+- Se propone importar EntityGraph y sustituir la declaración antigua
+  findByBorradoBiciFalseAndEstado por buscarPorEstadoEnEstacionesPublicas,
+  con estado parametrizado, bici no archivada e inner join a estación
+  pública no dada de baja. La ausencia de estación queda excluida por
+  ese join; EntityGraph precarga ubicacionActual para construir el DTO.
+- En getBicicletasDisponibles se reemplazará la llamada, manteniendo URL,
+  forma de respuesta y estado DISPONIBLE. Los listados administrativos
+  general/por tipo y el GET por id no se modificarán.
+- En crearBicicleta y en la rama de traslado de actualizarBicicleta se
+  sustituirá el conteo filtrado por countByUbicacionActual, conservando
+  estación activa/bloqueada, comprobación de capacidad y demás lógica.
+- No se eliminará en este bloque el contador antiguo del repositorio:
+  dos pruebas existentes todavía lo mencionan para prohibir su uso. Su
+  limpieza coordinada con esas verificaciones queda fuera de estos cambios.
+- La lectura detectó además un riesgo previo de actualizarBicicleta:
+  asigna código/estado antes de validar el destino y puede devolver 409
+  dentro de una transacción sin excepción, con cambios parciales pendientes
+  de flush. No se considera resuelto por cambiar contadores; debe revisarse
+  antes de dar por válida una edición rechazada en la QA integral.
+- Se entregan instrucciones manuales sobre los dos archivos. Comprobación
+  propuesta compileJava; no acredita el JPQL ejecutado, filtros SQL,
+  transacciones o pruebas de comportamiento. Siguen comprobaciones y QA manual.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Implementación pendiente del usuario.
+
+### Etapa 67 Oferta pública y contadores de ingreso implementados
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario autorizó por esta vez implementar exclusivamente el
+bloque propuesto y reservó la parte 3, guardar y comprobar. Se releyeron
+repositorio y controlador antes de editar, conservando los cambios previos.
+
+- BicicletaRepository incorpora el import EntityGraph y sustituye la
+  declaración antigua de disponibles por buscarPorEstadoEnEstacionesPublicas.
+  La consulta parametriza estado, exige bici no archivada y estación
+  pública no dada de baja, excluye ubicación nula mediante inner join
+  y precarga ubicacionActual para el DTO. La búsqueda de referencias
+  confirmó que no queda ningún uso del método sustituido en src.
+- getBicicletasDisponibles usa la nueva consulta con DISPONIBLE, conservando
+  URL, tipo de respuesta y permisos. Los demás listados no se alteran.
+- crearBicicleta y la rama de traslado de actualizarBicicleta usan ahora
+  countByUbicacionActual para no ignorar ocupación de archivadas. Sus
+  bloqueos, condiciones de capacidad, mensajes y resto de la lógica se conservan.
+- Se conserva el contador antiguo del repositorio por las referencias
+  negativas de las pruebas existentes, según lo propuesto; no se modifican
+  esas pruebas ni se eliminan otros métodos.
+- La revisión estática recuperó íntegro el contenido previo de ambos
+  archivos al revertir solo la consulta/import, GET disponible y dos
+  contadores. La comparación SHA-256 de todas las fuentes confirmó solo
+  esos dos archivos modificados, ninguno eliminado y staging intacto.
+  diff --check no informó errores.
+- Se actualizó además este diario. No se modificaron otros fuentes,
+  pruebas, frontend, DER, configuración o datos, ni se ejecutaron Gradle,
+  SQL, navegador, reinicios o commits. La parte 3 queda para el usuario
+  con compileJava; no se acredita compilación o ejecución JPQL todavía.
+- Sigue pendiente el riesgo de modificaciones parciales de código/estado
+  al rechazar una edición, documentado en la etapa 66; no se corrigió
+  silenciosamente fuera del bloque autorizado. También siguen pendientes
+  las pruebas específicas y la QA manual de esta entrega de estaciones.
+
+### Etapa 68 Compilación vigente y corrección de edición parcial propuesta
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava exitoso en 1 s con la tarea
+UP-TO-DATE; no se describe como una nueva ejecución del compilador.
+Se confirmaron las clases de BicicletaController y BicicletaRepository
+con modificación del 6 de noviembre a las 22:00:57 local. La compilación
+vigente no acredita todavía la ejecución del JPQL o pruebas funcionales.
+
+- Se releyó actualizarBicicleta completo. Antes de rechazar una estación
+  de destino inválida/llena ya modifica código y estado de la entidad
+  administrada; una respuesta normal 400/409 no provoca por sí sola
+  rollback. Es el riesgo señalado en la etapa 66, no una regla nueva.
+- El próximo bloque manual propuesto retira el setter temprano de código
+  y únicamente la asignación temprana del estado, conservando la validación
+  que prohíbe marcar ALQUILADA manualmente. Ambos setters se colocarán
+  después de las comprobaciones de destino/capacidad y antes del bloque
+  de tipo, manteniendo sus condiciones originales !estabaAlquilada.
+- Los retornos de rechazo quedarán antes de modificar ubicación, código,
+  estado, tipo o precio. No se cambian permisos, estados admitidos,
+  bloqueos, mensajes, contadores o respuestas de las operaciones válidas.
+- La implementación se propone solo dentro de actualizarBicicleta; no se
+  crean clases, tablas o reglas adicionales. La comprobación del usuario
+  será compileJava; se requerirán después pruebas de no mutación al rechazar.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. No se considera cerrada todavía la QA manual de estaciones.
+
+### Etapa 69 Asignaciones de edición reubicadas, compilación pendiente
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: tras aclarar que no se elimina la protección de una bicicleta
+alquilada, el usuario autorizó por esta vez implementar exclusivamente
+la reubicación propuesta y reservó la parte 3, guardar y comprobar.
+Se releyó actualizarBicicleta antes de editar.
+
+- Se retiró la asignación inicial de código y solamente el setter temprano
+  del estado. Se conservaron íntegros los if de validación, incluido el
+  rechazo de ALQUILADA manual, junto con sus mensajes y respuestas.
+- Se colocaron las dos asignaciones después del bloque de estación y
+  antes del bloque de tipo, manteniendo !estabaAlquilada y los controles
+  de campo no nulo. No se eliminó la restricción de cambiar código o
+  estado durante un alquiler; únicamente cambió el orden de aplicación.
+- La revisión estática confirmó que los cinco retornos normales de error
+  del método preceden a la primera mutación de bicicletaExistente. No
+  hay cambios de código/estado antes de devolver 400/409 por destino o
+  capacidad, ni antes del rechazo de ALQUILADA manual.
+- La comparación, restaurando exclusivamente los setters a sus posiciones
+  previas, recuperó íntegro el código anterior. La comparación SHA-256 de
+  todas las fuentes mostró solamente BicicletaController modificado,
+  ningún archivo eliminado y staging intacto. diff --check sin errores.
+- Se actualizó además este diario. No se modificaron otros métodos,
+  condiciones, permisos, bloqueos, contadores, precios, repositorios,
+  pruebas, frontend, DER, configuración o datos. No se ejecutaron Gradle,
+  SQL, JavaScript, navegador, reinicios o commits.
+- El usuario conserva compileJava como parte 3. La causa de mutaciones
+  anticipadas queda corregida en el código, pero no se acredita todavía
+  compilación ni ejecución de pruebas de rechazo, transacción real o QA
+  manual. Esas comprobaciones siguen pendientes antes de cerrar esta entrega.
+
+### Etapa 70 Compilación vigente y pruebas de edición propuestas
+
+Fecha: 6 de noviembre de 2026.
+
+Estado: el usuario informó compileJava exitoso en 1 s con UP-TO-DATE.
+Se confirmó BicicletaController.class con modificación del 6 de noviembre
+a las 22:17:12 local y se releyó el método reordenado. No se describe el
+comando como una compilación nueva ni como prueba de comportamiento.
+
+- Se confirmó que todavía no existe BicicletaControllerTest ni una clase
+  de pruebas de AlquilerService en el árbol de tests consultado.
+- El próximo bloque propuesto creará únicamente BicicletaControllerTest,
+  con JUnit/Mockito, los dos repositorios simulados y llamadas directas al
+  controlador. No se cargarán Spring, JPA, MySQL ni una aplicación real.
+- Se proponen seis pruebas: ALQUILADA manual rechazada sin cambios;
+  destino con id inválido sin cambios; destino inexistente sin cambios;
+  destino lleno contando ocupación de archivadas sin cambios; traslado
+  válido con edición permitida; bicicleta alquilada conserva código,
+  estado, tipo y ubicación vacía, permitiendo solo precio.
+- Los rechazos compararán todos los campos originales y verificarán
+  ausencia de guardado. El caso lleno comprobará el contador total. Los
+  recorridos válidos verificarán datos y guardado con repositorio simulado.
+- Total previsto 52 pruebas con las cuatro clases filtradas, pendiente
+  de implementar/ejecutar. Es prueba de control de flujo y no mutación en
+  memoria, no de rollback real, SQL o seguridad HTTP. Los controles de
+  alquiler y la consulta pública siguen necesitando su evidencia específica
+  y la QA manual de estaciones comprometida permanece pendiente.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios.
+
+### Etapa 71 Instrucciones manuales de pruebas de edición de bicicleta
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario pidió continuar. Se releyeron actualizarBicicleta,
+Bicicleta, BicicletaDTO y el patrón JUnit/Mockito existente. Se confirmó
+que BicicletaControllerTest no existe todavía y se entrega su código
+completo para creación manual en el paquete controllers de test existente.
+
+- Se mantienen los seis escenarios propuestos en la etapa 70, con
+  repositorios simulados y llamadas directas al controlador. No hay
+  contexto Spring, base de datos, navegador o transacción real.
+- Los datos de prueba separan origen público y depósito interno. La
+  bicicleta archivada del caso de capacidad permanece en ese depósito,
+  coherente con RN-INV-01; su ocupación se simula con el contador total.
+- Los cuatro rechazos comprueban código, estado, tipo, precio, ubicación,
+  id y borrado sin cambios y prohíben guardar. Los casos válidos comprueban
+  la entidad y el DTO; el alquilado conserva sus restricciones y solo
+  permite precio. Los mocks se preparan por caso para evitar stubs sin uso.
+- Se proponen helpers pequeños para estaciones, búsqueda de bicicleta y
+  comparación de rechazos. No se modifican modelos, enums, repositorios
+  ni lógica productiva para construir los tests.
+- Se propone ejecutar las cuatro clases filtradas; total esperado 52
+  pruebas (14 + 22 + 10 + 6), pendiente de implementar y comprobar.
+  La validación del SQL, proxy transaccional y permisos HTTP no está en
+  estos tests; la QA manual y evidencia específica de alquiler siguen pendientes.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. La creación del archivo sigue a cargo del usuario.
+
+### Etapa 72 Cincuenta y dos pruebas verificadas y preparación de QA manual
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario creó BicicletaControllerTest y ejecutó las cuatro clases
+filtradas, con BUILD SUCCESSFUL en 15 s, dos tareas ejecutadas y dos
+actualizadas. Se leyó el archivo completo: paquete, imports, seis casos,
+datos de prueba y helpers están correctamente ubicados y coinciden con
+la propuesta. No se modificó el archivo durante esta revisión.
+
+- Se leyeron los XML del 7 de noviembre a las 19:50 UTC, correspondientes
+  a las 16:50 de Argentina: BicicletaControllerTest 6, WebAuthorizationTest
+  14, EstacionControllerTest 22 y EstacionServiceTest 10; total 52, sin
+  fallos, errores u omitidas. Los seis casos nuevos figuran por nombre.
+- Se acredita la conservación de datos en memoria en los rechazos y los
+  dos recorridos permitidos, no rollback real, SQL o seguridad HTTP por
+  esas seis pruebas. La corrección no se presenta como validación global
+  de todas las reglas futuras v5 de bicicletas.
+- Se revisaron Alquiler y AlquilerRequestDTO para el último bloque
+  automatizado previsto de los controles de estaciones en alquiler:
+  cuatro rechazos, retiro interno, retiro desde estación de baja lógica,
+  devolución interna y devolución con ocupación física completa. Se
+  verificarán ausencia de cambios/guardados y de correos, sin cotización
+  HTTP ni MySQL. Sigue pendiente crear ese test, no se implementa aquí.
+- La consulta JPQL de oferta pública no queda acreditada por los mocks;
+  la comprobación real de su filtrado y la QA manual de estaciones siguen
+  pendientes. No se añaden funcionalidades nuevas a esta entrega por este paso.
+- Se preguntó al usuario si los datos actuales de turismo_sustentable son
+  descartables o deben conservarse, para preparar el reinicio create-drop
+  sin asumir autorización de descarte. Respuesta pendiente en este momento;
+  no se reinició, exportó o modificó la base ni se accedió al navegador.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL o reinicios.
+
+### Etapa 73 Descarte de datos de prueba autorizado para reinicio controlado
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario respondió a la consulta de preparación de QA manual:
+«Son de prueba y se pueden descartar». Queda autorizada la pérdida de
+los datos de prueba actuales de turismo_sustentable al reiniciar de forma
+controlada el perfil refactor, configurado con create-drop. No se extiende
+la autorización a turi, otras bases, archivos o historial de Git.
+
+- No se reinicia todavía: siguen pendientes las cuatro pruebas aisladas
+  de los rechazos de alquiler/devolución propuestos en la etapa 72.
+- Después se preparará el arranque con la configuración nueva y la QA
+  manual de esta entrega de estaciones, registrando que los datos y
+  cuentas de prueba deberán recrearse tras el descarte.
+- No se ejecutó DROP, SQL, reinicio, respaldo o cambio de perfil. Solo
+  se actualizó el diario; no se modificaron fuentes, configuración,
+  frontend, DER, staging o commits ni se ejecutó Gradle.
+
+### Etapa 74 Instrucciones manuales de cuatro rechazos en AlquilerService
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario pidió avanzar con las pruebas pendientes. Se releyeron
+AlquilerService y Alquiler completos, AlquilerRequestDTO y los accesores
+de identidad/actividad de Usuario. Se confirmó que AlquilerServiceTest
+todavía no existe. Se propone crear únicamente ese archivo de test.
+
+- Cuatro casos: retiro interno, retiro desde estación de baja lógica,
+  devolución interna y devolución con ocupación física igual a capacidad.
+  Se comprueban mensajes, conservación de bicicleta/alquiler y ausencia
+  de guardados y correos, sin ampliar reglas de negocio o casos ajenos.
+- Los cinco colaboradores se simulan con Mockito. Un token CLIENTE en
+  SecurityContextHolder permite comprobar los controles sobre un titular
+  activo; el contexto se limpia después de cada prueba. No es un login real.
+- Se usa spy del servicio únicamente para anular de forma segura la
+  consulta de cotización con un stub lenient doReturn. Así, aunque una
+  regresión dejara avanzar el flujo, nunca se invoca una API externa.
+  Las comprobaciones esperan además que el método de cotización no se llame.
+- Las fechas y montos de la fixture se mantienen fijos para comprobar
+  ausencia de mutaciones, sin probar ahora el cálculo económico. El
+  contador total simulado no acredita por sí solo su predicado SQL real.
+- Se propone ejecutar las cinco clases filtradas; total previsto 56
+  pruebas (4 + 6 + 14 + 22 + 10), pendiente de crear y ejecutar. No se
+  carga Spring, JPA o MySQL ni se prueba un rollback transaccional real.
+- Después se preparará el reinicio controlado autorizado en la etapa 73
+  y la QA manual de esta entrega de estaciones; no se inicia todavía.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. La creación del test sigue a cargo del usuario.
+
+### Etapa 75 Cincuenta y seis pruebas verificadas y arranque manual preparado
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario creó AlquilerServiceTest y ejecutó las cinco clases
+filtradas con BUILD SUCCESSFUL en 7 s, dos tareas ejecutadas y dos
+actualizadas. Se leyó el archivo completo y se corroboraron paquete,
+imports, spy seguro, contexto/limpieza, fixtures y los cuatro casos.
+
+- Se leyeron los XML de esa ejecución del 7 de noviembre a las 20:16 UTC
+  (17:16 de Argentina): AlquilerServiceTest 4, BicicletaControllerTest 6,
+  WebAuthorizationTest 14, EstacionControllerTest 22 y EstacionServiceTest
+  10; total 56, sin fallos, errores u omitidas. Los cuatro casos nuevos
+  figuran por nombre y pasaron. No se modificaron tests en esta revisión.
+- Se acreditan los rechazos y ausencia de mutaciones/guardados/correos en
+  memoria según su alcance. No se extiende el resultado a JPA, consulta
+  pública ejecutada, transacciones reales o comportamiento de navegador.
+- Se releyó application-refactor.properties: MySQL local, base exclusiva
+  turismo_sustentable, create-drop e inicialización SQL desactivada.
+  Se revisaron main y CargaCatalogosRefactor para preparar datos de QA;
+  el cargador precarga catálogos del perfil, no una cuenta ADMIN de prueba.
+- El siguiente paso manual propuesto es detener solo la instancia local
+  previa si sigue ejecutándose, verificar MySQL en XAMPP e iniciar bootRun
+  con --spring.profiles.active=refactor --server.port=8080. El descarte
+  de datos de prueba está autorizado en la etapa 73. No se ejecuta DROP
+  manual ni se cambia la configuración. Las cuentas de QA se recrearán.
+- Se revisará el arranque real y la validación de repositorios antes de
+  guiar la primera prueba manual de estaciones. Esa prueba y persistencia
+  siguen pendientes: no se declara cerrado el bloque ni realizada la QA.
+- Solo se actualizó el diario. No se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. El arranque queda a cargo del usuario.
+
+### Etapa 76 Arranque reportado y preparación de cuenta QA
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario reportó Tomcat iniciado en 8080 y Started de la
+aplicación a las 17:20:20, proceso 9288, con duración de arranque 3,686 s.
+El aviso open-in-view no impidió el arranque; el 80 % de bootRun con
+EXECUTING indica que el servidor continúa ejecutándose, no un test fallido.
+
+- No se declara validado todavía el resultado real del filtrado JPQL o
+  la persistencia de estaciones solo con el log de arranque.
+- Se releyeron RegistroUsuarioDTO, la asignación forzada de CLIENTE en
+  RegistroUsuarioService, UsuarioRol y los campos del formulario para
+  preparar una cuenta QA nueva. El registro público no otorga ADMIN.
+- El siguiente paso manual propuesto es registrar admin.estaciones con
+  datos ficticios, documento DNI argentino y correo example.com; la clave
+  la elige el usuario y no se solicita ni guarda aquí. No iniciar sesión
+  hasta preparar después la asignación ADMIN exclusivamente de QA.
+- Las dos FK de usuario_rol se confirmaron en el modelo actual; cualquier
+  asignación posterior identificará usuario por nickname y rol por código,
+  sin asumir ids. No se ejecuta ahora una asignación o SQL de privilegios.
+- La creación de la cuenta, los roles persistidos y la QA de estaciones
+  siguen pendientes de evidencia. Se recomienda ventana privada para
+  evitar cookies y sessionStorage de la instancia anterior.
+- Solo se actualizó el diario; no se editaron fuentes, frontend, DER,
+  configuración, staging o commits, ni se ejecutaron Gradle, SQL, navegador
+  o reinicios. Los logs de arranque son los aportados por el usuario.
+
+### Etapa 77 Registro QA verificado y asignación ADMIN manual propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario informó que creó la cuenta. Se consultó únicamente
+turismo_sustentable mediante una transacción READ ONLY, sin leer hashes,
+tokens o contraseñas. La conexión inicial del sandbox fue bloqueada con
+10013; la consulta de lectura autorizada posterior finalizó correctamente.
+
+- Se verificó usuario id 1, nickname admin.estaciones, correo ficticio
+  admin.estaciones@example.com y activo. Tiene únicamente CLIENTE (rol id 2).
+  El catálogo contiene ADMIN (id 1). No se asumen esos ids para el siguiente SQL.
+- Se releyeron Rol y UsuarioRol: tabla rol, tabla usuario_rol con PK
+  compuesta y las dos FK usuario_id/rol_id, sin columnas de asignación
+  adicionales. La cuenta conserva CLIENTE como exige el registro público.
+- El siguiente paso manual propuesto agrega exclusivamente ADMIN a esa
+  cuenta activa mediante INSERT SELECT identificado por nickname y
+  código de rol, con NOT EXISTS para evitar duplicar la asignación.
+  Se especificará la base turismo_sustentable y una consulta posterior
+  de verificación de ambos roles. No se modifica el registro público.
+- Es preparación exclusiva de QA local, no un endpoint nuevo ni una
+  funcionalidad administrativa/auditoría v5 declarada implementada.
+  La asignación sigue pendiente de ejecución por el usuario.
+- Después se indicará iniciar sesión por nickname; si ya había iniciado,
+  debe cerrar y volver a entrar para renovar las autoridades de la sesión.
+- Solo se actualizó el diario y se ejecutaron SELECT de comprobación.
+  No se ejecutaron INSERT/UPDATE/DELETE, DDL, reinicios o Gradle, ni se
+  editaron fuentes, frontend, DER, configuración, staging o commits.
+
+### Etapa 78 ADMIN de QA confirmado e inicio de prueba de alta pública
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario informó que ejecutó el cambio y accedió al panel en
+Usuarios, viendo Admin Prueba con CLIENTE y ADMIN. La comprobación SQL
+posterior en READ ONLY confirmó usuario id 1 activo y ambas asignaciones.
+No se cambió ningún rol desde el asistente. El acceso/pantalla se registra
+como observación del usuario, no como inspección automatizada del navegador.
+
+- Se confirmó que la tabla estacion está vacía (cero filas), sin asumir
+  que hubo altas todavía. Se revisaron el modal y las etiquetas actuales
+  del formulario para guiar la primera prueba manual.
+- PM-EST-01 propuesta: completar los datos de una estación y guardar
+  dejando Uso de la estación sin selección. Debe aparecer el aviso y
+  no completarse el alta; la observación del usuario queda pendiente.
+- PM-EST-02 propuesta: en ese mismo formulario elegir Pública y guardar
+  Plaza QA Centro, Calle de Prueba 100, capacidad 2, coordenadas
+  -53.7865/-67.7045. Debe confirmar guardado y aparecer una fila. La
+  persistencia, clasificación y versión se comprobarán después de la acción.
+- Todavía no se declara superado ninguno de esos dos casos ni validado
+  el mapa, estación interna, edición, capacidad, bajas o filtrado real.
+- Solo se actualizó el diario y se ejecutaron consultas READ ONLY de roles
+  y estaciones. No se ejecutaron escrituras SQL, Gradle, navegador o
+  reinicios ni se editaron fuentes, frontend, DER, configuración, staging o commits.
+
+### Etapa 79 PM-EST-01 superada y alta pública rechazada con 401
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario confirmó que guardar sin elegir uso muestra el aviso
+esperado. PM-EST-01 se registra superada según su observación. Al elegir
+Pública, el frontend mostró su texto genérico de fallo; PM-EST-02 no se
+considera superada. La consulta READ ONLY confirmó que no hay estaciones.
+
+- El usuario aportó la consola: POST /api/estaciones recibe 401. La
+  advertencia aria-hidden se registra aparte; no explica por sí sola
+  el rechazo HTTP de autenticación. No se atribuye el fallo a capacidad,
+  datos del DTO o persistencia sin evidencia adicional.
+- Se releyeron admin.js, auth.js, el controlador, servicio y modelo de
+  estación y las reglas HTTP. guardarEstacion no trata 401 específicamente;
+  el control de sesión de admin.js ocurre al cargar la página. Una página
+  abierta puede permanecer visible aunque la sesión deje de ser válida.
+- GET público /api/estaciones fue comprobado por consulta de lectura local:
+  devolvió 200 con []. Esto confirma conectividad y lectura pública vacía,
+  no la sesión del navegador ni el resultado de POST autenticado.
+- El intento de leer la terminal del chat indicó que no hay sesión adjunta;
+  no se obtuvo un stacktrace del servidor. No se afirmó una excepción 500.
+- Se propone primero cerrar e iniciar sesión de nuevo y reintentar una
+  única alta QA. Si persiste 401, comprobar /api/usuarios/actual desde el
+  mismo navegador para distinguir sesión perdida de otro fallo del flujo.
+  No se propone relajar permisos ni hacer el POST público.
+- Solo se actualizó el diario y se realizaron lecturas de fuentes, SELECT
+  y un GET público. No se ejecutaron escrituras SQL, POST, Gradle,
+  reinicios o cambios de código/configuración, staging o commits.
+
+### Etapa 80 Desincronización de sesión visual confirmada en el código
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario indicó que veía sesión iniciada pero recibía 401 al
+entrar a mis_alquileres/admin. Se leyeron index.js completo, los controles
+de admin.js y mis_alquileres.js y la configuración de autenticación/autorización.
+
+- Causa confirmada de la incoherencia visual: index.checkSession usa
+  exclusivamente usuarioLogueado/usuarioRol de sessionStorage para mostrar
+  Sesión Activa, ocultar el login y habilitar enlaces; no valida ese estado
+  con GET /api/usuarios/actual al cargar index.
+- Al recibir 401, verificarAdmin redirige al index sin limpiar esas claves.
+  El historial redirige también, y cargarNombreUsuario solo elimina el
+  nombre. Así puede conservarse un indicador local de login que ya no
+  representa una sesión reconocida por Spring Security.
+- La pérdida/no reconocimiento de sesión real puede deberse a expiración,
+  reinicio, logout en otra pestaña o cookie ausente; no se determina cuál
+  ocurrió con la evidencia disponible. El 401 en páginas protegidas indica
+  que esas solicitudes no acreditaron autenticación, no que falte ADMIN en BD.
+- No se atribuye al aviso aria-hidden ni se propone relajar permisos.
+  El ajuste propuesto es validar el estado real en index, centralizar la
+  limpieza de indicadores ante 401 y mostrar un mensaje claro al guardar.
+  Se debe distinguir 403 (permisos insuficientes) de 401, sin cerrar una
+  sesión válida por cualquier error de red o autorización.
+- No se implementó todavía ese ajuste ni se acreditó que un reingreso
+  haya resuelto el POST. PM-EST-02 sigue sin superar hasta reintento válido
+  y comprobación de persistencia. No se editan reglas de seguridad.
+- Solo se actualizó el diario y se leyeron fuentes. No se modificaron
+  Java/JS/HTML, configuración, DER, datos, staging o commits ni se ejecutaron
+  Gradle, SQL, navegador, POST o reinicios.
+
+### Etapa 81 Sesión real compartida y tratamiento de 401/403
+
+Fecha: 7 de noviembre de 2026.
+
+Estado: el usuario autorizó avanzar con la corrección de manejo de sesión.
+Se conserva autenticación por nickname, Spring Security, HttpSession y cookie
+JSESSIONID. No se incorpora JWT, almacenamiento de contraseñas en el navegador,
+tablas de sesión, cambios al DER ni permisos nuevos.
+
+- auth.js concentra consulta del perfil real, sincronización de nombre/rol,
+  limpieza de las tres claves de presentación y comprobación de roles para
+  entrar a las páginas. Las consultas de perfil simultáneas comparten una
+  petición pendiente, sin guardar indefinidamente el resultado ni realizar
+  sondeo periódico que mantenga viva la sesión. Se utiliza roles[] y se
+  conserva compatibilidad con el campo rol anterior.
+- index.js no muestra Sesión Activa por una marca de sessionStorage. Primero
+  consulta al servidor, conserva el formulario cuando recibe 401 y lo restaura
+  si el navegador vuelve desde una copia de la página. Se evitan envíos de
+  login mientras se comprueba la sesión y durante un ingreso ya confirmado.
+  Los enlaces de alquiler requieren CLIENTE/ADMIN y el administrativo ADMIN;
+  la autorización efectiva sigue siendo del backend.
+- admin.js, alquiler.js y mis_alquileres.js esperan la comprobación antes de
+  cargar datos. Se retiran las marcas locales como condición definitiva de
+  acceso y la consulta redundante a estadísticas solo para verificar ADMIN.
+  El nombre reutiliza el perfil ya confirmado al entrar a la página.
+- Los catch de peticiones protegidas utilizan el manejador común: 401 limpia
+  indicadores y redirige una sola vez al ingreso con un aviso; 403 informa
+  permisos insuficientes sin desconectar. Los errores 400/409 y de conexión
+  continúan en sus manejadores propios. El historial ya no redirige al login
+  por cualquier falla. No se repiten POST/PUT/PATCH/DELETE automáticamente.
+  Los 401 esperados del login y de la comprobación pública de sesión tienen
+  tratamiento separado para evitar avisos falsos o bucles de redirección.
+- WebAuthorization conserva todos los antMatchers y roles. Solo cambia la
+  presentación de errores en GET de admin.html, alquiler.html y
+  mis_alquileres.html: sin autenticación redirige al ingreso y, sin permisos,
+  al inicio con aviso. Las APIs conservan 401/403, sin redirigir sus respuestas
+  a HTML. Estas comprobaciones también se realizan al restaurar páginas
+  privadas desde la caché de navegación.
+- Logout conserva POST, invalidación del servidor y aviso de éxito con su
+  espera. Se confirma falta de autenticación únicamente con 401, no con 403.
+  Limpia solo las claves de sesión; una falla al confirmar el cierre no se
+  anuncia falsamente como éxito ni como prueba de que la sesión sigue activa.
+- application.properties explicita server.servlet.session.timeout=30m, el
+  valor predeterminado documentado de Spring Boot 2.7.14. Son treinta minutos
+  sin peticiones que utilicen esa sesión, no treinta minutos de alquiler ni
+  inactividad de teclado/ratón. No cambia el tiempo por defecto anterior. El
+  servidor invalida la sesión y el frontend limpia su información al detectar
+  el rechazo, no mediante un cronómetro que sustituya al servidor.
+  Fuente: https://docs.spring.io/spring-boot/docs/2.7.14/reference/html/application-properties.html#application-properties.server.server.servlet.session.timeout
+- No se activa límite de dispositivos/sesiones simultáneas. El usuario lo
+  consultó, no fijó una política definitiva. Por ahora se conserva el
+  comportamiento existente: sesiones independientes en distintos navegadores
+  o dispositivos; logout cierra la sesión correspondiente, no todas. Cerrar
+  una pestaña no equivale a ejecutar logout. El cierre remoto o exclusividad
+  por cuenta requerirían una decisión adicional, no cambios improvisados.
+- Se agregan tres pruebas de seguridad con MockMvc: redirección de las tres
+  páginas sin sesión, rechazo de la página ADMIN manteniendo el perfil CLIENTE
+  válido y logout con invalidación/borrado de cookie. src/test/js/Sesion.test.cjs
+  incorpora 17 pruebas unitarias con Node test/vm, sin dependencias nuevas,
+  navegador ni credenciales reales: perfil confirmado, marca vieja, 401/403,
+  red, concurrencia de consultas, logout, recuperación del formulario, login
+  rechazado y POST de estación no reenviado ni anunciado como éxito ante 401.
+
+Comprobaciones ejecutadas por el asistente:
+
+- Node --test src/test/js/Sesion.test.cjs: 17/17 superadas. Los cinco JS
+  modificados también superaron node --check.
+- Con JDK 11.0.19: Gradle test filtrado a WebAuthorizationTest (17),
+  EstacionControllerTest (22), EstacionServiceTest (10), BicicletaControllerTest
+  (6) y AlquilerServiceTest (4). BUILD SUCCESSFUL; XML confirmados:
+  59 pruebas, cero fallos, errores u omisiones. No se ejecuta el test general
+  que levanta la aplicación. Se autorizó acceso a la caché local de Gradle
+  después de un primer intento bloqueado por permisos del entorno.
+- git diff --check sin errores. No se modificó el staging ni se hizo commit
+  o push. No se ejecutaron SQL ni reinicios de la aplicación ni se manipularon
+  sesiones o datos reales mediante el navegador.
+
+Pendiente de comprobación manual:
+
+- Reiniciar la aplicación para cargar el cambio Java/configuración. El perfil
+  refactor usa create-drop: ese reinicio elimina los datos QA actuales. El
+  usuario autorizó descartarlos en Etapa 73; el asistente no reinició por su
+  cuenta ni presenta esa prueba como realizada.
+- Probar ingreso y navegación ADMIN/CLIENTE, cierre de sesión, Atrás y URL
+  privada sin autenticación; verificar que no vuelva a aparecer Sesión Activa
+  por marcas viejas. La expiración real de treinta minutos no se esperó en
+  estas pruebas unitarias y no se declara verificada manualmente.
+- PM-EST-02 continúa pendiente: repetir el alta con una sesión confirmada y
+  comprobar la persistencia. Este ajuste no demuestra cuál fue la causa de
+  pérdida de la sesión original ni sustituye las pruebas manuales de estaciones.
+
+### Etapa 82 Reinicio informado y acceso anónimo a Administración comprobado
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aportó el log del reinicio: PID 17448, Tomcat en puerto 8080 y
+  Started TurismoSustentableApplication a las 18:58:50.736, sin error fatal.
+  El aviso open-in-view y Gradle 80% EXECUTING no impidieron el arranque.
+- PM-SES-01 superada según la comprobación manual del usuario: después de
+  recargar el inicio con Ctrl+F5, entrar directamente a admin.html sin sesión
+  devuelve al inicio con aviso de ingreso requerido y formulario visible,
+  sin mostrar Sesión Activa ni una página de error 401. No se presenta como
+  inspección automatizada del navegador ni se infiere el resultado de otras rutas.
+- El usuario informó que volvió a registrar la cuenta QA. PM-SES-02 superada
+  según su comprobación manual: inició sesión y pudo navegar tanto a
+  Alquilar bicicletas como a Mis viajes, sin regresar al ingreso. No se
+  presenta como prueba de crear/finalizar un alquiler ni de persistencia SQL.
+- PM-SES-03 superada según el usuario: entrar a admin.html con la cuenta
+  CLIENTE devuelve al inicio con el aviso de acceso no permitido; después
+  pudo volver a Mis viajes sin introducir sus credenciales. Se comprueba que
+  el rechazo por permisos no cierra esa sesión válida.
+- PM-SES-04 superada según el usuario: cerró sesión, esperó la redirección e
+  intentó abrir directamente mis_alquileres.html. Volvió al ingreso con el
+  formulario visible y sin mostrar Sesión Activa. No se declara probado el
+  vencimiento por tiempo ni todas las variantes de Atrás/dispositivos.
+- Una consulta READ ONLY confirmó la nueva cuenta admin.estaciones, id 1,
+  activa, con CLIENTE (rol_id 2) únicamente. El catálogo contiene ADMIN id 1,
+  CLIENTE id 2 y TECNICO id 3. No se consultaron contraseñas ni se hicieron
+  escrituras SQL. Se propone volver a agregar ADMIN sin retirar CLIENTE para
+  retomar PM-EST-02; todavía no se declara realizada esa asignación.
+- Se actualizó el diario y se ejecutaron SELECT de cuenta/roles. No se
+  ejecutaron peticiones autenticadas, reinicios, Gradle ni cambios de código,
+  staging o commits. La siguiente comprobación requiere la acción del usuario.
+
+### Etapa 83 Ingreso ADMIN confirmado y reanudación del alta de estación
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario indicó que ejecutó la asignación ADMIN propuesta mediante
+  INSERT SELECT con NOT EXISTS, conservando CLIENTE, y luego inició sesión.
+  PM-SES-05 superada según su observación: ingresó al panel administrativo y
+  la cuenta Admin Prueba muestra ambos roles en la pestaña Usuarios. No se
+  presenta esa confirmación como consulta SQL posterior ni inspección del navegador.
+- Se retoma PM-EST-02, pendiente desde el rechazo 401: crear Plaza QA Centro,
+  Calle de Prueba 100, capacidad 2, uso Pública y coordenadas
+  -53.7865/-67.7045. Se comprobará la persistencia después de que el usuario
+  confirme la acción; todavía no se declara superada el alta ni su visualización
+  en mapa, filtros de estaciones internas o reglas de capacidad.
+- Solo se actualizó el diario y se leyó el formulario de estación vigente.
+  No se ejecutaron SQL, peticiones autenticadas, reinicios, Gradle ni cambios
+  de Java/JS/HTML, permisos, staging o commits.
+
+### Etapa 84 Alta pública persistida y preparación de estación interna
+
+Fecha: 7 de noviembre de 2026.
+
+- PM-EST-02 superada: el usuario confirmó aviso de guardado, cierre del
+  formulario y aparición de la estación en la tabla administrativa. Una
+  consulta READ ONLY confirmó id 1, Plaza QA Centro, Calle de Prueba 100,
+  capacidad 2, es_publica=1, latitud -53.7865, longitud -67.7045, version=0
+  y borrado_estacion=0. El reintento autenticado quedó persistido; no se
+  atribuye retrospectivamente una causa concreta al 401 anterior.
+- Sigue PM-EST-03: crear Taller QA Central, Calle de Prueba 200, capacidad 5,
+  uso interno y coordenadas -53.7855/-67.7055. Se espera que aparezca en la
+  tabla administrativa; después se contrastará la lectura pública y el mapa.
+  La creación interna y su filtrado todavía no se consideran comprobados.
+- Solo se ejecutó SELECT de la estación indicada y se actualizó el diario.
+  No hubo escrituras SQL por el asistente, navegación autenticada, reinicios,
+  Gradle, cambios de código/DER/permisos ni modificaciones del staging o commits.
+
+### Etapa 85 Alta interna y filtrado de la API pública comprobados
+
+Fecha: 7 de noviembre de 2026.
+
+- PM-EST-03 superada: el usuario informó la creación de la segunda estación.
+  SELECT READ ONLY confirmó Taller QA Central id 2, Calle de Prueba 200,
+  capacidad 5, es_publica=0, latitud -53.7855, longitud -67.7055, version=0,
+  borrado_estacion=0. Plaza QA Centro conserva sus valores previos.
+- GET anónimo http://localhost:8080/api/estaciones devolvió HTTP 200 y una
+  sola estación: Plaza QA Centro id 1, esPublica=true, bicicletasDisponibles=0
+  y espaciosLibres=2. Taller QA Central no aparece. Esto comprueba el filtrado
+  de la lectura pública real, no solamente un filtro visual del frontend.
+- Sigue contrastar visualmente el mapa desde el inicio: debe mostrar Plaza
+  QA Centro como estación, sin el taller interno. No se declara inspección
+  del mapa ni se modifican marcadores o datos de estaciones.
+- Solo se realizaron SELECT, un GET público y actualización del diario. No
+  se ejecutaron escrituras SQL, peticiones autenticadas, navegación del usuario,
+  reinicios, Gradle ni modificaciones de código, DER, staging o commits.
+
+### Etapa 86 Mapa confirmado y columna de uso administrativo propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario confirmó visualmente que el mapa solo muestra Plaza QA Centro,
+  con cero bicicletas disponibles y dos espacios libres. No muestra Taller
+  QA Central. Se completa la comprobación visual pendiente de la Etapa 85.
+- El usuario detectó que la tabla de estaciones del panel no permite ver la
+  clasificación sin abrir el formulario. Se confirmó en admin.html/admin.js
+  que falta esa columna, aunque EstacionDTO y la API ya envían esPublica.
+- Se propone agregar un encabezado Uso después de Capacidad y una celda
+  correspondiente en cargarEstaciones, con Pública/Uso interno y badges
+  Bootstrap existentes. No requiere modificar modelo, DTO, API, DER o CSS.
+  Es una indicación para implementación manual; todavía no se presenta
+  incorporada ni probada. Solo requiere guardar y recargar, no reiniciar
+  el perfil create-drop ni perder los datos QA.
+- Solo se leyeron archivos y se actualizó el diario. No se modificaron
+  Java/JS/HTML, datos, permisos, staging o commits ni se ejecutaron pruebas.
+
+### Etapa 87 Columna Uso agregada en la tabla administrativa de estaciones
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar exclusivamente la propuesta de la Etapa 86.
+  En admin.html se agregó el encabezado Uso después de Capacidad. En
+  cargarEstaciones() de admin.js se agregó la celda correspondiente, usando
+  esPublica: Pública con badge bg-success; Uso interno con bg-secondary.
+  Se reutilizan Bootstrap y el dato del DTO existente, sin CSS o campos nuevos.
+- Se compararon los dos archivos con una captura previa al cambio, normalizando
+  finales de línea. Se comprobó que las únicas diferencias de código de esta
+  intervención son ese encabezado y esa celda; se conservaron los cambios previos
+  del usuario y los controles, acciones y consultas de la tabla.
+- node --check admin.js superó la comprobación de sintaxis. Una comprobación
+  aislada con Node/vm, GET simulado y estaciones pública/interna verificó los
+  textos y colores, una sola consulta a /api/admin/estaciones y ocho celdas por
+  fila alineadas con los ocho encabezados. No accedió al servidor ni a MySQL.
+  git diff --check sin errores. No se repitieron Gradle ni la suite completa.
+- El usuario confirmó visualmente que la columna Uso aparece y diferencia
+  Pública/Uso interno. Se completa la comprobación visual de este cambio,
+  sin afirmar que el asistente haya inspeccionado el navegador.
+- Sigue la prueba manual de edición normal: en Plaza QA Centro comprobar
+  que Uso se muestra Pública sin permitir cambios y guardar únicamente la
+  dirección Calle de Prueba 120, manteniendo capacidad y coordenadas.
+  Queda pendiente la acción del usuario y la verificación de persistencia/versión.
+- Solo se editaron admin.html, el bloque indicado de admin.js y este diario.
+  No se modificaron backend, DER, CSS, reglas, permisos o datos; tampoco se
+  reinició la aplicación ni se hicieron escrituras Git o SQL.
+
+### Etapa 88 Edición normal persistida y explicación del bloqueo de Uso
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario informó que cambió la dirección de Plaza QA Centro a Calle de
+  Prueba 120 y el guardado fue correcto. SELECT READ ONLY confirmó id 1,
+  nueva dirección, capacidad 2, es_publica=1, version=1 y borrado_estacion=0.
+  La versión inicial era 0. Taller QA Central conserva dirección, capacidad,
+  clasificación y version=0. Se registra superada la edición normal; no se
+  confunde con haber probado todavía un conflicto entre dos formularios.
+- Se revisó RN-INV-01 y el servicio vigente: Pública/Uso interno determina
+  visibilidad y operaciones permitidas, no solo una etiqueta. La edición
+  común no incorpora reclasificación: ActualizarEstacionDTO carece del campo,
+  EstacionService no lo modifica y el formulario lo muestra deshabilitado.
+- La razón del bloqueo actual es evitar una reclasificación operativa sin
+  controles de operaciones pendientes y trazabilidad. El caso de reservas
+  pendientes se explica como necesidad del DERv5, no como función ya migrada.
+  RN-INV-01 define los efectos de cada clasificación, no una prohibición
+  universal y definitiva de cambiarla. No se presenta la inmutabilidad como
+  exigencia técnica de MySQL/JPA ni se agrega una nueva regla de negocio
+  sin aprobación; habilitarla requeriría definir su recorrido administrativo.
+- Solo se realizaron lecturas de código/documentación, SELECT y actualización
+  de este diario. No se editaron fuentes ni se ejecutaron escrituras SQL,
+  reinicios, Gradle, peticiones autenticadas, staging o commits.
+
+### Etapa 89 Uso fijo conservado y prueba de formulario desactualizado preparada
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario decidió conservar por el momento el bloqueo de Uso en la edición.
+  Se asentó esta precisión de alcance en RN-INV-01, documento 26, sin modificar
+  el DER o el código y sin declarar una prohibición definitiva de reclasificar.
+- Sigue la prueba manual de concurrencia: abrir la edición de Plaza QA Centro
+  en dos pestañas A/B antes de guardar en cualquiera. Ambas parten de la misma
+  versión; A cambia la dirección a Calle de Prueba 130 y guarda. B conserva su
+  formulario anterior y procura guardar Calle de Prueba 140 sin recargar.
+  Se espera éxito de A, rechazo de B por versión desactualizada y persistencia
+  de 130, con capacidad y uso sin cambios. Todavía no se considera ejecutada
+  ni superada esta comprobación real.
+- Solo se leyeron archivos y se editaron los dos documentos mencionados. No
+  se modificaron fuentes, datos, permisos o DER ni se ejecutaron SQL, reinicios,
+  pruebas, peticiones autenticadas, staging o commits.
+
+### Etapa 90 Conflicto entre formularios rechazado sin sobrescritura
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario confirmó que A guardó correctamente y B recibió el aviso de
+  estación modificada y necesidad de recargar. SELECT READ ONLY confirmó
+  Plaza QA Centro con Calle de Prueba 130, capacidad 2, es_publica=1,
+  version=2, borrado_estacion=0. No se guardó la dirección 140 propuesta
+  desde el formulario viejo. Taller QA Central conserva sus valores y versión 0.
+  Se registra superada esta prueba real de formulario desactualizado.
+- Se prepara la comprobación de capacidad mediante dos bicicletas QA ubicadas
+  en Plaza QA Centro. Se utilizará la interfaz actual, sin anticipar que el
+  catálogo de tipos/tarifas del DERv5 ya esté migrado. Primero se solicitará
+  al usuario crear dos unidades con códigos diferentes y luego intentar reducir
+  la capacidad por debajo de la ocupación. Todavía no se declara realizada.
+- Una consulta inicial de inventario intentó leer ubicacion_actual_id, que
+  no es una columna de esta tabla. No modificó datos; se revisó el mapeo
+  @JoinColumn(name="estacion_id") y se corrigió la consulta de solo lectura.
+- Solo se leyeron código/documentación, se hicieron consultas de lectura y se
+  actualizó el diario. No hubo escrituras SQL, cambios de código/DER/permisos,
+  reinicios, Gradle, peticiones autenticadas ni modificaciones de Git.
+
+### Etapa 91 Bicicletas QA verificadas y reducción de capacidad preparada
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario informó que creó ambas bicicletas. SELECT READ ONLY confirmó
+  QA-01 id 1 y QA-02 id 2, ambas MONTANA, DISPONIBLE, borrado_bici=0 y
+  estacion_id=1 (Plaza QA Centro). Los precios guardados son USD 10.00 y
+  USD 8.00 respectivamente; esa diferencia no afecta la prueba de ocupación
+  ni se interpreta como aplicación de la tarifa por tipo del DERv5 pendiente.
+- La consulta de ocupación física, sin excluir registros archivados, confirmó
+  dos bicicletas presentes, capacidad 2 y version=2 para Plaza QA Centro.
+- Sigue recargar Administración para descartar el formulario anterior, abrir
+  una edición nueva y cambiar solo capacidad a 1. Se espera rechazo por las
+  dos bicicletas presentes y conservación de capacidad 2. La prueba de rechazo
+  real todavía no se considera ejecutada ni superada.
+- Solo se hicieron consultas de lectura y se actualizó este diario. No se
+  modificaron datos, fuentes, DER, permisos, staging o commits ni se ejecutaron
+  reinicios, Gradle o peticiones autenticadas por el asistente.
+
+### Etapa 92 Reducción bajo ocupación rechazada y sin cambios persistidos
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario confirmó que reducir capacidad de 2 a 1 se rechazó por las dos
+  bicicletas presentes. SELECT READ ONLY posterior confirmó Plaza QA Centro
+  con capacidad 2, version=2, dirección Calle de Prueba 130 y es_publica=1,
+  y dos unidades físicas. No hubo modificación parcial ni incremento de
+  versión por el intento rechazado. Se considera superada esta prueba manual.
+- El inventario consultado conserva QA-01 y QA-02 en estacion_id=1, sin borrado
+  lógico. No hay una bicicleta QA-03 dentro de los códigos consultados.
+- Sigue cerrar el formulario rechazado e intentar crear QA-03 (MONTANA,
+  DISPONIBLE, USD 10/h) en Plaza QA Centro, que ya está llena. El controlador
+  vigente verifica ocupación física y responde conflicto sin guardar cuando
+  no quedan espacios. Se espera rechazo y ausencia de esa nueva fila; aún
+  no se considera probado manualmente.
+- Solo se realizaron SELECT, lectura del controlador y actualización del
+  diario. No hubo escrituras SQL, peticiones autenticadas, reinicios, Gradle,
+  cambios de fuentes/DER/permisos ni modificaciones de Git.
+
+### Etapa 93 Alta en estación llena rechazada sin crear la bicicleta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario confirmó que intentar crear QA-03 en Plaza QA Centro se rechazó
+  por falta de espacios libres. SELECT READ ONLY confirmó cero registros con
+  codigo_bicicleta='QA-03' y que Plaza QA Centro conserva capacidad 2,
+  version=2, borrado_estacion=0 y dos bicicletas físicamente presentes.
+  Se registra superada la prueba manual de alta con capacidad completa.
+- Se prepara la baja lógica de estación ocupada: cerrar el formulario de alta
+  rechazado y solicitar eliminar únicamente Plaza QA Centro, confirmando la
+  acción. Se espera rechazo por bicicletas asignadas y conservación de la
+  estación activa. No se propone eliminar Taller QA Central ni se presenta
+  el rechazo de baja como ya comprobado en esta ejecución.
+- Solo se realizaron SELECT y lecturas del controlador/manejador frontend de
+  baja, y se actualizó el diario. No hubo escrituras SQL ni peticiones de
+  borrado por el asistente, cambios de código/DER, reinicios, Gradle o Git.
+
+### Etapa 94 Baja de estación ocupada rechazada y baja vacía preparada
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario confirmó que la baja de Plaza QA Centro se rechazó por contener
+  bicicletas. SELECT READ ONLY confirmó borrado_estacion=0, capacidad 2,
+  version=2 y dos unidades físicas. QA-01 y QA-02 conservan estacion_id=1
+  y borrado_bici=0. Taller QA Central permanece activo, interno y vacío.
+  Se considera superado el rechazo manual de baja con ocupación física.
+- Sigue la última prueba de esta ronda del CRUD actual de estaciones: crear
+  una estación pública descartable Estación QA Descartable, Calle de Prueba
+  300, capacidad 1, coordenadas -53.7845/-67.7065, sin bicicletas, y solicitar
+  su baja lógica desde el panel. Se conservarán Plaza QA Centro y Taller QA
+  Central como datos QA para el trabajo siguiente. Se espera desaparición de
+  la lista operativa y conservación de la fila con borrado_estacion=1; la
+  acción y su persistencia todavía no se consideran realizadas.
+- Esta ronda no acredita que estén migradas todas las condiciones futuras
+  del DERv5 (reservas, incidencias y auditoría pendientes). Se comprobará la
+  baja lógica efectiva del CRUD vigente, no una eliminación física autorizada.
+- Solo se hicieron consultas de lectura y se actualizó este diario. No se
+  ejecutaron escrituras SQL, solicitudes DELETE ni cambios de código/DER,
+  permisos, reinicios, Gradle, staging o commits por el asistente.
+
+### Etapa 95 Baja lógica de estación vacía verificada y ronda manual cerrada
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario informó que creó la estación descartable, ejecutó su baja y
+  dejó de verla en la tabla administrativa. La primera consulta por el nombre
+  sugerido Estación QA Descartable no encontró esa fila; una lectura de todas
+  las estaciones confirmó que el nombre realmente ingresado es QA Descartable.
+- SELECT READ ONLY confirmó la conservación de la fila id 3, nombre QA
+  Descartable, dirección Calle de Prueba 300, capacidad 1, es_publica=1,
+  borrado_estacion=1 y version=1. Hay tres estaciones en total y una dada de
+  baja. Por tanto se comprobó baja lógica, no eliminación física.
+- Plaza QA Centro permanece activa, pública, con dirección Calle de Prueba
+  130, capacidad 2 y version=2; Taller QA Central permanece activo, interno,
+  con capacidad 5 y version=0. No se alteraron las dos ubicaciones anteriores.
+- GET público /api/estaciones devolvió HTTP 200 y solo Plaza QA Centro,
+  bicicletasDisponibles=2 y espaciosLibres=0. Excluye tanto el taller interno
+  como la estación dada de baja. La ausencia en el listado administrativo se
+  registra como observación manual del usuario, no como GET autenticado del
+  asistente ni inspección automatizada del navegador.
+- Se cierra esta ronda manual del CRUD vigente de estaciones: alta pública e
+  interna, mapa, columna Uso, edición normal, formulario desactualizado,
+  rechazo de capacidad bajo ocupación, alta de bicicleta con estación llena,
+  rechazo de baja ocupada y baja lógica vacía. Las pruebas básicas de sesión
+  asociadas también están asentadas. No se declara completado todo el DERv5,
+  la concurrencia real de dos ingresos a la vez, la expiración de treinta
+  minutos ni los módulos de reservas/auditoría pendientes de implementación.
+- Solo se realizaron consultas SQL de lectura, un GET público y actualización
+  del diario. No se modificaron fuentes, DER, permisos o datos ni se ejecutaron
+  reinicios, Gradle, peticiones DELETE, staging o commits por el asistente.
+
+### Etapa 96 Punto de guardado propuesto y siguiente bloque del DERv5
+
+Fecha: 7 de noviembre de 2026.
+
+- Tras cerrar la ronda manual, se revisaron rama y estado local: continúa
+  codex/refactorizacion-practicas-iii, con cambios de estaciones, sesión,
+  inventario, pruebas y documentación todavía sin registrar juntos en un
+  commit. Existen archivos nuevos y archivos parcialmente preparados en el
+  staging. No se modificó ese estado mediante comandos de escritura Git.
+- Se propone al usuario registrar el avance probado en un commit y subirlo
+  antes de iniciar otro bloque. Todavía no se declara realizado el commit,
+  el push ni la sincronización remota; se esperará su resultado.
+- Se contrastó el siguiente punto con el DERv5 y el documento 26: TIPO_BICICLETA
+  tiene id, codigo único, precio_por_hora_usd e intervalo_preventivo_meses.
+  La tarifa por tipo está aprobada; los valores concretos de tarifas e
+  intervalos, y aspectos físicos aún señalados, no se fijan sin definición.
+  El archivo TipoBicicleta.java actual todavía es enum, usado por el modelo
+  anterior. No se lo sustituye en este turno ni se crean clases provisionales.
+- Se actualizó el índice para reflejar el bloque verificado, el alcance
+  parcial de RN-INV-01 y la ausencia actual de CodigoRol en src. Las frases
+  históricas sobre implementación se conservan identificadas como antecedentes.
+- Solo se hicieron lecturas de fuentes/DER y consultas de Git y se editaron
+  documentos. No se modificaron Java/JS/HTML, datos o permisos ni se ejecutaron
+  pruebas, reinicios, git add/commit/push o SQL.

@@ -2,7 +2,7 @@
 
 Fecha: 28 de octubre de 2026.
 
-Estado actualizado al 2 de noviembre: DER v5 lógico de trabajo con 29 entidades y 55 FK/relaciones, tras la incorporación aprobada de RN-TRZ-01. Se añade HISTORIAL_INCIDENCIA, se amplía/renombra el historial de orden y se agregan motivo administrativo e incidencia_corte_id. Las reglas anteriores se conservan; el diseño físico, las integraciones y migración siguen pendientes. No se modificaron Java, MySQL, frontend, originales ni la copia del compañero.
+Estado actualizado al 6 de noviembre de 2026: DER v5 lógico de trabajo con 29 entidades y 55 FK/relaciones. Se conservan las incorporaciones de RN-TRZ-01 y se refleja RN-INV-01: ESTACION.es_publica distingue Taller interno y BICICLETA.borrado_bici se conserva separado del estado. La sección 7 del documento 26 registra las condiciones aprobadas y la precisión sobre EXTRAVIADA; no se agregan entidades o relaciones. El diseño físico, las integraciones y migración siguen pendientes. No se modificaron Java, MySQL, frontend, originales ni la copia del compañero.
 
 ## 1. Base de la revisión
 
@@ -36,14 +36,14 @@ Después el usuario aprobó incorporar TIPO_DOCUMENTO y PAIS, documento obligato
 | USUARIO | Conservar cuenta, activo y recuperación; incorporar nickname único para el login, separado de email único | Incorporación aprobada en documento 25; no perder recuperación ni referencias por cuenta; adaptar principal y consumidores al implementar |
 | ROL | Conservar CLIENTE, ADMIN y TECNICO | Diccionario y reparto de permisos de RN-MAN-02/RN-BIC-02/RN-INC-01 |
 | USUARIO_ROL | Conservar relación de varios roles; proponer clave compuesta de usuario y rol | Evitar duplicados y soportar cuentas con ambos roles bajo sus controles |
-| ESTACION | Conservar capacidad, coordenadas y baja lógica; espacios libres se calculan | Presencia física, reserva, devolución y capacidad; RN-ALQ-03/RN-BIC-01/RN-BIC-02 |
+| ESTACION | Conservar capacidad, coordenadas y baja lógica; agregar es_publica para distinguir Taller interno; espacios libres se calculan | Presencia física, reserva, devolución y capacidad; RN-ALQ-03/RN-BIC-01/RN-BIC-02/RN-INV-01 |
 | TIPO_BICICLETA | Conservar tarifa por tipo y añadir intervalo preventivo | Tarifa confirmada durante esta revisión; RN-ALQ-04/RN-MAN-04 |
 | ESTADO_BICICLETA | Conservar catálogo; siete códigos aprobados | RN-BIC-01 más EXTRAVIADA de RN-INC-01 |
 | ESTADO_ALQUILER | Conservar cinco estados de uso del conjunto, sin CON_DEUDA | RN-ALQ-07; separar dinero de uso |
 | ESTADO_ALQUILER_DETALLE | Conservar catálogo; siete estados de cada unidad | RN-ALQ-09, cancelación administrativa RN-BIC-02 y cierre excepcional RN-INC-01 |
 | ESTADO_ORDEN_MANTENIMIENTO | Conservar CREADA, EN_PROCESO, PAUSADA, FINALIZADA y CANCELADA | RN-MAN-01/RN-MAN-02 |
 | ESTADO_PAGO | Conservar cinco estados por intento; no usar REEMBOLSADO para sobrescribir el pago | RN-PAG-01/RN-PAG-02 |
-| BICICLETA | Conservar unidad, tipo y estado; estación opcional y fecha de alta; proponer retirar el flag redundante de borrado | Viaje fuera de estación, preventiva y DE_BAJA con historial; RN-BIC-01/RN-BIC-02/RN-MAN-04 |
+| BICICLETA | Conservar unidad, tipo, estado y borrado_bici independiente; estación opcional y fecha de alta | Viaje fuera de estación, preventiva, DE_BAJA y archivo lógico separados; RN-BIC-01/RN-BIC-02/RN-MAN-04/RN-INV-01 |
 | ORDEN_MANTENIMIENTO | Tipo, creación, resultado y técnico opcional inicial; diagnostico obligatorio al finalizar y costos internos ARS incorporados con aprobación | Trabajo, hallazgo y asignación son hechos separados; RN-MAN-01 a RN-MAN-04 y documento 27 |
 | ALQUILER | Conservar cabecera; añadir vencimiento, cotización completa, importes por moneda y fecha de liquidación | RN-ALQ-01 a RN-ALQ-08 y RN-INC-01; cierre operativo no equivale a liquidación |
 | ALQUILER_DETALLE | Conserva claves, tipo contratado y unicidad alquiler/bicicleta; agrega incidencia_corte_id opcional, FK/UK, al fundamento del corte | RN-ALQ, RN-INC-01 y RN-TRZ-01; la incidencia debe pertenecer al mismo detalle |
@@ -53,7 +53,7 @@ Después el usuario aprobó incorporar TIPO_DOCUMENTO y PAIS, documento obligato
 | AUDITORIA_SISTEMA | Exclusiva de ADMIN con administrador_id obligatorio; agrega motivo según acción | RN-TRZ-01; no cubre actuaciones técnicas/automáticas ni almacena secretos |
 | PAGO | Conservar un registro por intento con importe inmutable, finalidad, referencias y control de duplicados | RN-PAG-01/RN-PAG-02; rechazo no destruye la reserva ni la historia |
 
-Se propone retirar `borrado_bici` del modelo nuevo porque DE_BAJA ya representa el retiro definitivo; no se elimina de una base existente mediante este documento. Su migración requiere revisar conflictos entre flag, estado y alquileres activos. Se conserva provisionalmente `borrado_alquiler` del original como dato de legado/visibilidad, sin permitir que oculte deuda, altere el uso o excluya operaciones de la trazabilidad. No concede un nuevo permiso de borrado.
+La propuesta anterior de retirar `borrado_bici` queda corregida por la aclaración y aprobación del usuario del 6 de noviembre de 2026: DE_BAJA y borrado lógico no son equivalentes. Se conserva el indicador del DER v4, separado de estado y presencia física, conforme a [RN-INV-01, sección 7](26-revision-estaciones-tipos-y-bicicletas.md). Su migración requiere revisar conflictos sin eliminar el flag o reinterpretar registros automáticamente. Se conserva provisionalmente `borrado_alquiler` del original como dato de legado/visibilidad, sin permitir que oculte deuda, altere el uso o excluya operaciones de la trazabilidad. No concede un nuevo permiso de borrado de alquileres.
 
 ## 4. Ocho incorporaciones justificadas
 

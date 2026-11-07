@@ -112,6 +112,15 @@ public class AlquilerService {
             );
         }
 
+        if (estacionRetiro.isBorradoEstacion()
+                || !estacionRetiro.isEsPublica()) {
+
+            throw new IllegalStateException(
+                    "La bicicleta no está ubicada en una estación pública " +
+                            "habilitada para alquilar."
+            );
+        }
+
         // 4. Verificar duración
         if (alquilerRequest.getDuracionEnHoras() <= 0) {
             throw new IllegalArgumentException(
@@ -264,11 +273,15 @@ public class AlquilerService {
                         )
                 );
 
-        // Contar las bicicletas realmente ubicadas en la estación
+        if (!nuevaEstacion.isEsPublica()) {
+            throw new IllegalArgumentException(
+                    "La devolución debe realizarse en una estación pública habilitada."
+            );
+        }
+
+        // Contar todas las bicicletas físicamente presentes, incluso archivadas.
         long espaciosOcupados = bicicletaRepository
-                .countByUbicacionActualAndBorradoBiciFalse(
-                        nuevaEstacion
-                );
+                .countByUbicacionActual(nuevaEstacion);
 
         // Impedir que la devolución supere la capacidad
         if (espaciosOcupados >= nuevaEstacion.getCapacidad()) {

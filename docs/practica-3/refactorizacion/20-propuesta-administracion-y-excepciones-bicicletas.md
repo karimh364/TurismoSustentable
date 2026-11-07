@@ -8,6 +8,8 @@ Estado: aprobadas las reglas administrativas presentadas como puntos 1 a 6: inac
 
 ## 1. Base y decisiones que requiere
 
+Actualización aprobada el 6 de noviembre de 2026: [RN-INV-01, sección 7](26-revision-estaciones-tipos-y-bicicletas.md) exige presencia física en Taller para DE_BAJA y borrado lógico, conserva borrado_bici independiente del estado y permite INACTIVA en la estación actual. Esta precisión actualiza el diseño, sin implementar todavía el nuevo recorrido.
+
 Se revisaron nuevamente el Word del diccionario de estados, el PDF completo de visión y el DER v4, además de RN-BIC-01, RN-MAN-02 y RN-MAN-04. Se inspeccionaron las tres páginas renderizadas del Word y el diagrama general del PDF. Los originales permanecen intactos.
 
 El Word incluye EXTRAVIADA, DE_BAJA y RETENIDO_SISTEMA con cierre a las 24 horas. El PDF contempla administración de estados, mantenimiento, auditoría y un rechazo de desbloqueo cuando la bicicleta deja de estar habilitada. Ninguna de esas fuentes define suficientemente el cierre económico por pérdida o accidente. Tampoco concede por sí sola un cambio manual libre que sustituya la devolución.
@@ -18,7 +20,7 @@ RN-BIC-01 aprobó seis estados operativos iniciales y RN-BIC-02 completa sus per
 
 Solo ADMIN puede inactivar o reactivar administrativamente. Se exige un motivo no vacío y registrar responsable, fecha y estado anterior y nuevo.
 
-Una bicicleta DISPONIBLE, sin reserva, viaje u orden abierta incompatible, puede pasar a INACTIVA por una decisión temporal, por ejemplo un retiro temporal del servicio. No cambia de ubicación ni deja de ocupar su lugar por esa decisión.
+Una bicicleta DISPONIBLE, sin reserva, viaje u orden abierta incompatible, puede pasar a INACTIVA por una decisión temporal, por ejemplo un retiro temporal del servicio. Puede estar en su estación pública actual: no se exige llevarla antes al Taller. No cambia de ubicación ni deja de ocupar su lugar por esa decisión.
 
 INACTIVA no sustituye a MANTENIMIENTO. Si lo que existe es una falla o una revisión necesaria, se utiliza el recorrido de mantenimiento correspondiente. Tampoco se usa INACTIVA para ocultar una orden abierta o un resultado técnico desfavorable.
 
@@ -30,11 +32,17 @@ Una estación inválida o una asociación incompatible impiden completar la reac
 
 ## 3. Baja definitiva y presencia física
 
-Solo ADMIN puede registrar una baja definitiva, con motivo. Se admite desde DISPONIBLE, INACTIVA o MANTENIMIENTO, siempre que la bicicleta no tenga reserva, viaje ni órdenes de mantenimiento abiertas. Si hay una orden abierta que debe abandonarse, ADMIN debe cancelarla antes por la operación autorizada y con motivo; la baja no la cancela silenciosamente ni finge una reparación.
+Solo ADMIN puede registrar una baja definitiva, con motivo y presencia física real de la unidad en un Taller interno activo, conforme a RN-INV-01. Se admite desde DISPONIBLE, INACTIVA o MANTENIMIENTO, siempre que la bicicleta no tenga reserva, viaje ni órdenes de mantenimiento abiertas. Si hay una orden abierta que debe abandonarse, ADMIN debe cancelarla antes por la operación autorizada y con motivo; la baja no la cancela silenciosamente ni finge una reparación.
 
 DE_BAJA conserva la bicicleta, sus alquileres, órdenes e historial. No se permite reactivarla desde el panel normal ni eliminar físicamente esos registros. La corrección de una baja cargada por error queda fuera del recorrido normal y no se resuelve creando otro registro que pierda su historia.
 
-La baja administrativa no demuestra que la bicicleta se retiró de la estación. Si sigue físicamente allí, sigue ocupando un lugar aunque ya no se alquile. Solo una salida física efectivamente registrada permite quitar su ubicación actual y liberar ese lugar, conservando estación de origen, actor, fecha y motivo en la trazabilidad. No se borra la ubicación automáticamente por cambiar a DE_BAJA.
+### Borrado lógico separado del estado
+
+El borrado lógico marca borrado_bici sin cambiar automáticamente el estado a DE_BAJA o INACTIVA. También exige ADMIN, motivo, presencia real en Taller y ausencia de reservas, viajes u órdenes abiertas incompatibles, respetando los recorridos de incidencias. No elimina filas, referencias ni obligaciones económicas, ni se utiliza para eludir esos controles.
+
+Las archivadas siguen siendo consultables en el inventario físico e histórico de ADMIN y conservan su ocupación mientras sigan en el Taller. El movimiento de salida se registra aparte, con actor, fecha, motivo y ubicación anterior/nueva en AUDITORIA_SISTEMA. Archivar sin transición de estado no crea una transición ficticia en HISTORIAL_ESTADO_BICICLETA. No se aprueba por extensión una restauración de registros archivados.
+
+Ni DE_BAJA ni el borrado lógico demuestran que la bicicleta se retiró físicamente del Taller. Si sigue allí, sigue ocupando un lugar aunque ya no se alquile. Solo una salida física efectivamente registrada permite quitar su ubicación actual y liberar ese lugar, conservando origen, actor, fecha y motivo en la trazabilidad. No se borra la ubicación automáticamente por cambiar el estado o el indicador.
 
 Esta condición deberá reflejarse en las consultas de capacidad: no será correcto ignorar una bicicleta físicamente presente solo por un indicador de borrado o por su estado DE_BAJA. La representación de la salida se concretaría en el DER sin inventar un traslado o una devolución.
 
@@ -77,7 +85,7 @@ El backend debe comprobar rol activo, estado vigente y relaciones antes de mutar
 | CP-BIC-02-03 | ADMIN reactiva una inactiva sin restricciones y con estación válida | DISPONIBLE, con autorización registrada |
 | CP-BIC-02-04 | Al reactivar se detecta preventiva vencida o falla pendiente | No se ofrece la unidad; pasa al recorrido MANTENIMIENTO sin duplicar órdenes |
 | CP-BIC-02-05 | Se intenta una baja con viaje, reserva u orden abierta | Se rechaza la baja directa, sin cerrar ni borrar sus asociaciones |
-| CP-BIC-02-06 | ADMIN registra una baja válida y la unidad sigue en la estación | DE_BAJA, historia conservada y lugar todavía ocupado hasta registrar salida física |
+| CP-BIC-02-06 | ADMIN registra una baja válida desde Taller y la unidad sigue allí | DE_BAJA, historia conservada, borrado lógico independiente y lugar todavía ocupado hasta registrar salida física |
 | CP-BIC-02-07 | Se intenta reactivar una DE_BAJA desde el panel normal | Operación no permitida |
 | CP-BIC-02-08 | ADMIN cancela una unidad reservada por falla antes de su retiro | Detalle CANCELADO con origen y motivo; costo cero, bicicleta MANTENIMIENTO, anticipo tratado sin pérdida ni duplicación |
 | CP-BIC-02-09 | Cancelación administrativa y retiro llegan simultáneamente | Solo se confirma uno; no hay cancelación de una unidad ya retirada ni retiro sobre una cancelación confirmada |

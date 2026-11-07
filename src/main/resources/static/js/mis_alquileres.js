@@ -4,24 +4,12 @@ let monedaActual = 'USD';
 
 document.addEventListener("DOMContentLoaded", async function() {
 
-    /*
-     * Evita mostrar una copia almacenada por el navegador
-     * después de cerrar sesión.
-     * La seguridad real sigue estando en Spring Security.
-     */
-    const estaLogueado =
-        sessionStorage.getItem("usuarioLogueado") === "true";
-
-    if (!estaLogueado) {
-        window.location.replace(
-            "index.html#login-anchor"
-        );
-        return;
-    }
+    const usuario = await requerirSesion(['ADMIN', 'CLIENTE']);
+    if (!usuario) return;
 
     // Cargar los alquileres y nombre de usuario logueado
     await Promise.all([
-        cargarNombreUsuario(),
+        cargarNombreUsuario(usuario),
         cargarAlquileres()
     ]);
 
@@ -58,9 +46,9 @@ async function cargarAlquileres() {
         listaAlquileres = response.data;
         renderizarAlquileres();
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         console.error(error);
-        // Si no está logueado, redirige al inicio
-        window.location.href = 'index.html';
+        Swal.fire('No se pudieron cargar tus viajes', 'Verificá tu conexión e intentá nuevamente.', 'error');
     }
 }
 
@@ -169,6 +157,7 @@ async function abrirModalDevolucion(idAlquiler, codigoBici, fechaInicioISO) {
         }
 
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         select.innerHTML = '<option value="">Error al cargar estaciones</option>';
         console.error(error);
     }
@@ -216,6 +205,7 @@ async function confirmarDevolucion() {
         cargarAlquileres(); // Recargar historial para que pase a Finalizados
 
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         console.error(error);
         Swal.fire('Error', 'No se pudo finalizar el viaje. Intentá nuevamente.', 'error');
     }

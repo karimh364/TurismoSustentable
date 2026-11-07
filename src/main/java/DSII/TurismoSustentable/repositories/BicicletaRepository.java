@@ -4,6 +4,7 @@ import DSII.TurismoSustentable.models.Bicicleta;
 import DSII.TurismoSustentable.models.EstadoBicicleta;
 import DSII.TurismoSustentable.models.TipoBicicleta;
 import DSII.TurismoSustentable.models.Estacion;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -27,11 +28,27 @@ public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
 
     Optional<Bicicleta> findByCodigoBicicleta(String codigoBicicleta);
     List<Bicicleta> findByBorradoBiciFalse();
-    List<Bicicleta> findByBorradoBiciFalseAndEstado(EstadoBicicleta estado);
+    @EntityGraph(attributePaths = "ubicacionActual")
+    @Query(
+            "SELECT b FROM Bicicleta b " +
+                    "JOIN b.ubicacionActual e " +
+                    "WHERE b.borradoBici = false " +
+                    "AND b.estado = :estado " +
+                    "AND e.borradoEstacion = false " +
+                    "AND e.esPublica = true"
+    )
+    List<Bicicleta> buscarPorEstadoEnEstacionesPublicas(
+            @Param("estado") EstadoBicicleta estado
+    );
     List<Bicicleta> findByBorradoBiciFalseAndTipo(TipoBicicleta tipo);
 
     // Cuenta las bicicletas que están físicamente en una estación y que no fueron eliminadas lógicamente
     long countByUbicacionActualAndBorradoBiciFalse(
+            Estacion ubicacionActual
+    );
+
+    // Cuenta todas las bicicletas físicamente asociadas a esa estación, incluso las dadas de baja lógicamente
+    long countByUbicacionActual(
             Estacion ubicacionActual
     );
 

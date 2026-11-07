@@ -9,6 +9,8 @@ public class EstacionDTO {
     private String nombre;
     private String direccion;
     private int capacidad;
+    private boolean esPublica;
+    private Integer version;
     private Double latitud;
     private Double longitud;
     private int bicicletasDisponibles;
@@ -19,6 +21,8 @@ public class EstacionDTO {
         this.nombre = estacion.getNombre();
         this.direccion = estacion.getDireccion();
         this.capacidad = estacion.getCapacidad();
+        this.esPublica = estacion.isEsPublica();
+        this.version = estacion.getVersion();
 
         // Mapeamos las coordenadas
         this.latitud = estacion.getLatitud();
@@ -37,12 +41,9 @@ public class EstacionDTO {
                             )
                             .count();
 
-            // Todas las bicicletas físicas no eliminadas ocupan espacio, incluyendo mantenimiento e inactivas.
+            // Todas las bicicletas físicamente asociadas ocupan espacio.
             long bicicletasFisicas =
-                    estacion.getBicicletasEnEstacion()
-                            .stream()
-                            .filter(b -> !b.isBorradoBici())
-                            .count();
+                    estacion.getBicicletasEnEstacion().size();
 
             this.espaciosLibres = Math.max(
                     0,
@@ -86,5 +87,13 @@ public class EstacionDTO {
 
     public int getEspaciosLibres() {
         return espaciosLibres;
+    }
+
+    public boolean isEsPublica() {
+        return esPublica;
+    }
+
+    public Integer getVersion() {
+        return version;
     }
 }

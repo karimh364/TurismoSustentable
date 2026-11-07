@@ -6,19 +6,12 @@ let tasaCambio = 1; // Por defecto 1 (para dólares)
 let monedaActual = 'USD'; // USD o ARS
 
 document.addEventListener("DOMContentLoaded", async function() {
-    // 1. Verificar si hay sesión (básico)
-    const estaLogueado =
-        sessionStorage.getItem("usuarioLogueado") === "true";
-    if (!estaLogueado) {
-        window.location.replace(
-            "index.html#login-anchor"
-        );
-        return;
-    }
+    const usuario = await requerirSesion(['ADMIN', 'CLIENTE']);
+    if (!usuario) return;
 
     // Ejecutamos las 4 cargas en paralelo (nombre, estaciones, bicis y cotización)
     await Promise.all([
-        cargarNombreUsuario(),
+        cargarNombreUsuario(usuario),
         cargarEstaciones(),
         cargarBicicletas(),
         cargarCotizacion() // Llamada a la API del dólar
@@ -45,6 +38,7 @@ async function cargarEstaciones() {
             select.appendChild(option);
         });
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         console.error("Error cargando estaciones", error);
     }
 }
@@ -60,6 +54,7 @@ async function cargarBicicletas() {
         renderizarBicicletas(todasLasBicis);
 
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         container.innerHTML = `<div class="alert alert-danger text-center">No se pudieron cargar las bicicletas. ¿Has iniciado sesión?</div>`;
         console.error(error);
     }
@@ -291,6 +286,7 @@ async function confirmarAlquiler() {
         }
 
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         console.error(error);
         let mensaje = 'No se pudo procesar el alquiler.';
         if (error.response && error.response.data) {
@@ -308,6 +304,7 @@ async function cargarCotizacion() {
         tasaCambio = response.data;
         console.log("Cotización Dólar Tarjeta cargada: AR$", tasaCambio);
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         console.error("Error al cargar la cotización de DolarAPI", error);
         // Respaldo por si falla la API
         tasaCambio = 1400;

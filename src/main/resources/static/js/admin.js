@@ -4,73 +4,13 @@ let listaEstaciones = []; // Para llenar selects
 document.addEventListener("DOMContentLoaded",
     async () => {
 
-        const estaLogueado =
-            sessionStorage.getItem("usuarioLogueado")
-            === "true";
-
-        const esAdmin =
-            sessionStorage.getItem("usuarioRol")
-            === "ADMIN";
-
-        /*
-         * Control visual para páginas almacenadas
-         * por el navegador.
-         */
-        if (!estaLogueado) {
-            window.location.replace(
-                "index.html#login-anchor"
-            );
-            return;
-        }
-
-        if (!esAdmin) {
-            window.location.replace(
-                "index.html"
-            );
-            return;
-        }
-
-        /*
-         * Comprobación real contra el backend.
-         */
-        const autorizado =
-            await verificarAdmin();
-
-        if (!autorizado) {
+        if (!await requerirSesion(['ADMIN'])) {
             return;
         }
 
         cargarTodo();
     }
 );
-
-async function verificarAdmin() {
-
-    try {
-        await axios.get(
-            '/api/admin/estadisticas/resumen'
-        );
-
-        return true;
-
-    } catch (error) {
-
-        const estado =
-            error.response?.status;
-
-        if (estado === 401) {
-            window.location.replace(
-                'index.html#login-anchor'
-            );
-        } else {
-            window.location.replace(
-                'index.html'
-            );
-        }
-
-        return false;
-    }
-}
 
 function cargarTodo() {
     cargarUsuarios();
@@ -95,7 +35,7 @@ async function cargarUsuarios() {
                     <td>${u.email}</td>
                     <td>${u.genero}</td>
                     <td>${u.fechaNacimiento}</td>
-                    <td>${u.rol}</td>
+                    <td>${u.roles.join(', ')}</td>
                     <td>${u.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}</td>
                     <td>
                         <button class="btn btn-sm btn-warning" onclick="editarUsuario(${u.id})"><i class="fas fa-edit"></i></button>
@@ -103,7 +43,10 @@ async function cargarUsuarios() {
                     </td>
                 </tr>`;
         });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        if (manejarErrorSesion(e)) return;
+        console.error(e);
+    }
 }
 
 // DELETE Usuario
@@ -113,7 +56,10 @@ async function borrarUsuario(id) {
             await axios.delete(`/api/usuarios/${id}`);
             cargarUsuarios();
             Swal.fire('Eliminado', '', 'success');
-        } catch (e) { Swal.fire('Error', 'No se pudo eliminar', 'error'); }
+        } catch (e) {
+            if (manejarErrorSesion(e)) return;
+            Swal.fire('Error', 'No se pudo eliminar', 'error');
+        }
     }
 }
 
@@ -134,6 +80,7 @@ async function editarUsuario(id) {
         new bootstrap.Modal(document.getElementById('modalUsuario')).show();
 
     } catch (error) {
+        if (manejarErrorSesion(error)) return;
         Swal.fire('Error', 'No se pudieron cargar los datos del usuario.', 'error');
     }
 }
@@ -166,6 +113,7 @@ async function guardarUsuario() {
         cargarUsuarios(); // Recargar la tabla
         Swal.fire('Guardado', 'Usuario actualizado con éxito', 'success');
     } catch (e) {
+        if (manejarErrorSesion(e)) return;
         Swal.fire('Error', 'No se pudo guardar el usuario', 'error');
     }
 }
@@ -176,7 +124,7 @@ async function guardarUsuario() {
 // ==========================================
 async function cargarEstaciones() {
     try {
-        const res = await axios.get('/api/estaciones');
+        const res = await axios.get('/api/admin/estaciones');
         listaEstaciones = res.data; // Guardamos para usar en Bicis
         const tbody = document.getElementById('tabla-estaciones-body');
         tbody.innerHTML = '';
@@ -187,6 +135,11 @@ async function cargarEstaciones() {
                     <td>${e.nombre}</td>
                     <td>${e.direccion}</td>
                     <td>${e.capacidad}</td>
+                    <td>
+                        <span class="badge ${e.esPublica ? 'bg-success' : 'bg-secondary'}">
+                            ${e.esPublica ? 'Pública' : 'Uso interno'}
+                        </span>
+                    </td>
                     <td>${e.latitud ? e.latitud : '-'}</td>
                     <td>${e.longitud ? e.longitud : '-'}</td>
                     
@@ -196,16 +149,23 @@ async function cargarEstaciones() {
                     </td>
                 </tr>`;
         });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        if (manejarErrorSesion(e)) return;
+        console.error(e);
+    }
 }
 
 function abrirModalEstacion() {
     document.getElementById('estacion-id').value = '';
+    document.getElementById('estacion-version').value = '';
     document.getElementById('estacion-nombre').value = '';
     document.getElementById('estacion-direccion').value = '';
     document.getElementById('estacion-capacidad').value = '';
     document.getElementById('estacion-latitud').value = '';
     document.getElementById('estacion-longitud').value = '';
+    const selectorUso = document.getElementById('estacion-es-publica');
+    selectorUso.value = '';
+    selectorUso.disabled = false;
     new bootstrap.Modal(document.getElementById('modalEstacion')).show();
 }
 
@@ -213,11 +173,19 @@ async function editarEstacion(id) {
     // Buscamos en la lista local para ahorrar una petición
     const e = listaEstaciones.find(est => est.id === id);
     document.getElementById('estacion-id').value = e.id;
+    document.getElementById('estacion-version').value = e.version ?? '';
     document.getElementById('estacion-nombre').value = e.nombre;
     document.getElementById('estacion-direccion').value = e.direccion;
     document.getElementById('estacion-capacidad').value = e.capacidad;
-    document.getElementById('estacion-latitud').value = e.latitud || '';
-    document.getElementById('estacion-longitud').value = e.longitud || '';
+    document.getElementById('estacion-latitud').value = e.latitud ?? '';
+    document.getElementById('estacion-longitud').value = e.longitud ?? '';
+    const selectorUso = document.getElementById('estacion-es-publica');
+
+    selectorUso.value = typeof e.esPublica === 'boolean'
+        ? String(e.esPublica)
+        : '';
+
+    selectorUso.disabled = true;
     new bootstrap.Modal(document.getElementById('modalEstacion')).show();
 }
 
@@ -232,6 +200,47 @@ async function guardarEstacion() {
         latitud: parseFloat(document.getElementById('estacion-latitud').value),
         longitud: parseFloat(document.getElementById('estacion-longitud').value)
     };
+
+    // La clasificación se envía únicamente al crear.
+    if (!id) {
+        const uso = document.getElementById('estacion-es-publica').value;
+
+        if (uso !== 'true' && uso !== 'false') {
+            Swal.fire(
+                'Falta seleccionar el uso',
+                'Indicá si la estación es pública o de uso interno.',
+                'warning'
+            );
+            return;
+        }
+
+        data.esPublica = uso === 'true';
+    }
+
+    // La versión se envía únicamente cuando se edita.
+    if (id) {
+        const versionTexto = document
+            .getElementById('estacion-version')
+            .value.trim();
+
+        const version = Number(versionTexto);
+
+        if (
+            versionTexto === '' ||
+            !Number.isInteger(version) ||
+            version < 0
+        ) {
+            Swal.fire(
+                'Recargá los datos',
+                'Cerrá el formulario y actualizá la página antes de editar.',
+                'warning'
+            );
+            return;
+        }
+
+        data.version = version;
+    }
+
     try {
         if (id) await axios.put(`/api/estaciones/${id}`, data);
         else await axios.post('/api/estaciones', data);
@@ -240,7 +249,29 @@ async function guardarEstacion() {
         cargarEstaciones();
         Swal.fire('Guardado', 'Estación guardada correctamente', 'success');
     } catch (e) {
-        Swal.fire('Error', 'Datos inválidos, incompletos o nombre duplicado', 'error');
+        if (manejarErrorSesion(e)) return;
+        const respuesta = e.response?.data;
+
+        let mensaje =
+            'No se pudo guardar la estación. Intentá nuevamente.';
+
+        if (typeof respuesta === 'string' && respuesta.trim()) {
+            mensaje = respuesta;
+        } else if (Array.isArray(respuesta?.validationErrors)) {
+            const mensajes = respuesta.validationErrors.map(
+                error => String(error).replace(/^[^:]+:\s*/, '')
+            );
+
+            if (mensajes.length > 0) {
+                mensaje = [...new Set(mensajes)].join('\n');
+            }
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'No se pudo guardar',
+            text: mensaje
+        });
     }
 }
 
@@ -251,6 +282,7 @@ async function borrarEstacion(id) {
             cargarEstaciones();
             Swal.fire('Eliminado', '', 'success');
         } catch (e) { 
+            if (manejarErrorSesion(e)) return;
             // Aquí capturamos el 409 Conflict (bicis asignadas)
             Swal.fire('No se puede borrar', 'La estación tiene bicicletas asignadas.', 'warning'); 
         }
@@ -281,7 +313,10 @@ async function cargarBicicletas() {
                     </td>
                 </tr>`;
         });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        if (manejarErrorSesion(e)) return;
+        console.error(e);
+    }
 }
 
 function llenarSelectEstaciones() {
@@ -326,7 +361,14 @@ function abrirModalBicicleta() {
 async function editarBici(id) {
     llenarSelectEstaciones();
 
-    const res = await axios.get(`/api/bicicletas/${id}`);
+    let res;
+    try {
+        res = await axios.get(`/api/bicicletas/${id}`);
+    } catch (error) {
+        if (manejarErrorSesion(error)) return;
+        Swal.fire('Error', 'No se pudieron cargar los datos de la bicicleta.', 'error');
+        return;
+    }
     const b = res.data;
 
     document.getElementById('bici-id').value = b.id;
@@ -409,6 +451,7 @@ async function guardarBicicleta() {
         }
 
     } catch (e) {
+        if (manejarErrorSesion(e)) return;
         const mensaje =
             typeof e.response?.data === 'string'
                 ? e.response.data
@@ -424,7 +467,10 @@ async function borrarBici(id) {
             await axios.delete(`/api/bicicletas/${id}`);
             cargarBicicletas();
             Swal.fire('Eliminado', '', 'success');
-        } catch (e) { Swal.fire('Error', 'No se pudo eliminar', 'error'); }
+        } catch (e) {
+            if (manejarErrorSesion(e)) return;
+            Swal.fire('Error', 'No se pudo eliminar', 'error');
+        }
     }
 }
 
@@ -459,7 +505,10 @@ async function cargarAlquileres() {
                     </td>
                 </tr>`;
         });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        if (manejarErrorSesion(e)) return;
+        console.error(e);
+    }
 }
 
 async function finalizarAlquilerAdmin(id) {
@@ -532,6 +581,7 @@ async function finalizarAlquilerAdmin(id) {
         );
 
     } catch (e) {
+        if (manejarErrorSesion(e)) return;
         const mensaje =
             typeof e.response?.data === 'string'
                 ? e.response.data

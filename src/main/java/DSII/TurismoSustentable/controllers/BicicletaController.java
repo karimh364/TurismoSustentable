@@ -38,13 +38,15 @@ public class BicicletaController {
                 .collect(Collectors.toList());
     }
 
-    // OBTIENE LAS BICIS DISPONIBLES PARA ALQUILAR
+    // Disponibles para clientes: únicamente en estaciones públicas activas.
     @GetMapping("/bicicletas/disponibles")
-    public List<BicicletaDTO> getBicicletasDisponibles(){
-        // Filtra por no borrada (borradoBici=false) Y estado = DISPONIBLE (Enum)
-        return bicicletaRepository.findByBorradoBiciFalseAndEstado(EstadoBicicleta.DISPONIBLE)
+    public List<BicicletaDTO> getBicicletasDisponibles() {
+        return bicicletaRepository
+                .buscarPorEstadoEnEstacionesPublicas(
+                        EstadoBicicleta.DISPONIBLE
+                )
                 .stream()
-                .map(BicicletaDTO:: new)
+                .map(BicicletaDTO::new)
                 .collect(Collectors.toList());
     }
 
@@ -111,9 +113,7 @@ public class BicicletaController {
 
         // Consultar la ocupación real
         long espaciosOcupados = bicicletaRepository
-                .countByUbicacionActualAndBorradoBiciFalse(
-                        estacion
-                );
+                .countByUbicacionActual(estacion);
 
         if (espaciosOcupados >= estacion.getCapacidad()) {
             return new ResponseEntity<>(
@@ -193,13 +193,6 @@ public class BicicletaController {
                 bicicletaExistente.getEstado()
                         == EstadoBicicleta.ALQUILADA;
 
-        // El código no puede modificarse durante un alquiler
-        if (!estabaAlquilada && bicicletaDetalles.getCodigoBicicleta() != null) {
-            bicicletaExistente.setCodigoBicicleta(
-                    bicicletaDetalles.getCodigoBicicleta()
-            );
-        }
-
         /*
          * El estado solamente puede modificarse si la bicicleta
          * no está actualmente alquilada.
@@ -217,9 +210,6 @@ public class BicicletaController {
                 );
             }
 
-            bicicletaExistente.setEstado(
-                    bicicletaDetalles.getEstado()
-            );
         }
 
         /*
@@ -268,9 +258,7 @@ public class BicicletaController {
                 }
 
                 long espaciosOcupados = bicicletaRepository
-                        .countByUbicacionActualAndBorradoBiciFalse(
-                                estacionDestino
-                        );
+                        .countByUbicacionActual(estacionDestino);
 
                 if (espaciosOcupados
                         >= estacionDestino.getCapacidad()) {
@@ -286,6 +274,23 @@ public class BicicletaController {
                         estacionDestino
                 );
             }
+        }
+
+        // Aplicar código y estado después de validar el destino.
+        if (!estabaAlquilada
+                && bicicletaDetalles.getCodigoBicicleta() != null) {
+
+            bicicletaExistente.setCodigoBicicleta(
+                    bicicletaDetalles.getCodigoBicicleta()
+            );
+        }
+
+        if (!estabaAlquilada
+                && bicicletaDetalles.getEstado() != null) {
+
+            bicicletaExistente.setEstado(
+                    bicicletaDetalles.getEstado()
+            );
         }
 
         // El tipo no puede modificarse durante un alquiler

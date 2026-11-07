@@ -6,6 +6,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.HashSet;
 import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 public class Estacion {
@@ -25,6 +26,14 @@ public class Estacion {
     private int capacidad; // Ej: 20 (cuántas bicis entran)
 
     private boolean borradoEstacion = false;
+
+    @Column(name = "es_publica", nullable = false)
+    private boolean esPublica = true;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    @Version
+    @Column(name = "version", nullable = false)
+    private Integer version;
 
     @NotNull(message = "La latitud es obligatoria")
     private Double latitud;
@@ -105,6 +114,18 @@ public class Estacion {
 
     public void setBorradoEstacion(boolean borradoEstacion) {
         this.borradoEstacion = borradoEstacion;
+    }
+
+    public boolean isEsPublica() {
+        return esPublica;
+    }
+
+    public void setEsPublica(boolean esPublica) {
+        this.esPublica = esPublica;
+    }
+
+    public Integer getVersion() {
+        return version;
     }
 
     // --- equals() y hashCode() ---

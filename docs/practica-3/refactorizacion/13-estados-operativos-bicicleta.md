@@ -4,6 +4,8 @@ Fecha de aprobación: 25 de octubre de 2026.
 
 Estado: seis estados iniciales aprobados y ampliación posterior RN-INC-01 con EXTRAVIADA. El catálogo de diseño tiene siete estados. RN-BIC-02 aprueba la administración y RN-INC-01 el circuito mínimo de incidencias; la precisión económica de su sección 8 también está aprobada. No implementado todavía en Java ni en una base de datos.
 
+Actualización aprobada el 6 de noviembre de 2026: [RN-INV-01, sección 7](26-revision-estaciones-tipos-y-bicicletas.md) conserva borrado_bici independiente del estado y exige Taller para registrar DE_BAJA o borrado lógico. INACTIVA puede aplicarse en la estación actual; no se agregan estados ni se implementan estas reglas mediante este documento.
+
 ## 1. Estados aprobados
 
 | Estado | Significado |
@@ -44,7 +46,7 @@ Una unidad RESERVADA sigue en su estación y ocupa un lugar, pero no puede contr
 
 Una unidad en MANTENIMIENTO o INACTIVA que siga ubicada en una estación también ocupa lugar. Cambiar el estado no equivale a trasladarla físicamente ni libera capacidad por sí solo.
 
-La baja debe tratar su ubicación expresamente, sin inventar una devolución o traslado. La representación del borrado lógico y su relación con DE_BAJA se resolverán en el DER para evitar condiciones contradictorias y preservar la historia.
+DE_BAJA y borrado_bici son independientes y se registran solo desde un Taller interno activo bajo RN-INV-01. No cambian ni vacían la ubicación automáticamente. Una unidad archivada o DE_BAJA sigue ocupando su lugar en el Taller hasta que se registre una salida física real y debe seguir siendo consultable por ADMIN. INACTIVA no exige traslado al Taller. El Taller no se ofrece como origen o devolución de clientes; DISPONIBLE y RESERVADA conservan sus recorridos aprobados.
 
 ## 4. Relación con el mantenimiento
 
@@ -56,7 +58,7 @@ El 28 de octubre se aprobó en [RN-MAN-02](17-permisos-y-transiciones-mantenimie
 
 La INACTIVA administrativa no es una vía para saltarse una revisión técnica pendiente. Las operaciones de habilitación deben verificar los impedimentos aplicables, no aceptar libremente el estado enviado por el frontend.
 
-Una EXTRAVIADA recuperada pasa a MANTENIMIENTO con recepción y ubicación reales y revisión antes de habilitar. No se habilita por el solo hecho de encontrarla ni se le inventa una estación. Si ADMIN decide su retiro definitivo, el recorrido específico exige motivo, detalle cerrado y ausencia de órdenes abiertas incompatibles, conservando historia. La recuperación posterior no revierte automáticamente una DE_BAJA.
+Una EXTRAVIADA recuperada pasa a MANTENIMIENTO con recepción y ubicación reales y revisión antes de habilitar. No se habilita por el solo hecho de encontrarla ni se le inventa una estación. La condición de Taller aprobada en RN-INV-01 restringe la anterior excepción de baja sin recepción: una unidad no recuperada conserva EXTRAVIADA; su baja definitiva requiere presencia real en Taller, motivo, detalle cerrado y ausencia de órdenes abiertas incompatibles. Esto no modifica el cierre contractual o financiero. La recuperación posterior no revierte automáticamente una DE_BAJA de legado.
 
 ## 5. Criterios de aceptación
 
@@ -71,7 +73,7 @@ Estos casos se especifican para pruebas futuras, no se ejecutaron.
 | CP-BIC-01-05 | Devolución válida con falla reportada | Queda MANTENIMIENTO, termina el costo de uso y no se ofrece para otro alquiler |
 | CP-BIC-01-06 | Una unidad MANTENIMIENTO o INACTIVA sigue en una estación | Sigue contándose como ocupación física, aunque no esté disponible para alquilar |
 | CP-BIC-01-07 | Se intenta liberar o dar de baja una unidad EN_USO sin devolución | No se permite eludir el viaje activo mediante un cambio manual de estado |
-| CP-BIC-01-08 | Una bicicleta se da de baja por el recorrido autorizado | No se elimina su registro histórico ni sus referencias de alquileres/mantenimiento |
+| CP-BIC-01-08 | Una bicicleta se da de baja por el recorrido autorizado desde Taller | No se elimina su registro histórico, no se marca borrado lógico automáticamente ni se alteran sus referencias de alquileres/mantenimiento |
 | CP-BIC-01-09 | Se cierra una orden pero la bicicleta aún tiene una restricción técnica | No se habilita automáticamente por el solo cierre de la orden |
 
 ## 6. Decisiones todavía pendientes
@@ -79,6 +81,6 @@ Estos casos se especifican para pruebas futuras, no se ejecutaron.
 Los puntos administrativos 1 a 6 de [RN-BIC-02](20-propuesta-administracion-y-excepciones-bicicletas.md) fueron aprobados expresamente el 28 de octubre: solo ADMIN inactiva, reactiva, da de baja o cancela operativamente una unidad todavía reservada, con los controles de esa regla. INACTIVA no oculta impedimentos técnicos; la baja no elimina historia ni libera un espacio si la bicicleta sigue allí. Una bicicleta EN_USO no se libera mediante un cambio administrativo directo.
 
 - [RN-INC-01](21-propuesta-minima-incidencias-en-viaje.md) ya incorpora el circuito mínimo de pérdidas/accidentes y EXTRAVIADA. La precisión económica de su sección 8 también está aprobada; quedan los detalles físicos de reporte/recepción, sin atribución automática de responsabilidad ni cargos por daños.
-- Migración de ALQUILADA/INACTIVA y de los flags de borrado actuales al nuevo modelo, previa revisión de datos. No se reinterpretan registros históricos automáticamente sin ese plan.
+- Migración de ALQUILADA/INACTIVA y revisión de los indicadores actuales, conservando borrado_bici separado de DE_BAJA conforme a RN-INV-01. No se reinterpretan registros históricos automáticamente ni se elimina el flag por considerarlo redundante.
 
 No se modificó código, base de datos ni los documentos originales. No se incorporó un cierre automático por 24 horas de demora.

@@ -1,15 +1,23 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
+import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
 import DSII.TurismoSustentable.models.Estacion;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
+import DSII.TurismoSustentable.services.EstacionService;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.persistence.EntityNotFoundException;
+import javax.persistence.OptimisticLockException;
+import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -25,14 +33,19 @@ public class EstacionController {
     @Autowired
     private BicicletaRepository bicicletaRepository;
 
-    // OBTENER TODAS LAS ESTACIONES (Solo las no borradas)
+    @Autowired
+    private EstacionService estacionService;
+
+    // Lectura pública: únicamente estaciones públicas activas.
     @GetMapping("/estaciones")
     public List<EstacionDTO> getEstaciones() {
-        // Filtra solo por borrado lógico
-        return estacionRepository.findByBorradoEstacionFalse()
-                .stream()
-                .map(EstacionDTO::new)
-                .collect(Collectors.toList());
+        return estacionService.obtenerEstacionesPublicas();
+    }
+
+    // Lectura administrativa: incluye el Taller.
+    @GetMapping("/admin/estaciones")
+    public List<EstacionDTO> getEstacionesAdministracion() {
+        return estacionService.obtenerEstacionesAdministracion();
     }
 
     // GET por ID
@@ -57,16 +70,33 @@ public class EstacionController {
 
     // POST /api/estaciones: Crear nueva estación (Solo ADMIN)
     @PostMapping("/estaciones")
-    public ResponseEntity<Object> crearEstacion(@Valid @RequestBody Estacion estacion) {
+    public ResponseEntity<Object> crearEstacion(
+            @Valid @RequestBody CrearEstacionDTO datos
+    ) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(estacionService.crearEstacion(datos));
 
-        // Validación extra: Nombre único
-        if (estacionRepository.findByNombre(estacion.getNombre()).isPresent()) {
-            return new ResponseEntity<>("Ya existe una estación con ese nombre.", HttpStatus.BAD_REQUEST);
+        } catch (ConstraintViolationException e) {
+            String mensaje = e.getConstraintViolations().stream()
+                    .map(v -> v.getMessage())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.joining(" "));
+
+            return ResponseEntity.badRequest().body(mensaje);
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
+
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(
+                            "Los datos entran en conflicto con otra estación. " +
+                                    "Revisá el nombre."
+                    );
         }
-
-        Estacion nuevaEstacion = estacionRepository.save(estacion);
-        // Devuelve un DTO
-        return new ResponseEntity<>(new EstacionDTO(nuevaEstacion), HttpStatus.CREATED);
     }
 
     // DELETE /api/estaciones/{id}: Borrado Lógico (Solo ADMIN)
@@ -94,11 +124,9 @@ public class EstacionController {
 
         Estacion estacion = estacionOptional.get();
 
-        // Contar únicamente bicicletas físicas no eliminadas
+        // Contar todas las bicicletas que permanecen físicamente allí.
         long bicicletasFisicas = bicicletaRepository
-                .countByUbicacionActualAndBorradoBiciFalse(
-                        estacion
-                );
+                .countByUbicacionActual(estacion);
 
         if (bicicletasFisicas > 0) {
             return new ResponseEntity<>(
@@ -118,80 +146,51 @@ public class EstacionController {
 
     // PUT /api/estaciones/{id}: Actualizar estación (Solo ADMIN)
     @PutMapping("/estaciones/{id}")
-    @Transactional
     public ResponseEntity<Object> actualizarEstacion(
             @PathVariable Integer id,
-            @Valid @RequestBody Estacion estacionDetalles
+            @Valid @RequestBody ActualizarEstacionDTO datos
     ) {
-
-        // Buscar y bloquear la estación durante la modificación
-        Optional<Estacion> estacionOpt = estacionRepository
-                .buscarActivaPorIdConBloqueo(id);
-
-        if (estacionOpt.isEmpty()) {
-            return new ResponseEntity<>(
-                    "La estación no existe o está inactiva.",
-                    HttpStatus.NOT_FOUND
+        try {
+            return ResponseEntity.ok(
+                    estacionService.actualizarEstacion(id, datos)
             );
+
+        } catch (ConstraintViolationException e) {
+            String mensaje = e.getConstraintViolations().stream()
+                    .map(v -> v.getMessage())
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.joining(" "));
+
+            return ResponseEntity.badRequest().body(mensaje);
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(e.getMessage());
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
+
+        } catch (OptimisticLockingFailureException
+                 | OptimisticLockException e) {
+
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(
+                            "La estación fue modificada por otra operación. " +
+                                    "Recargá sus datos e intentá nuevamente."
+                    );
+
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(
+                            "Los datos entran en conflicto con otra estación. " +
+                                    "Revisá el nombre."
+                    );
         }
-
-        Estacion estacionExistente = estacionOpt.get();
-
-        // Contar las bicicletas físicas actuales
-        long bicicletasFisicas = bicicletaRepository
-                .countByUbicacionActualAndBorradoBiciFalse(
-                        estacionExistente
-                );
-
-        int nuevaCapacidad =
-                estacionDetalles.getCapacidad();
-
-        /*
-         * No permitir que la capacidad quede por debajo
-         * de la ocupación actual.
-         */
-        if (nuevaCapacidad < bicicletasFisicas) {
-            return new ResponseEntity<>(
-                    "No se puede reducir la capacidad a "
-                            + nuevaCapacidad
-                            + ". La estación contiene actualmente "
-                            + bicicletasFisicas
-                            + " bicicletas.",
-                    HttpStatus.CONFLICT
-            );
-        }
-
-        if (estacionDetalles.getNombre() != null) {
-            estacionExistente.setNombre(
-                    estacionDetalles.getNombre()
-            );
-        }
-
-        if (estacionDetalles.getDireccion() != null) {
-            estacionExistente.setDireccion(
-                    estacionDetalles.getDireccion()
-            );
-        }
-
-        estacionExistente.setCapacidad(nuevaCapacidad);
-
-        if (estacionDetalles.getLatitud() != null) {
-            estacionExistente.setLatitud(
-                    estacionDetalles.getLatitud()
-            );
-        }
-
-        if (estacionDetalles.getLongitud() != null) {
-            estacionExistente.setLongitud(
-                    estacionDetalles.getLongitud()
-            );
-        }
-
-        Estacion estacionActualizada =
-                estacionRepository.save(estacionExistente);
-
-        return ResponseEntity.ok(
-                new EstacionDTO(estacionActualizada)
-        );
     }
 }

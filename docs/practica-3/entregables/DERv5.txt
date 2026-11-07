@@ -1,4 +1,4 @@
-%% DER v5 de trabajo - actualizado el 2 de noviembre de 2026.
+%% DER v5 de trabajo - actualizado el 6 de noviembre de 2026.
 %% Base: DERv4.txt original de 21 entidades y reglas aprobadas RN-*.
 %% Modelo logico de 29 entidades; trazabilidad RN-TRZ-01 incorporada con aprobacion.
 %% No es SQL ni esquema fisico definitivo; los demas pendientes se conservan.
@@ -22,6 +22,10 @@
 %% Historial de orden/incidencia: estados solo al crear o transicionar; ambos nulos en evento de datos.
 %% incidencia_corte_id es FK opcional y unica; la incidencia debe pertenecer al mismo detalle.
 %% El ciclo detalle/incidencia se inicia con incidencia_corte_id nulo; se completa al validar el corte.
+%% RN-INV-01 aprobada 2026-11-06: estado, borrado logico y presencia fisica son independientes.
+%% es_publica=true: estacion para clientes; false: Taller/deposito interno, sin alquiler ni devolucion de clientes.
+%% DE_BAJA y borrado_bici solo se registran desde Taller; no liberan ubicacion ni ocupacion automaticamente.
+%% INACTIVA conserva su ubicacion; ADMIN puede consultar el stock fisico incluso de registros archivados.
 erDiagram
     PERSONA ||..|| USUARIO : posee_cuenta
     GENERO ||..o{ PERSONA : identifica
@@ -147,6 +151,7 @@ erDiagram
         string direccion
         int capacidad
         boolean borrado_estacion "Baja logica exclusivamente; conservar fila y referencias historicas"
+        boolean es_publica "Obligatorio; true publica; false Taller interno; no depende del nombre"
         decimal latitud
         decimal longitud
         int version
@@ -189,6 +194,7 @@ erDiagram
         string codigo_bicicleta UK
         int tipo_bicicleta_id FK
         int estado_bicicleta_id FK
+        boolean borrado_bici "Borrado logico independiente del estado; conserva historia y presencia fisica"
         int estacion_id FK "Opcional; solo presencia fisica registrada"
         date fecha_alta "Referencia inicial; no inventar fechas de legado"
         int version

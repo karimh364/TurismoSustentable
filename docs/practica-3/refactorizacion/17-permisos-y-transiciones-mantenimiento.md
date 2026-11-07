@@ -21,6 +21,7 @@ Esta regla completa los tipos y cinco estados de orden aprobados en [RN-MAN-01](
 | Crear una orden de tipo PREVENTIVO o CORRECTIVO | ADMIN; la orden comienza en CREADA |
 | Asignar o cambiar técnico | ADMIN; la orden debe estar CREADA o PAUSADA y el técnico elegido debe estar activo y tener rol TECNICO |
 | Consultar órdenes e historial | ADMIN consulta todas; TECNICO consulta las asignadas a él |
+| Consultar la ubicación de la bicicleta de una orden asignada | TECNICO asignado, en su consulta de mantenimiento; puede ver el Taller interno, sin administrar estaciones ni acceder al listado administrativo completo; precisión de RN-INV-01 aprobada el 6 de noviembre de 2026 |
 | Iniciar o reanudar el trabajo | TECNICO asignado a la orden |
 | Registrar diagnóstico, trabajos y costos | TECNICO asignado, durante el trabajo |
 | Pausar el trabajo | TECNICO asignado, indicando un motivo |

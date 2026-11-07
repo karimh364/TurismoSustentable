@@ -63,7 +63,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover bg-white shadow-sm">
-                    <thead class="table-dark"><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Género</th> <th>Fecha Nac.</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+                    <thead class="table-dark"><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Género</th> <th>Fecha Nac.</th><th>Roles</th><th>Estado</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-usuarios-body"></tbody>
                 </table>
             </div>
@@ -82,6 +82,7 @@
                         <th>Nombre</th>
                         <th>Dirección</th>
                         <th>Capacidad</th>
+                        <th>Uso</th>
                         <th>Latitud</th>
                         <th>Longitud</th>
                         <th>Acciones</th>
@@ -99,7 +100,7 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover bg-white shadow-sm">
-                    <thead class="table-dark"><tr><th>ID</th><th>Código</th><th>Tipo</th><th>Estado</th><th>Precio/h</th><th>Ubicación</th><th>Acciones</th></tr></thead>
+                    <thead class="table-dark"><tr><th>ID</th><th>Código</th><th>Tipo</th><th>Estado</th><th>Precio/h USD</th><th>Ubicación</th><th>Acciones</th></tr></thead>
                     <tbody id="tabla-bicicletas-body"></tbody>
                 </table>
             </div>
@@ -126,9 +127,23 @@
             <div class="modal-header bg-success text-white"><h5 class="modal-title">Datos de Estación</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="estacion-id">
+                <input type="hidden" id="estacion-version">
                 <div class="mb-2"><label>Nombre</label><input type="text" class="form-control" id="estacion-nombre"></div>
                 <div class="mb-2"><label>Dirección</label><input type="text" class="form-control" id="estacion-direccion"></div>
                 <div class="mb-2"><label>Capacidad</label><input type="number" class="form-control" id="estacion-capacidad"></div>
+                <div class="mb-2">
+                    <label for="estacion-es-publica">Uso de la estación</label>
+
+                    <select class="form-select" id="estacion-es-publica">
+                        <option value="">Seleccioná una opción</option>
+                        <option value="true">Pública</option>
+                        <option value="false">Uso interno</option>
+                    </select>
+
+                    <div class="form-text">
+                        Al editar, este dato se muestra sin permitir cambios.
+                    </div>
+                </div>
                 <div class="mb-2">
                     <label>Latitud</label>
                     <input type="number" step="any" class="form-control" id="estacion-latitud" placeholder="Ej: -53.7865">
@@ -168,7 +183,7 @@
                     Esta bicicleta tiene un alquiler activo. Solo puede modificarse
                     el precio. Para cambiar su estado debe finalizar el alquiler.
                 </div>
-                <div class="mb-2"><label>Precio/Hora</label><input type="number" class="form-control" id="bici-precio"></div>
+                <div class="mb-2"><label>Precio/Hora USD</label><input type="number" class="form-control" id="bici-precio"></div>
                 <div class="mb-2"><label>Ubicación Actual</label>
                     <select class="form-select" id="bici-estacion-select">
                     </select>
