@@ -40,10 +40,24 @@ En el código actual se observa un control para no reducir capacidad por debajo 
 | --- | --- |
 | id | PK; referenciado por muchas bicicletas |
 | codigo | UNIQUE y obligatorio; conservar inicialmente MONTANA, PASEO y ELECTRICA al migrar el enum |
-| precio_por_hora_usd | Tarifa vigente del tipo, no de cada unidad; decimal, nunca un valor negativo; precisión y política sobre tarifa cero se concretan antes de cerrar el diseño físico |
-| intervalo_preventivo_meses | Entero positivo; configurado solo por ADMIN; valores numéricos iniciales pendientes, sin convertir los ejemplos en una política definitiva |
+| precio_por_hora_usd | Tarifa vigente del tipo, no de cada unidad; mayor que cero y con hasta dos decimales, aprobado el 7 de noviembre de 2026; no se admiten tarifas gratuitas o negativas |
+| intervalo_preventivo_meses | Entero positivo; configurado solo por ADMIN; valores iniciales para pruebas aprobados el 7 de noviembre de 2026, sin convertirlos en calendario comercial definitivo |
 
 No se agrega una tabla cronómetro ni una columna de precio duplicada en BICICLETA. La tarifa aplicada se guarda en ALQUILER_DETALLE y un cambio del tipo no modifica contratos ya confirmados. Los cambios de tarifa e intervalo se auditan con actor, fecha y valores anterior/nuevo, sin guardar solamente la última intervención.
+
+Precisión aprobada el 7 de noviembre de 2026: la tarifa por hora debe ser estrictamente positiva y tener hasta dos decimales; la menor tarifa representable es USD 0.01/h. Se rechazan cero, negativos y valores con más de dos decimales en lugar de redondearlos silenciosamente. No se modifica el cálculo por segundos, el redondeo de importes finales ni la regla de no enviar operaciones externas de importe cero.
+
+Valores iniciales aprobados expresamente para pruebas el 7 de noviembre de 2026:
+
+| Código | Tarifa USD/h | Intervalo preventivo |
+| --- | --- | --- |
+| MONTANA | 10.00 | 3 meses |
+| PASEO | 8.00 | 2 meses |
+| ELECTRICA | 15.00 | 1 mes |
+
+Se incorporarán únicamente en CargaCatalogosRefactor, bajo el perfil refactor, y solo si falta el código; no deben sobrescribir valores ya existentes. No constituyen precios comerciales definitivos ni recomendaciones técnicas del fabricante. Su aprobación no aplica todavía la nueva tarifa al código anterior ni modifica contratos existentes.
+
+Mapeo físico de la entidad creada y comprobada: id Integer con IDENTITY; codigo VARCHAR(20), obligatorio y único, normalizado a mayúsculas con Locale.ROOT; precio_por_hora_usd DECIMAL(10,2), obligatorio, con hasta ocho dígitos enteros y dos decimales; intervalo_preventivo_meses INTEGER obligatorio y positivo. El máximo USD 99,999,999.99/h es el límite técnico de esa columna, no una tarifa comercial propuesta. Se conservan los cuatro campos del DER sin agregar version o relaciones inversas en esta etapa. No se implementa todavía actualización administrativa del catálogo ni su estrategia de bloqueo/auditoría. Las pruebas de entidad no acreditan aún DDL/persistencia ni integración con Bicicleta; el avance efectivo está en el documento 37.
 
 La última preventiva satisfactoria se obtiene de las órdenes; para una bicicleta nueva sin revisiones se utiliza su fecha real de alta. Crear, cancelar o cerrar sin éxito una orden no reinicia el calendario. Un legado sin referencia fiable requiere revisión inicial según RN-MAN-04. No se agrega por ahora otra columna de última preventiva que pueda contradecir el historial.
 

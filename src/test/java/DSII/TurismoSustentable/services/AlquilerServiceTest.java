@@ -5,8 +5,8 @@ import DSII.TurismoSustentable.models.Alquiler;
 import DSII.TurismoSustentable.models.Bicicleta;
 import DSII.TurismoSustentable.models.Estacion;
 import DSII.TurismoSustentable.models.EstadoAlquiler;
-import DSII.TurismoSustentable.models.EstadoBicicleta;
-import DSII.TurismoSustentable.models.TipoBicicleta;
+import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
+import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
@@ -88,8 +88,8 @@ class AlquilerServiceTest {
 
         bicicleta = new Bicicleta(
                 "QA-B01",
-                TipoBicicleta.MONTANA,
-                EstadoBicicleta.DISPONIBLE,
+                CodigoTipoBicicleta.MONTANA,
+                CodigoEstadoBicicleta.DISPONIBLE,
                 PRECIO,
                 origen
         );
@@ -223,8 +223,8 @@ class AlquilerServiceTest {
         );
 
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(EstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
-        assertEquals(TipoBicicleta.MONTANA, bicicleta.getTipo());
+        assertEquals(CodigoEstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
+        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
         assertEquals(PRECIO, bicicleta.getPrecioPorHora());
         assertSame(origen, bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());
@@ -247,7 +247,7 @@ class AlquilerServiceTest {
     }
 
     private Alquiler prepararAlquilerEnCurso() {
-        bicicleta.setEstado(EstadoBicicleta.ALQUILADA);
+        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
         bicicleta.setUbicacionActual(null);
 
         Alquiler alquiler = new Alquiler(
@@ -283,8 +283,8 @@ class AlquilerServiceTest {
         assertFalse(alquiler.isBorradoAlquiler());
 
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(EstadoBicicleta.ALQUILADA, bicicleta.getEstado());
-        assertEquals(TipoBicicleta.MONTANA, bicicleta.getTipo());
+        assertEquals(CodigoEstadoBicicleta.ALQUILADA, bicicleta.getEstado());
+        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
         assertEquals(PRECIO, bicicleta.getPrecioPorHora());
         assertNull(bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());

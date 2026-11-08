@@ -29,6 +29,8 @@ Los cambios del catálogo afectan a contrataciones futuras. No modifican una tar
 
 El 28 de octubre de 2026 el usuario confirmó «Una tarifa por tipo, como en mi DER v4». La tarifa vigente en USD pertenece a TIPO_BICICLETA y no se mantiene un precio independiente por unidad en el modelo nuevo. Las unidades del mismo tipo usan la misma tarifa para nuevas contrataciones. Cada ALQUILER_DETALLE sigue guardando el precio aplicado al confirmar y no se recalcula por un cambio posterior del catálogo.
 
+El 7 de noviembre de 2026 se aprobó que la tarifa por hora del catálogo sea mayor que cero y admita hasta dos decimales, rechazando cero, negativos y exceso de decimales. Esta validación no fija las tarifas comerciales iniciales ni altera RN-ALQ-10: un importe final redondeado puede ser cero por un uso muy breve, aunque la tarifa por hora sea positiva. No se introduce un mínimo facturable ni un redondeo al mínimo de la pasarela.
+
 La implementación deberá adaptar el panel administrativo, que hoy modifica un precio por bicicleta, y preparar la transición de los datos actuales. Si las tarifas existentes por unidad difieren dentro de un mismo tipo, se definirá expresamente el nuevo valor de ese tipo sin promediar ni sobrescribir precios contratados históricos. Esta decisión no modifica el código ni la base actuales por sí sola.
 
 ## 3. Datos que deben conservarse

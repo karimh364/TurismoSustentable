@@ -14,7 +14,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
      * y código de género de la persona.
      *
      * Cada fila contiene:
-     * [TipoBicicleta, String codigoGenero, Long cantidad].
+     * [CodigoTipoBicicleta, String codigoGenero, Long cantidad].
      */
     @Query("SELECT a.bicicleta.tipo, a.usuario.persona.genero.codigo, COUNT(a.id) " +
             "FROM Alquiler a " +

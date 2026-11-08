@@ -160,8 +160,8 @@ erDiagram
     TIPO_BICICLETA {
         int id PK
         string codigo UK
-        decimal precio_por_hora_usd "Tarifa por tipo confirmada por el usuario"
-        int intervalo_preventivo_meses "Positivo; valores iniciales pendientes"
+        decimal precio_por_hora_usd "Tarifa por tipo; mayor que cero y hasta dos decimales"
+        int intervalo_preventivo_meses "Positivo; valores iniciales para pruebas aprobados en documento 26"
     }
 
     ESTADO_BICICLETA {

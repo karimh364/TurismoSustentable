@@ -6555,3 +6555,530 @@ Fecha: 7 de noviembre de 2026.
 - Solo se hicieron lecturas de fuentes/DER y consultas de Git y se editaron
   documentos. No se modificaron Java/JS/HTML, datos o permisos ni se ejecutaron
   pruebas, reinicios, git add/commit/push o SQL.
+
+### Etapa 97 Punto de guardado confirmado y primer paso técnico de tipos
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aportó git status con working tree clean y rama actualizada
+  respecto de origin/codex/refactorizacion-practicas-iii. La lectura local
+  confirmó árbol limpio antes de esta entrada y último commit f6d684f,
+  Adaptar estaciones públicas e internas y corregir manejo de sesión.
+  No se ejecutó fetch ni se afirmó una comprobación independiente del servidor
+  remoto. Esta actualización del diario es posterior a ese punto de guardado.
+- Se revisaron los consumidores del enum TipoBicicleta: modelo Bicicleta,
+  repositorio, controlador, una importación de estadísticas y pruebas de
+  bicicleta/alquiler. El DERv5 necesita TipoBicicleta como entidad, no enum.
+- Se indica como primer paso manual usar Refactor/Rename para renombrar el
+  enum existente a CodigoTipoBicicleta, incluyendo archivo y referencias de
+  main/test, sin cambiar MONTANA/PASEO/ELECTRICA. Es un paso técnico transitorio
+  para liberar el nombre de la entidad definitiva y conservar compilación;
+  no es un catálogo nuevo, una duplicación ni el diseño final. Se retirará
+  al adaptar sus consumidores a la entidad y sus códigos.
+- No se implementó el renombrado por el asistente. Se propone comprobarlo
+  con BicicletaControllerTest y AlquilerServiceTest, que además compilan main
+  y test. No se declara compilado ni probado hasta recibir/verificar el resultado.
+  No se fijan tarifas/intervalos ni se cambian DER, estados o reglas aprobadas.
+- Solo se realizaron lecturas y consultas Git y se editó este diario. No
+  hubo modificaciones Java/JS, escrituras Git/SQL, reinicios o pruebas.
+
+### Etapa 98 Renombrado puntual del enum de tipo implementado
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó al asistente implementar únicamente el renombrado de
+  la Etapa 97, reservándose expresamente la parte 2 de comprobación.
+- Se renombró models/TipoBicicleta.java a models/CodigoTipoBicicleta.java y
+  su declaración public enum. Se mantienen MONTANA, PASEO y ELECTRICA con
+  sus comentarios originales, sin copiar el enum ni crear la entidad nueva.
+- Se actualizaron solo las referencias de tipo/importaciones en Bicicleta
+  (campo, constructor, getter y setter), BicicletaRepository,
+  BicicletaController y EstadisticasService; se ajustó la referencia del
+  comentario de AlquilerRepository. También se actualizaron las referencias
+  del mismo símbolo en BicicletaControllerTest y AlquilerServiceTest.
+  No se modificaron reglas, consultas, rutas, valores, anotaciones JPA ni
+  comportamiento de las pruebas. Son ocho archivos fuente contando el movido.
+- Se compararon las fuentes con una captura previa: solo cambia el símbolo
+  TipoBicicleta por CodigoTipoBicicleta, normalizando finales de línea y el
+  salto final que apply_patch agregó en algunos archivos. No quedan referencias
+  al símbolo antiguo dentro de src y no existe el archivo con el nombre previo.
+  git diff --check no informa errores. Esta es revisión estática, no compilación.
+- Se actualizó el índice para reflejar el nombre transitorio y la verificación
+  pendiente. No se cambió DER, tabla/columna, frontend, tarifa ni intervalo.
+  No se ejecutaron Gradle, compilación o pruebas, consultas/escrituras SQL,
+  reinicios ni git add/commit/push. El estado previo del diario se conserva.
+- Queda para el usuario ejecutar:
+  .\gradlew.bat test --tests "BicicletaControllerTest" --tests "AlquilerServiceTest"
+  Después se revisará su resultado antes de crear la entidad TipoBicicleta.
+
+### Etapa 99 Renombrado probado y validación de tarifa pendiente de confirmar
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario ejecutó la parte 2: Gradle test filtrado a BicicletaControllerTest
+  y AlquilerServiceTest, con BUILD SUCCESSFUL en ocho segundos y cuatro tareas
+  ejecutadas. Se leyeron los XML: 6 y 4 pruebas respectivamente, cero fallos,
+  errores u omisiones, timestamps 2026-11-07T23:10:53.350Z/.915Z. Se confirma
+  el renombrado compilado y probado, sin repetir la ejecución por el asistente.
+- Antes de proponer la validación de la entidad se contrastaron DERv5,
+  documentos 26, 05 y 29, el texto del diccionario original y las páginas
+  completas 9/10 del PDF de visión. Se utilizaron las guías de lectura de
+  PDF/Word y extracción de texto, sin editar ni generar documentos binarios
+  o evaluar su maquetación. No se confunden estados originales reemplazados
+  por decisiones posteriores con el diseño vigente.
+- El documento 26 deja pendiente la política de tarifa cero y precisión física
+  del catálogo. Se propone para aprobación que precioPorHoraUsd sea estrictamente
+  positivo, con hasta dos decimales (mínimo USD 0.01/h), sin tarifas gratuitas
+  en esta etapa. No se presenta esa restricción como ya aprobada ni implementada.
+  No modifica el cálculo por segundos, el redondeo final ni la congelación
+  ya aprobados; tampoco fija importes concretos por tipo o mínimos de pasarela.
+- El intervalo preventivo entero positivo en meses ya está previsto en el
+  DER y sus valores iniciales siguen pendientes; no se inventan calendarios.
+  Se esperará la definición de tarifa antes de dar el bloque de entidad completo.
+- Solo se leyeron fuentes, documentos y XML de pruebas y se actualizaron el
+  índice y este diario. No se crearon modelos, repositorios, servicios o
+  controladores, ni se ejecutaron Gradle, SQL, reinicios o escrituras Git.
+
+### Etapa 100 Tarifa positiva aprobada y entidad TipoBicicleta propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aprobó tarifa USD/h mayor que cero, hasta dos decimales y rechazo
+  de cero, negativos y exceso de decimales. Se incorporó la aprobación en los
+  documentos 05/26 y el comentario del campo en Mermaid/TXT, sin alterar campos,
+  claves, cardinalidades, estados, reglas de cálculo ni importes iniciales.
+- Se prepara para creación manual models/TipoBicicleta.java como @Entity con
+  @Table(name="tipo_bicicleta") y los cuatro campos del DER: Integer id IDENTITY,
+  codigo obligatorio/único (VARCHAR 20, trim y mayúsculas Locale.ROOT),
+  BigDecimal precioPorHoraUsd obligatorio, @DecimalMin("0.01") y @Digits(8,2),
+  columna DECIMAL(10,2), e Integer intervaloPreventivoMeses obligatorio/positivo.
+  El límite técnico de ocho dígitos enteros se explicita en la propuesta, no
+  se presenta como precio comercial aprobado.
+- El bloque incluye constructor vacío JPA, constructor de los tres datos y
+  getters/setters sin setter de id. No redondea ni inventa precios/intervalos,
+  no agrega FK/colecciones inversas ni version fuera del DER y no convierte
+  el enum transitorio nuevamente en entidad.
+- El asistente no creó la fuente: queda para el usuario pegar/guardar el
+  código propuesto y ejecutar las dos clases filtradas de pruebas. Bicicleta
+  continúa usando CodigoTipoBicicleta hasta el siguiente bloque de adaptación;
+  no se afirma que crear la clase migre datos o cambie ya la tarifa vigente.
+- No hace falta reiniciar el perfil create-drop para compilar esta clase; no
+  se provoca una pérdida de datos QA para esta comprobación. La tabla se
+  gestionará al iniciar JPA cuando corresponda ejecutar el siguiente modelo.
+- Solo se actualizaron los cuatro documentos de diseño/DER y este diario.
+  No se modificaron fuentes, datos, permisos, staging o commits ni se ejecutaron
+  Gradle, SQL, reinicios o peticiones de aplicación. La nueva entidad y sus
+  validaciones todavía no se consideran implementadas ni probadas.
+
+### Etapa 101 Entidad TipoBicicleta revisada y prueba de validaciones propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario creó TipoBicicleta.java y aportó BUILD SUCCESSFUL en cuatro
+  segundos de las dos clases filtradas. La lectura de la fuente confirmó
+  ubicación/package, @Entity/@Table, los cuatro campos, sus validaciones,
+  normalización del código y constructores/getters/setters como se propusieron.
+  No se detectaron bloques faltantes o cambios de comportamiento respecto
+  del código entregado. CodigoTipoBicicleta sigue presente como enum transitorio.
+- Se verificaron XML de BicicletaControllerTest (6) y AlquilerServiceTest (4),
+  timestamps 2026-11-07T23:29:24.079Z/.748Z, cero fallos, errores u omisiones.
+  Esas pruebas compilan la entidad, pero no ejecutan sus validaciones nuevas,
+  crean tablas ni acreditan la conexión del catálogo con Bicicleta.
+- Se propone para implementación manual src/test/java/DSII/TurismoSustentable/
+  models/TipoBicicletaTest.java: seis pruebas JUnit 5 con Validator real para
+  código válido/normalizado, códigos obligatorios/longitud, precios válidos
+  y extremos técnicos, rechazo de precios inválidos/nulos, ausencia de redondeo
+  silencioso e intervalo entero positivo obligatorio. Los importes e intervalos
+  de las pruebas son fixtures, no tarifas o calendarios comerciales aprobados.
+- No se creó la clase de pruebas por el asistente ni se presenta como superada.
+  Sigue que el usuario la pegue/guarde y ejecute el filtro indicado. No usa
+  @SpringBootTest, aplicación, DB ni requiere reiniciar el perfil create-drop.
+- Solo se leyeron fuentes/XML y se actualizó este diario; no se modificaron
+  fuentes, datos o permisos ni se ejecutaron Gradle, SQL, reinicios o Git.
+
+### Etapa 102 Validaciones de TipoBicicleta comprobadas y repositorio propuesto
+
+Fecha: 7 de noviembre de 2026.
+
+- Se revisó src/test/java/DSII/TurismoSustentable/models/TipoBicicletaTest.java:
+  está en la carpeta/package de pruebas correcto, con seis @Test, Validator
+  real, apertura/cierre de ValidatorFactory y todos los bloques propuestos.
+  La entidad conserva los cuatro campos y sus anotaciones sin cambios.
+- El usuario ejecutó el filtro de tres clases con BUILD SUCCESSFUL en tres
+  segundos. Se comprobaron los XML: TipoBicicletaTest 6 pruebas, timestamp
+  2026-11-07T23:37:04.666Z; BicicletaControllerTest 6 pruebas, .956Z del segundo
+  23:37:03; AlquilerServiceTest 4 pruebas, 23:37:04.741Z. Total 16, cero fallos,
+  errores u omisiones. No se volvió a ejecutar la suite por el asistente.
+- Quedan comprobadas normalización de código, datos obligatorios, longitudes,
+  tarifa positiva/escala/límite técnico, ausencia de redondeo silencioso e
+  intervalo positivo. Estas pruebas no acreditan DDL/UNIQUE en DB ni persistencia
+  o uso de la nueva entidad por Bicicleta, que aún utiliza el enum transitorio.
+- Se propone crear manualmente TipoBicicletaRepository en repositories,
+  extendiendo JpaRepository<TipoBicicleta, Integer>, con findByCodigo(String)
+  y retorno Optional<TipoBicicleta>, siguiendo los catálogos existentes. No se
+  agregan métodos de administración o bloqueo todavía sin un consumidor concreto.
+  El asistente no creó el repositorio ni lo declara compilado o integrado.
+- Siguen pendientes la precarga con tarifas/intervalos iniciales definidos
+  expresamente y la adaptación de consumidores; no se toman los fixtures del
+  test como valores de catálogo ni se reinicia create-drop para esta comprobación.
+- Solo se leyeron fuentes y XML y se actualizó este diario. No se modificaron
+  Java/JS, DB, permisos o DER ni se ejecutaron Gradle, SQL, reinicios o Git.
+
+### Etapa 103 Repositorio revisado y valores iniciales del catálogo propuestos
+
+Fecha: 7 de noviembre de 2026.
+
+- Se revisó TipoBicicletaRepository.java: package/importaciones correctos,
+  JpaRepository<TipoBicicleta, Integer> y findByCodigo(String) con Optional,
+  sin bloques faltantes o cambio de la propuesta. Se conserva su estado de
+  Git parcialmente preparado por el usuario, sin modificar staging.
+- El usuario aportó BUILD SUCCESSFUL en cuatro segundos. XML verificados:
+  TipoBicicletaTest 6, BicicletaControllerTest 6 y AlquilerServiceTest 4,
+  timestamps 2026-11-07T23:44:17.548Z, 23:44:16.753Z y 23:44:17.693Z.
+  Total 16 pruebas, cero fallos, errores u omisiones. No se ejecutó Gradle
+  por el asistente. Esto no acredita todavía la persistencia del repositorio.
+- Se revisó CargaCatalogosRefactor: carga actual de roles, géneros,
+  documentos y países. Se propone ampliarla después de aprobar valores,
+  reutilizando findByCodigo y guardando solo tipos ausentes, sin sobrescribir
+  tarifas/intervalos existentes ni crear otra carga inicial paralela.
+- Para el entorno de desarrollo refactor se proponen valores iniciales,
+  todavía no aprobados: MONTANA USD 10.00/h y 3 meses; PASEO USD 8.00/h y
+  2 meses; ELECTRICA USD 15.00/h y 1 mes. No se obtienen promediando precios
+  por bicicleta ni se presentan como tarifa real de mercado, recomendación
+  técnica de fabricante o intervalo obligatorio definitivo. Serán parámetros
+  del catálogo, sin modificar el cálculo/contratos existentes por esta propuesta.
+- Se esperará la decisión del usuario antes de indicar los bloques de carga.
+  Solo se leyeron fuentes/XML y se actualizó el diario; no se modificaron
+  fuentes, valores de DB, reglas/DER, permisos, staging o commits ni se
+  ejecutaron SQL, reinicios, pruebas o peticiones de la aplicación.
+
+### Etapa 104 Valores QA aprobados y ampliación puntual de carga propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aprobó MONTANA 10.00 USD/h y 3 meses, PASEO 8.00 y 2 meses,
+  ELECTRICA 15.00 y 1 mes, expresamente para las pruebas. Se registraron en
+  documento 26 y se actualizó el comentario del intervalo en ambos DER, sin
+  cambiar campos/claves/relaciones. No se toman como definición comercial.
+- Se releyeron completos CargaCatalogosRefactor y CargaCatalogosRefactorTest.
+  Se propone agregar tres importaciones, una dependencia final y su parámetro
+  de constructor, tres llamadas dentro de run y un helper crearTipoBicicletaSiFalta
+  que convierte precios String con BigDecimal y solo guarda códigos ausentes.
+  Se conservan perfil refactor, @Transactional y los otros cuatro catálogos.
+- Como parte necesaria del mismo cambio manual se indica agregar el mock de
+  TipoBicicletaRepository al test existente: @InjectMocks debe recibir la nueva
+  dependencia. Los imports comodín actuales ya incluyen ese repositorio. No
+  hay construcciones manuales del cargador que requieran cambiar argumentos.
+- Se indicará ejecutar CargaCatalogosRefactorTest junto con los tres filtros
+  anteriores. Esto comprueba que no se rompan sus pruebas de países; la
+  comprobación específica de nuevos tipos/idempotencia se añadirá después
+  de revisar el bloque. No se presenta como persistencia real ya probada.
+- Solo se actualizaron los documentos mencionados. El asistente no editó el
+  cargador ni las pruebas, ni ejecutó Gradle, SQL, reinicios o escrituras Git.
+  El usuario sigue a cargo de pegar, guardar y comprobar; no debe reiniciar
+  create-drop para esta comprobación ni perder los datos QA existentes.
+
+### Etapa 105 Precarga de tipos implementada por autorización puntual
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar exclusivamente los puntos 1 a 4 de la
+  propuesta, reservándose la parte 5 de guardar y comprobar.
+- En CargaCatalogosRefactor se agregaron las importaciones de TipoBicicleta,
+  su repositorio y BigDecimal, la dependencia final y su inyección por
+  constructor. Se incorporaron al comienzo de run las tres llamadas con los
+  valores aprobados para pruebas: MONTANA 10.00/3, PASEO 8.00/2 y ELECTRICA 15.00/1.
+- Se agregó crearTipoBicicletaSiFalta fuera de run y antes del helper de
+  documentos. Busca por código y solo guarda ausentes; construye BigDecimal
+  desde String, sin usar double ni sobrescribir precios/intervalos existentes.
+  Se conservaron @Profile("refactor"), @Transactional y las cargas de roles,
+  géneros, documentos y países sin cambiar su contenido.
+- En CargaCatalogosRefactorTest solo se agregó @Mock del nuevo repositorio
+  antes de @InjectMocks. No se alteraron los tests existentes ni se agregaron
+  todavía pruebas específicas de datos/idempotencia del nuevo catálogo.
+- Se compararon ambos archivos con una captura previa, normalizando finales
+  de línea/salto final: solo difieren los bloques propuestos y esa declaración
+  @Mock. git diff --check sin errores. Esta es revisión estática, no ejecución
+  del cargador, compilación o pruebas.
+- Se deja al usuario ejecutar CargaCatalogosRefactorTest, TipoBicicletaTest,
+  BicicletaControllerTest y AlquilerServiceTest mediante los filtros indicados.
+  Los archivos ya se editaron en disco; la confirmación de parte 5 sigue pendiente.
+- Solo se modificaron esos dos archivos fuente y este diario. No se editaron
+  otros modelos, servicios, APIs, frontend, permisos o DER, ni se ejecutaron
+  Gradle, SQL, reinicios, peticiones de aplicación o escrituras Git. No se
+  cargaron tipos en la DB de la aplicación que sigue ejecutándose, ni se
+  cambiaron los precios todavía utilizados por el modelo anterior.
+
+### Etapa 106 Precarga compilada y pruebas específicas propuestas
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario ejecutó la parte 5 con BUILD SUCCESSFUL en siete segundos.
+  Se verificaron XML: CargaCatalogosRefactorTest 2, TipoBicicletaTest 6,
+  BicicletaControllerTest 6 y AlquilerServiceTest 4; total 18 pruebas, sin
+  fallos, errores u omisiones. Timestamps UTC 2026-11-08T00:19:16.229Z y
+  00:19:17.512Z/.348Z/.922Z (todavía 7 de noviembre en Argentina).
+- Se releyeron los bloques de carga y el test actual: mantienen los valores
+  y el mock propuestos. Las dos pruebas del cargador existentes comprueban
+  países/perfil; todavía no aseveran los valores ni la idempotencia de tipos.
+- Se proponen dos @Test nuevos en el mismo archivo, sin reemplazar los
+  existentes: capturar los tres tipos guardados y comprobar códigos, tarifas
+  e intervalos aprobados; simular un MONTANA existente con otros valores,
+  ejecutar dos veces y verificar que se conservan y solo se agregan los otros
+  dos tipos una vez. Los valores distintos del existente son fixtures para
+  demostrar no sobrescritura, no cambios al catálogo aprobado.
+- Se indicarán solo los imports de ArgumentCaptor/BigDecimal y los dos métodos,
+  más el comando filtrado. No se han agregado por el asistente ni se declaran
+  superadas estas pruebas específicas o la carga en una DB real.
+- Solo se leyeron fuentes/XML y se actualizó este diario. No se ejecutaron
+  Gradle, SQL, reinicios, peticiones, cambios de código/DER o escrituras Git.
+
+### Etapa 107 Pruebas específicas de precarga agregadas por autorización puntual
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar únicamente los puntos 1/2 de la propuesta
+  de la Etapa 106 y se reservó la parte 3 de guardar y comprobar.
+- Solo se editó CargaCatalogosRefactorTest.java: imports de ArgumentCaptor
+  y BigDecimal, más cargaTiposConLosValoresAprobados y
+  repetirLaCargaNoDuplicaNiSobrescribeTiposExistentes. La clase conserva sus
+  dos pruebas anteriores, mocks, @BeforeEach y configuración de Mockito.
+- La primera nueva prueba captura las tres llamadas a save y verifica los
+  códigos, precios 10.00/8.00/15.00 e intervalos 3/2/1 aprobados. La segunda
+  simula en memoria un MONTANA existente con 11.50 y 4 meses, ejecuta la carga
+  dos veces y exige conservarlo, guardar solo los otros dos tipos una vez y
+  no eliminar tipos. Esos valores alternativos son fixtures de no sobrescritura.
+- Se comparó el archivo con una captura previa, normalizando finales de
+  línea/salto final: solo se agregaron los dos imports y métodos propuestos.
+  Se verificaron cuatro @Test y git diff --check sin errores. Es revisión
+  estática; no se declara compilado ni superado el nuevo bloque.
+- La parte 3 queda para el usuario: ejecutar los cuatro filtros indicados
+  (CargaCatalogosRefactorTest, TipoBicicletaTest, BicicletaControllerTest y
+  AlquilerServiceTest). Los archivos están editados en disco; no se necesita
+  reiniciar el perfil create-drop para comprobarlos.
+- Además de este diario, solo cambió el archivo de prueba mencionado. No se
+  modificaron cargador, modelos, reglas, datos, permisos o DER, ni se ejecutaron
+  Gradle, SQL, reinicios, peticiones de aplicación o escrituras Git.
+
+### Etapa 108 Precarga de tipos probada y preparación del catálogo de estados
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aportó BUILD SUCCESSFUL en tres segundos de los cuatro filtros.
+  XML verificados: CargaCatalogosRefactorTest 4, TipoBicicletaTest 6,
+  BicicletaControllerTest 6 y AlquilerServiceTest 4; total 20 pruebas, cero
+  fallos, errores u omisiones, timestamps UTC 2026-11-08T00:23:11.835Z y
+  00:23:12.773Z/.675Z/.794Z (7 de noviembre local). Quedan verificadas en
+  memoria la precarga de valores y la no sobrescritura/duplicación de tipos.
+  No se acredita todavía DDL/UNIQUE/persistencia de JPA ni aplicación de la
+  tarifa por tipo al modelo Bicicleta, que sigue en la versión anterior.
+- Se contrastó el siguiente paso con RN-BIC-01 y el DERv5: Bicicleta necesita
+  dos FK a los catálogos de tipo y estado. El tipo ya tiene clase/repositorio
+  y precarga; se prepara EstadoBicicleta antes de adaptar esas relaciones.
+  Los siete códigos aprobados siguen siendo DISPONIBLE, RESERVADA, EN_USO,
+  MANTENIMIENTO, INACTIVA, DE_BAJA y EXTRAVIADA. No se proponen otros estados.
+- Primer paso técnico manual: renombrar el enum antiguo EstadoBicicleta a
+  CodigoEstadoBicicleta, archivo y referencias main/test mediante Refactor/Rename,
+  conservando todos sus valores actuales, incluido ALQUILADA. No sustituir
+  ALQUILADA por EN_USO ni añadir estados en esta operación, pues eso exige
+  adaptar conjuntamente consumidores y reglas en el bloque posterior.
+  El enum será transitorio, no la representación del catálogo final.
+- El asistente no hizo ese renombrado ni creó otra entidad en este turno.
+  Se propone mantener los cuatro filtros de pruebas para comprobarlo. No se
+  cambia DER, reglas o datos ni se reinicia el perfil create-drop.
+- Solo se leyeron fuentes, decisiones y XML y se actualizó el diario. No hubo
+  modificaciones Java/JS, ejecuciones Gradle/SQL, reinicios o escrituras Git.
+
+### Etapa 109 Enum antiguo de estados renombrado por autorización puntual
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar exclusivamente el primer paso de la Etapa
+  108, reservándose la parte 2 de guardar y comprobar.
+- Se movió models/EstadoBicicleta.java a models/CodigoEstadoBicicleta.java y
+  se renombró su declaración public enum. Se conservaron exactamente los
+  valores DISPONIBLE, ALQUILADA, MANTENIMIENTO e INACTIVA, sin añadir estados
+  ni sustituir ALQUILADA por EN_USO antes de adaptar el modelo y sus consumidores.
+- Se actualizaron las referencias del símbolo en Bicicleta, BicicletaRepository
+  (incluidas las referencias de comentarios), BicicletaController,
+  EstadisticasService, AlquilerService, EstacionDTO, BicicletaControllerTest y
+  AlquilerServiceTest. Son nueve archivos fuente incluyendo el enum movido.
+- Se compararon contra una captura previa, normalizando finales de línea/salto
+  final: solo cambia EstadoBicicleta por CodigoEstadoBicicleta. Se conservaron
+  las modificaciones anteriores del usuario. No quedan referencias al símbolo
+  antiguo en src ni el archivo con el nombre previo; git diff --check sin errores.
+- No se creó la entidad EstadoBicicleta, no se modificaron transiciones,
+  importes, datos, frontend, consultas, anotaciones JPA o DER. El renombrado
+  del tipo Java no migra los valores ni cambia la representación SQL/JSON.
+- No se ejecutaron compilación, Gradle o pruebas: la comprobación de los
+  cuatro filtros queda expresamente a cargo del usuario. Tampoco hubo SQL,
+  reinicios, solicitudes de aplicación o escrituras de staging/commits.
+- Además de este diario solo se editaron las fuentes relacionadas con el
+  renombrado. La validación realizada por el asistente fue estática; no se
+  presenta el nuevo bloque como compilado o probado hasta verificar la parte 2.
+
+### Etapa 110 Renombrado de estados comprobado y catálogo definitivo propuesto
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario aportó BUILD SUCCESSFUL en cinco segundos. Los XML confirman
+  CargaCatalogosRefactorTest 4, TipoBicicletaTest 6, BicicletaControllerTest 6 y
+  AlquilerServiceTest 4: veinte pruebas, cero fallos, errores u omisiones.
+  Timestamps UTC 2026-11-08T00:33:25.342Z y 00:33:26.271Z/.171Z/.291Z,
+  todavía 7 de noviembre en Argentina. No se repitieron las pruebas.
+- Se revisó el enum CodigoEstadoBicicleta con sus cuatro valores originales,
+  ausencia del archivo/símbolo antiguo en src y catálogo del DER/RN-BIC-01.
+  El renombrado está compilado y probado; no es aún la migración a FK.
+- Se propone crear manualmente EstadoBicicleta.java como @Entity con tabla
+  estado_bicicleta y únicamente id Integer IDENTITY/codigo único obligatorio,
+  VARCHAR(20), normalizado trim/mayúsculas Locale.ROOT. @Pattern restringe el
+  código a los siete estados ya aprobados; no añade otros ni admite ALQUILADA
+  en el nuevo catálogo. Constructor vacío JPA y constructor de código,
+  getters/setter de código; sin setter de id, enum nuevo o relaciones inversas.
+- En el mismo bloque de catálogo se propone EstadoBicicletaRepository,
+  JpaRepository<EstadoBicicleta, Integer> y findByCodigo con Optional, siguiendo
+  RolRepository. Se verificó que ese archivo no existe antes de la propuesta.
+- El código anterior seguirá usando CodigoEstadoBicicleta; las relaciones de
+  Bicicleta, las transiciones, los valores persistidos y el frontend se adaptarán
+  conjuntamente después. No se cambian ahora los valores del enum transitorio.
+  Crear las dos clases no equivale a precargar siete filas ni migrar FK.
+- El usuario creará/guardará los dos archivos y comprobará los mismos cuatro
+  filtros, sin reiniciar create-drop. Esa comprobación compila el nuevo bloque
+  pero no prueba todavía su validación, repositorio JPA o carga real en DB.
+- Solo se leyeron fuentes/DER/decisiones y XML y se actualizó el diario. No
+  se crearon archivos Java ni se ejecutaron Gradle, SQL, reinicios o Git.
+
+### Etapa 111 Entidad y repositorio de estados revisados; precarga propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario creó EstadoBicicleta y EstadoBicicletaRepository y aportó BUILD
+  SUCCESSFUL en tres segundos. Se revisaron ambos archivos: ubicación/package,
+  @Entity/@Table, id Integer IDENTITY, código único/obligatorio, longitud,
+  @Pattern de siete estados, normalización Locale.ROOT, constructores y
+  JpaRepository/Optional coinciden con la propuesta y no faltan bloques.
+- XML verificados: CargaCatalogosRefactorTest 4, TipoBicicletaTest 6,
+  BicicletaControllerTest 6 y AlquilerServiceTest 4; veinte pruebas, cero
+  fallos, errores u omisiones. Timestamps UTC 2026-11-08T00:36:41.210Z y
+  00:36:42.125Z/.031Z/.146Z, todavía 7 de noviembre local. No se repitió Gradle.
+  El nuevo catálogo está compilado, no probado en persistencia o validación aún.
+- Se propone ampliar CargaCatalogosRefactor con imports de entidad/repositorio,
+  dependencia final e inyección por constructor; dentro de run, antes de roles,
+  un arreglo de los siete códigos aprobados y un bucle que guarda solo ausentes.
+  Se conserva el cargador existente, perfil refactor, transacción y otros catálogos.
+- Se indica añadir el mock correspondiente en CargaCatalogosRefactorTest para
+  mantener la inyección de su constructor. No se alteran sus cuatro métodos.
+  No hay instanciaciones manuales del cargador que requieran ajustar parámetros.
+- El enum CodigoEstadoBicicleta y sus consumidores permanecen intactos: este
+  bloque no renombra ALQUILADA, modifica transiciones o migra FK. El usuario
+  pegará/guardará y comprobará con los cuatro filtros, sin reiniciar create-drop.
+  No se considera implementada ni ejecutada esta nueva precarga hasta revisión.
+- Solo se leyeron fuentes/XML y se actualizó el diario; no se modificaron
+  fuentes, datos, permisos o DER ni se ejecutaron SQL, Gradle, reinicios o Git.
+
+### Etapa 112 Precarga de estados implementada por autorización puntual
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar exclusivamente los puntos 1 a 4 de la
+  propuesta de la Etapa 111 y se reservó la parte 5 de guardar/comprobar.
+- En CargaCatalogosRefactor se agregaron imports de EstadoBicicleta y su
+  repositorio, la dependencia final y el sexto parámetro/asignación del
+  constructor, conservando las cinco dependencias anteriores.
+- Dentro de run, después de los tres tipos y antes de roles, se agregó el
+  arreglo DISPONIBLE, RESERVADA, EN_USO, MANTENIMIENTO, INACTIVA, DE_BAJA y
+  EXTRAVIADA. El bucle consulta por código y guarda solo los estados ausentes.
+  Se conservan perfil refactor, transacción y todos los demás catálogos.
+- En CargaCatalogosRefactorTest solo se agregó el mock del nuevo repositorio
+  antes de @InjectMocks. Se mantienen sus cuatro pruebas y preparación;
+  los imports comodín existentes ya incluyen ese repositorio.
+- Se compararon ambos archivos con una captura previa, normalizando finales
+  de línea/salto final: solo difieren los imports, dependencia/constructor,
+  nuevo bucle y mock previstos. git diff --check sin errores. Es revisión
+  estática, no compilación ni prueba de la nueva precarga.
+- No se alteraron CodigoEstadoBicicleta, consumidores, transiciones,
+  relaciones, precios o estados de bicicletas existentes. Tampoco se crearon
+  filas de catálogo en la aplicación que sigue abierta: no hubo reinicio.
+- La parte 5 queda para el usuario: ejecutar CargaCatalogosRefactorTest,
+  TipoBicicletaTest, BicicletaControllerTest y AlquilerServiceTest. Los cambios
+  ya están en disco; no hace falta reiniciar create-drop para comprobarlos.
+- Además de este diario, solo se editaron los dos archivos mencionados. No
+  se ejecutaron Gradle, compilación, pruebas, SQL, peticiones, reinicios ni
+  escrituras Git, ni se modificaron reglas, permisos o DER.
+
+### Etapa 113 Precarga de estados compilada y comprobaciones específicas propuestas
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario ejecutó la parte 5 con BUILD SUCCESSFUL en cinco segundos.
+  XML verificados: CargaCatalogosRefactorTest 4, TipoBicicletaTest 6,
+  BicicletaControllerTest 6 y AlquilerServiceTest 4, total veinte sin fallos,
+  errores u omisiones. Timestamps UTC 2026-11-08T00:40:57.984Z y
+  00:40:59.442Z/.170Z/.581Z (7 de noviembre local). El asistente no repitió Gradle.
+- Se revisaron el bucle de siete estados y el mock nuevo, sin cambios respecto
+  de la propuesta. Las cuatro pruebas actuales del cargador no aseveran todavía
+  sus códigos/idempotencia ni las validaciones del nuevo EstadoBicicleta.
+- Se proponen dos métodos manuales adicionales en CargaCatalogosRefactorTest,
+  con los imports ya disponibles: capturar los siete estados, contrastar el
+  conjunto aprobado y validar entidades reales, normalización y rechazo de
+  códigos nulos/blancos/desconocidos/ALQUILADA; simular DISPONIBLE existente,
+  ejecutar dos cargas y verificar conservación de su objeto y solo seis saves.
+  No se alterarán los cuatro tests previos ni la preparación de repositorios.
+- Son pruebas aisladas de catálogo, no de transiciones, reservas, historial,
+  JPA/UNIQUE o base real. La nueva entidad admite EN_USO, pero el enum legado
+  continúa sin modificaciones hasta el bloque de migración de consumidores.
+- No se han agregado esos métodos por el asistente ni se declaran superados.
+  Solo se leyeron fuentes/XML y se actualizó este diario; no se modificaron
+  fuentes/DER/datos ni se ejecutaron SQL, Gradle, reinicios o escrituras Git.
+
+### Etapa 114 Pruebas específicas de estados agregadas por autorización puntual
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario autorizó implementar únicamente los dos métodos propuestos en
+  la Etapa 113 y se reservó la parte 2 de guardar/comprobar.
+- Solo se editaron dos métodos nuevos al final de CargaCatalogosRefactorTest:
+  cargaSoloEstadosAprobadosYValidos captura siete saves, contrasta sus códigos,
+  usa Validator real para validar entidades y normalización y rechaza códigos
+  nulos/blancos/desconocidos, ALQUILADA y longitud excesiva;
+  repetirLaCargaNoDuplicaNiReemplazaEstadosExistentes simula DISPONIBLE previo,
+  ejecuta dos veces y exige siete estados, el mismo objeto original, seis saves
+  y ninguna eliminación de estados. Los demás repositorios siguen simulados.
+- Se conservan los cuatro tests anteriores, imports, mocks y @BeforeEach.
+  Se comparó la fuente con una captura previa, normalizando finales de línea
+  y salto final: las únicas diferencias son esos dos métodos. Se cuentan seis
+  @Test y git diff --check no informa errores. No se ejecutó el archivo.
+- Queda al usuario la parte 2: cuatro filtros CargaCatalogosRefactorTest,
+  TipoBicicletaTest, BicicletaControllerTest y AlquilerServiceTest. No se
+  declara compilado ni superado el bloque nuevo antes de recibir/verificar
+  su resultado; los cambios están guardados en disco, sin necesidad de reinicio.
+- Además de este diario solo cambió el archivo de prueba indicado. No se
+  modificaron cargador, modelos, reglas, datos, permisos o DER ni se ejecutaron
+  Gradle, compilación, SQL, reinicios, peticiones o escrituras de Git.
+
+### Etapa 115 Catálogos preparados y nuevo punto de guardado propuesto
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario informó BUILD SUCCESSFUL de la parte 2. Se verificaron los XML:
+  CargaCatalogosRefactorTest 6, TipoBicicletaTest 6, BicicletaControllerTest 6 y
+  AlquilerServiceTest 4, total 22 pruebas, cero fallos, errores u omisiones.
+  Timestamps UTC 2026-11-08T00:46:35.763Z y 00:46:36.693Z/.599Z/.713Z,
+  todavía 7 de noviembre local. No se repitió su ejecución por el asistente.
+- Quedan comprobados los valores/códigos de ambas precargas, no duplicación
+  ni reemplazo de existentes y las validaciones de tipos/estados cubiertas por
+  esos tests. Son pruebas con repositorios simulados y Validator real: no
+  acreditan persistencia JPA, restricciones UNIQUE ni tablas reales nuevas.
+- Los catálogos tienen entidad/repositorio/carga, pero Bicicleta sigue usando
+  los dos enums transitorios y su precio propio anterior. El DER requiere
+  tipo_bicicleta_id y estado_bicicleta_id, fecha_alta y version. El siguiente
+  bloque adaptará el modelo y sus consumidores; no se modifica ahora una
+  relación aislada que deje compilación o contratos HTTP inconsistentes.
+- Git muestra cambios pendientes, incluidos archivos parcialmente preparados
+  por el usuario, en codex/refactorizacion-practicas-iii. Se propone registrar
+  este avance en un commit y subirlo antes de la adaptación de Bicicleta.
+  No se ejecutaron add/commit/push ni se declara ese punto todavía realizado.
+- Se actualizó el índice para reflejar el estado efectivo del catálogo y sus
+  límites de verificación. Solo se hicieron lecturas de XML/DER y consultas Git
+  y se editaron documentos, sin cambios de fuentes, DB, permisos o reglas,
+  reinicios, Gradle, SQL, peticiones de aplicación o escrituras de Git.

@@ -5,6 +5,7 @@ import DSII.TurismoSustentable.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Profile;
 
 import javax.validation.Validation;
 import javax.validation.ValidatorFactory;
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +27,8 @@ class CargaCatalogosRefactorTest {
     @Mock private GeneroRepository generoRepository;
     @Mock private TipoDocumentoRepository tipoDocumentoRepository;
     @Mock private PaisRepository paisRepository;
+    @Mock private TipoBicicletaRepository tipoBicicletaRepository;
+    @Mock private EstadoBicicletaRepository estadoBicicletaRepository;
     @InjectMocks private CargaCatalogosRefactor cargador;
 
     private final Map<String, Pais> paises = new HashMap<>();
@@ -77,5 +81,188 @@ class CargaCatalogosRefactorTest {
         verify(paisRepository, times(Locale.getISOCountries().length - 1))
                 .save(any(Pais.class));
         verify(paisRepository, never()).delete(any(Pais.class));
+    }
+
+    @Test
+    void cargaTiposConLosValoresAprobados() {
+        cargador.run();
+
+        ArgumentCaptor<TipoBicicleta> captor =
+                ArgumentCaptor.forClass(TipoBicicleta.class);
+
+        verify(tipoBicicletaRepository, times(3))
+                .save(captor.capture());
+
+        Map<String, TipoBicicleta> tipos = new HashMap<>();
+        captor.getAllValues().forEach(
+                tipo -> tipos.put(tipo.getCodigo(), tipo)
+        );
+
+        assertEquals(
+                Set.of("MONTANA", "PASEO", "ELECTRICA"),
+                tipos.keySet()
+        );
+
+        assertEquals(
+                new BigDecimal("10.00"),
+                tipos.get("MONTANA").getPrecioPorHoraUsd()
+        );
+        assertEquals(
+                new BigDecimal("8.00"),
+                tipos.get("PASEO").getPrecioPorHoraUsd()
+        );
+        assertEquals(
+                new BigDecimal("15.00"),
+                tipos.get("ELECTRICA").getPrecioPorHoraUsd()
+        );
+
+        assertEquals(
+                Integer.valueOf(3),
+                tipos.get("MONTANA").getIntervaloPreventivoMeses()
+        );
+        assertEquals(
+                Integer.valueOf(2),
+                tipos.get("PASEO").getIntervaloPreventivoMeses()
+        );
+        assertEquals(
+                Integer.valueOf(1),
+                tipos.get("ELECTRICA").getIntervaloPreventivoMeses()
+        );
+    }
+
+    @Test
+    void repetirLaCargaNoDuplicaNiSobrescribeTiposExistentes() {
+        Map<String, TipoBicicleta> tipos = new HashMap<>();
+
+        // Simula valores que ya fueron modificados después de la primera carga.
+        TipoBicicleta montanaExistente = new TipoBicicleta(
+                "MONTANA",
+                new BigDecimal("11.50"),
+                4
+        );
+        tipos.put("MONTANA", montanaExistente);
+
+        when(tipoBicicletaRepository.findByCodigo(anyString()))
+                .thenAnswer(invocacion -> Optional.ofNullable(
+                        tipos.get(invocacion.getArgument(0))
+                ));
+
+        when(tipoBicicletaRepository.save(any(TipoBicicleta.class)))
+                .thenAnswer(invocacion -> {
+                    TipoBicicleta tipo = invocacion.getArgument(0);
+                    tipos.put(tipo.getCodigo(), tipo);
+                    return tipo;
+                });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(3, tipos.size());
+        assertSame(montanaExistente, tipos.get("MONTANA"));
+        assertEquals(
+                new BigDecimal("11.50"),
+                montanaExistente.getPrecioPorHoraUsd()
+        );
+        assertEquals(
+                Integer.valueOf(4),
+                montanaExistente.getIntervaloPreventivoMeses()
+        );
+
+        // Solo deben guardarse PASEO y ELECTRICA, una vez cada uno.
+        verify(tipoBicicletaRepository, times(2))
+                .save(any(TipoBicicleta.class));
+
+        verify(tipoBicicletaRepository, never())
+                .delete(any(TipoBicicleta.class));
+    }
+
+    @Test
+    void cargaSoloEstadosAprobadosYValidos() {
+        cargador.run();
+
+        ArgumentCaptor<EstadoBicicleta> captor =
+                ArgumentCaptor.forClass(EstadoBicicleta.class);
+
+        verify(estadoBicicletaRepository, times(7))
+                .save(captor.capture());
+
+        Set<String> codigos = new HashSet<>();
+
+        try (ValidatorFactory factory =
+                     Validation.buildDefaultValidatorFactory()) {
+
+            for (EstadoBicicleta estado : captor.getAllValues()) {
+                codigos.add(estado.getCodigo());
+                assertTrue(
+                        factory.getValidator().validate(estado).isEmpty()
+                );
+            }
+
+            EstadoBicicleta normalizado =
+                    new EstadoBicicleta(" disponible ");
+
+            assertEquals("DISPONIBLE", normalizado.getCodigo());
+            assertTrue(
+                    factory.getValidator().validate(normalizado).isEmpty()
+            );
+
+            String[] invalidos = {
+                    null, "", "   ", "INVENTADO",
+                    "ALQUILADA", "X".repeat(21)
+            };
+
+            for (String codigo : invalidos) {
+                assertFalse(
+                        factory.getValidator()
+                                .validate(new EstadoBicicleta(codigo))
+                                .isEmpty(),
+                        "Debería rechazar el código: " + codigo
+                );
+            }
+        }
+
+        assertEquals(
+                Set.of(
+                        "DISPONIBLE", "RESERVADA", "EN_USO",
+                        "MANTENIMIENTO", "INACTIVA",
+                        "DE_BAJA", "EXTRAVIADA"
+                ),
+                codigos
+        );
+    }
+
+    @Test
+    void repetirLaCargaNoDuplicaNiReemplazaEstadosExistentes() {
+        Map<String, EstadoBicicleta> estados = new HashMap<>();
+
+        EstadoBicicleta disponible =
+                new EstadoBicicleta("DISPONIBLE");
+
+        estados.put("DISPONIBLE", disponible);
+
+        when(estadoBicicletaRepository.findByCodigo(anyString()))
+                .thenAnswer(invocacion -> Optional.ofNullable(
+                        estados.get(invocacion.getArgument(0))
+                ));
+
+        when(estadoBicicletaRepository.save(any(EstadoBicicleta.class)))
+                .thenAnswer(invocacion -> {
+                    EstadoBicicleta estado = invocacion.getArgument(0);
+                    estados.put(estado.getCodigo(), estado);
+                    return estado;
+                });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(7, estados.size());
+        assertSame(disponible, estados.get("DISPONIBLE"));
+
+        // DISPONIBLE ya existía: solo se guardan los otros seis.
+        verify(estadoBicicletaRepository, times(6))
+                .save(any(EstadoBicicleta.class));
+
+        verify(estadoBicicletaRepository, never())
+                .delete(any(EstadoBicicleta.class));
     }
 }

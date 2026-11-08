@@ -97,7 +97,7 @@ public class AlquilerService {
                 );
 
         // 3. Verificar disponibilidad
-        if (bicicleta.getEstado() != EstadoBicicleta.DISPONIBLE) {
+        if (bicicleta.getEstado() != CodigoEstadoBicicleta.DISPONIBLE) {
             throw new IllegalStateException(
                     "La bicicleta no está disponible."
             );
@@ -170,7 +170,7 @@ public class AlquilerService {
         nuevoAlquiler.setCostoTotal(costoEstimado);
 
         // 8. Cambiar estado y sacar físicamente la bicicleta de la estación
-        bicicleta.setEstado(EstadoBicicleta.ALQUILADA);
+        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
         bicicleta.setUbicacionActual(null);
         bicicletaRepository.save(bicicleta);
 
@@ -338,7 +338,7 @@ public class AlquilerService {
         // 11. Liberar y trasladar la bicicleta
         Bicicleta bicicleta = alquiler.getBicicleta();
 
-        bicicleta.setEstado(EstadoBicicleta.DISPONIBLE);
+        bicicleta.setEstado(CodigoEstadoBicicleta.DISPONIBLE);
         bicicleta.setUbicacionActual(nuevaEstacion);
 
         bicicletaRepository.save(bicicleta);

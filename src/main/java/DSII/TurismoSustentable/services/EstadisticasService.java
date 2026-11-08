@@ -1,7 +1,7 @@
 package DSII.TurismoSustentable.services;
 
-import DSII.TurismoSustentable.models.EstadoBicicleta;
-import DSII.TurismoSustentable.models.TipoBicicleta;
+import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
+import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -3,8 +3,8 @@ package DSII.TurismoSustentable.controllers;
 import DSII.TurismoSustentable.dto.BicicletaDTO;
 import DSII.TurismoSustentable.models.Bicicleta;
 import DSII.TurismoSustentable.models.Estacion;
-import DSII.TurismoSustentable.models.EstadoBicicleta;
-import DSII.TurismoSustentable.models.TipoBicicleta;
+import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
+import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,8 +53,8 @@ class BicicletaControllerTest {
 
         bicicleta = new Bicicleta(
                 "QA-B01",
-                TipoBicicleta.MONTANA,
-                EstadoBicicleta.DISPONIBLE,
+                CodigoTipoBicicleta.MONTANA,
+                CodigoEstadoBicicleta.DISPONIBLE,
                 PRECIO_ORIGINAL,
                 origen
         );
@@ -62,8 +62,8 @@ class BicicletaControllerTest {
 
         solicitud = new Bicicleta(
                 "QA-NUEVO",
-                TipoBicicleta.PASEO,
-                EstadoBicicleta.MANTENIMIENTO,
+                CodigoTipoBicicleta.PASEO,
+                CodigoEstadoBicicleta.MANTENIMIENTO,
                 PRECIO_NUEVO,
                 destino
         );
@@ -72,7 +72,7 @@ class BicicletaControllerTest {
     @Test
     void rechazaEstadoAlquiladaSinCambiarDatos() {
         prepararBicicletaEncontrada();
-        solicitud.setEstado(EstadoBicicleta.ALQUILADA);
+        solicitud.setEstado(CodigoEstadoBicicleta.ALQUILADA);
 
         ResponseEntity<Object> respuesta =
                 controlador.actualizarBicicleta(1, solicitud);
@@ -124,8 +124,8 @@ class BicicletaControllerTest {
 
         Bicicleta archivada = new Bicicleta(
                 "QA-ARCHIVADA",
-                TipoBicicleta.MONTANA,
-                EstadoBicicleta.INACTIVA,
+                CodigoTipoBicicleta.MONTANA,
+                CodigoEstadoBicicleta.INACTIVA,
                 PRECIO_ORIGINAL,
                 destino
         );
@@ -169,8 +169,8 @@ class BicicletaControllerTest {
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertEquals("QA-NUEVO", bicicleta.getCodigoBicicleta());
-        assertEquals(EstadoBicicleta.MANTENIMIENTO, bicicleta.getEstado());
-        assertEquals(TipoBicicleta.PASEO, bicicleta.getTipo());
+        assertEquals(CodigoEstadoBicicleta.MANTENIMIENTO, bicicleta.getEstado());
+        assertEquals(CodigoTipoBicicleta.PASEO, bicicleta.getTipo());
         assertEquals(PRECIO_NUEVO, bicicleta.getPrecioPorHora());
         assertSame(destino, bicicleta.getUbicacionActual());
 
@@ -195,7 +195,7 @@ class BicicletaControllerTest {
 
     @Test
     void alquiladaConservaSusDatosYPermiteCambiarPrecio() {
-        bicicleta.setEstado(EstadoBicicleta.ALQUILADA);
+        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
         bicicleta.setUbicacionActual(null);
         prepararBicicletaEncontrada();
 
@@ -207,8 +207,8 @@ class BicicletaControllerTest {
 
         assertEquals(HttpStatus.OK, respuesta.getStatusCode());
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(EstadoBicicleta.ALQUILADA, bicicleta.getEstado());
-        assertEquals(TipoBicicleta.MONTANA, bicicleta.getTipo());
+        assertEquals(CodigoEstadoBicicleta.ALQUILADA, bicicleta.getEstado());
+        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
         assertEquals(PRECIO_NUEVO, bicicleta.getPrecioPorHora());
         assertNull(bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());
@@ -254,8 +254,8 @@ class BicicletaControllerTest {
         assertEquals(esperado, respuesta.getStatusCode());
         assertEquals(1, bicicleta.getId());
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(EstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
-        assertEquals(TipoBicicleta.MONTANA, bicicleta.getTipo());
+        assertEquals(CodigoEstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
+        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
         assertEquals(PRECIO_ORIGINAL, bicicleta.getPrecioPorHora());
         assertSame(origen, bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());

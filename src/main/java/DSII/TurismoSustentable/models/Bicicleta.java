@@ -19,11 +19,11 @@ public class Bicicleta {
 
     @NotNull(message = "El tipo de bicicleta es obligatorio.")
     @Enumerated(EnumType.STRING)
-    private TipoBicicleta tipo;
+    private CodigoTipoBicicleta tipo;
 
     @NotNull(message = "El estado es obligatorio.")
     @Enumerated(EnumType.STRING)
-    private EstadoBicicleta estado;
+    private CodigoEstadoBicicleta estado;
 
     // --- CAMPOS ADICIONALES REQUERIDOS ---
 
@@ -44,7 +44,7 @@ public class Bicicleta {
     public Bicicleta() {
     }
 
-    public Bicicleta(String codigoBicicleta, TipoBicicleta tipo, EstadoBicicleta estado, BigDecimal precioPorHora, Estacion ubicacionActual) {
+    public Bicicleta(String codigoBicicleta, CodigoTipoBicicleta tipo, CodigoEstadoBicicleta estado, BigDecimal precioPorHora, Estacion ubicacionActual) {
         this.codigoBicicleta = codigoBicicleta;
         this.tipo = tipo;
         this.estado = estado;
@@ -71,19 +71,19 @@ public class Bicicleta {
         this.codigoBicicleta = codigoBicicleta;
     }
 
-    public TipoBicicleta getTipo() {
+    public CodigoTipoBicicleta getTipo() {
         return tipo;
     }
 
-    public void setTipo(TipoBicicleta tipo) {
+    public void setTipo(CodigoTipoBicicleta tipo) {
         this.tipo = tipo;
     }
 
-    public EstadoBicicleta getEstado() {
+    public CodigoEstadoBicicleta getEstado() {
         return estado;
     }
 
-    public void setEstado(EstadoBicicleta estado) {
+    public void setEstado(CodigoEstadoBicicleta estado) {
         this.estado = estado;
     }
 

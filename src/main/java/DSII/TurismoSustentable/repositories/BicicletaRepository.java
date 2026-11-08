@@ -1,8 +1,8 @@
 package DSII.TurismoSustentable.repositories;
 
 import DSII.TurismoSustentable.models.Bicicleta;
-import DSII.TurismoSustentable.models.EstadoBicicleta;
-import DSII.TurismoSustentable.models.TipoBicicleta;
+import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
+import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.models.Estacion;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,8 +19,8 @@ public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
     /**
      * 3. ESTADOS DE LAS BICICLETAS (Preferencias/Estados de Bicis en general)
      * * Consulta que utiliza la tabla Bicicleta (no Alquiler) para contar cuántas bicicletas
-     * están en cada EstadoBicicleta.
-     * * Resultado: List<Object[]> donde cada Object[] contiene [EstadoBicicleta, Long Cantidad].
+     * están en cada CodigoEstadoBicicleta.
+     * * Resultado: List<Object[]> donde cada Object[] contiene [CodigoEstadoBicicleta, Long Cantidad].
      */
 
     @Query("SELECT b.estado, COUNT(b.id) FROM Bicicleta b GROUP BY b.estado")
@@ -38,9 +38,9 @@ public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
                     "AND e.esPublica = true"
     )
     List<Bicicleta> buscarPorEstadoEnEstacionesPublicas(
-            @Param("estado") EstadoBicicleta estado
+            @Param("estado") CodigoEstadoBicicleta estado
     );
-    List<Bicicleta> findByBorradoBiciFalseAndTipo(TipoBicicleta tipo);
+    List<Bicicleta> findByBorradoBiciFalseAndTipo(CodigoTipoBicicleta tipo);
 
     // Cuenta las bicicletas que están físicamente en una estación y que no fueron eliminadas lógicamente
     long countByUbicacionActualAndBorradoBiciFalse(

@@ -2,8 +2,8 @@ package DSII.TurismoSustentable.controllers;
 
 import DSII.TurismoSustentable.dto.BicicletaDTO;
 import DSII.TurismoSustentable.models.Bicicleta;
-import DSII.TurismoSustentable.models.EstadoBicicleta;
-import DSII.TurismoSustentable.models.TipoBicicleta;
+import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
+import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.models.Estacion;
 import org.springframework.transaction.annotation.Transactional;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
@@ -43,7 +43,7 @@ public class BicicletaController {
     public List<BicicletaDTO> getBicicletasDisponibles() {
         return bicicletaRepository
                 .buscarPorEstadoEnEstacionesPublicas(
-                        EstadoBicicleta.DISPONIBLE
+                        CodigoEstadoBicicleta.DISPONIBLE
                 )
                 .stream()
                 .map(BicicletaDTO::new)
@@ -52,7 +52,7 @@ public class BicicletaController {
 
     // OBTENER BICICLETAS FILTRADAS POR TIPO (Montaña, Paseo, Eléctrica)
     @GetMapping("/bicicletas/tipo/{tipo}")
-    public List<BicicletaDTO> getBicicletasPorTipo(@PathVariable TipoBicicleta tipo){
+    public List<BicicletaDTO> getBicicletasPorTipo(@PathVariable CodigoTipoBicicleta tipo){
         return bicicletaRepository.findByBorradoBiciFalseAndTipo(tipo)
                 .stream()
                 .map(BicicletaDTO::new)
@@ -127,7 +127,7 @@ public class BicicletaController {
         bicicleta.setUbicacionActual(estacion);
 
         // Una bicicleta nueva no puede nacer alquilada ni borrada
-        bicicleta.setEstado(EstadoBicicleta.DISPONIBLE);
+        bicicleta.setEstado(CodigoEstadoBicicleta.DISPONIBLE);
         bicicleta.setBorradoBici(false);
 
         Bicicleta nuevaBicicleta = bicicletaRepository.save(bicicleta);
@@ -150,7 +150,7 @@ public class BicicletaController {
 
         Bicicleta bicicleta = bicicletaOptional.get();
 
-        if (bicicleta.getEstado() == EstadoBicicleta.ALQUILADA) {
+        if (bicicleta.getEstado() == CodigoEstadoBicicleta.ALQUILADA) {
             return new ResponseEntity<>(
                     "No se puede eliminar una bicicleta que está actualmente alquilada.",
                     HttpStatus.CONFLICT // 409 Conflict es el código correcto
@@ -160,7 +160,7 @@ public class BicicletaController {
 
         // Borrado lógico
         bicicleta.setBorradoBici(true);
-        bicicleta.setEstado(EstadoBicicleta.INACTIVA);
+        bicicleta.setEstado(CodigoEstadoBicicleta.INACTIVA);
 
         bicicletaRepository.save(bicicleta);
 
@@ -191,7 +191,7 @@ public class BicicletaController {
 
         boolean estabaAlquilada =
                 bicicletaExistente.getEstado()
-                        == EstadoBicicleta.ALQUILADA;
+                        == CodigoEstadoBicicleta.ALQUILADA;
 
         /*
          * El estado solamente puede modificarse si la bicicleta
@@ -201,7 +201,7 @@ public class BicicletaController {
                 && bicicletaDetalles.getEstado() != null) {
 
             if (bicicletaDetalles.getEstado()
-                    == EstadoBicicleta.ALQUILADA) {
+                    == CodigoEstadoBicicleta.ALQUILADA) {
 
                 return new ResponseEntity<>(
                         "No se puede marcar manualmente una bicicleta " +
@@ -314,7 +314,7 @@ public class BicicletaController {
          */
         if (estabaAlquilada) {
             bicicletaExistente.setEstado(
-                    EstadoBicicleta.ALQUILADA
+                    CodigoEstadoBicicleta.ALQUILADA
             );
             bicicletaExistente.setUbicacionActual(null);
         }
