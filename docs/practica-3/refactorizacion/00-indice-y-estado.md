@@ -2,7 +2,26 @@
 
 Actualizado: 8 de noviembre de 2026.
 
-Estado más reciente: etapa 160 del documento 37. EstadoAlquilerDetalle y su
+Estado más reciente: etapa 170 del documento 37. Tests de orden e historial
+creados manualmente y revisados; ocho pruebas de historial, seis de orden y
+doce del cargador verificadas por XML (veintiséis sin fallos/errores/omisiones).
+Se indica checkpoint Git del modelo de soporte antes de continuar cabecera/
+detalles e incidencia; aún pendiente que el usuario lo ejecute.
+OrdenMantenimiento y repositorio
+creados manualmente, revisados sin correcciones y compilados según salida del
+usuario; sin servicio o flujo técnico todavía. HistorialOrdenMantenimiento y
+repositorio también creados manualmente y revisados sin correcciones necesarias,
+con compileJava correcto informado. DDL/persistencia real
+y escritura transaccional de eventos siguen pendientes.
+Checkpoint b5d0893 confirmado,
+sin commits divergentes con la referencia remota y árbol limpio antes de esta
+actualización documental de la etapa 161. EstadoOrdenMantenimiento y su
+repositorio creados manualmente, revisados y compilados según salida del usuario;
+TipoMantenimiento y su repositorio también creados manualmente. Precarga conjunta
+de tipos/estados revisada en ambos archivos y doce pruebas verificadas por XML,
+sin fallos/errores/omisiones. Sin correcciones Java necesarias; no se acredita
+todavía persistencia/carga real ni implementación del módulo de órdenes.
+EstadoAlquilerDetalle y su
 repositorio fueron creados manualmente, revisados y compilados según salida
 del usuario. Precarga del catálogo en refactor y dos pruebas incorporadas con
 autorización puntual; ocho pruebas del cargador verificadas por XML, sin fallos,
@@ -16,8 +35,8 @@ y su repositorio fueron creados manualmente, revisados y compilados según salid
 del usuario. Precarga de sus cinco estados y dos pruebas incorporadas con
 autorización puntual, conservando las ocho anteriores. Diez pruebas del cargador
 verificadas por XML sin fallos/errores/omisiones, sin conectar aún el flujo legado
-a la entidad nueva ni comprobar la carga real en MySQL. Siguiente paso: checkpoint
-Git de este bloque y organización de cabecera/detalles con sus dependencias del
+a la entidad nueva ni comprobar la carga real en MySQL. Checkpoint guardado;
+sigue la organización de cabecera/detalles con sus dependencias del
 DER, sin tablas paralelas o identificadores provisionales en lugar de FK.
 El checkpoint de inventario se guardó en
 632c210; las cifras y resultados siguientes corresponden a RN-INV-04:

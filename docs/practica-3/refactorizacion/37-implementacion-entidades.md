@@ -8300,3 +8300,270 @@ Fecha: 8 de noviembre de 2026.
 - Solo se leyeron fuentes/reportes/estado Git y se actualizó documentación.
   El asistente no modificó Java, ejecutó pruebas/compilación, SQL, reinicios,
   navegador ni escrituras Git. El ciclo nuevo de alquiler sigue pendiente.
+
+### Etapa 161 Checkpoint confirmado y dependencia de órdenes preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- Se comprobó árbol limpio al inicio y commit b5d0893 Agregar catalogos de
+  estados de alquiler y detalle con precarga y pruebas. HEAD y la referencia
+  origin/codex/refactorizacion-practicas-iii no tienen commits divergentes (0/0).
+  No se ejecutó fetch o escritura Git por el asistente.
+- Revisión de DER v5 y RN-MAN-01/02/27: AlquilerDetalle referencia una orden de
+  mantenimiento, que necesita TipoMantenimiento y EstadoOrdenMantenimiento.
+  Las clases de estas dependencias todavía no existen. El detalle también
+  referencia Incidencia, con relación inversa obligatoria al propio detalle;
+  su incorporación debe coordinarse, no reemplazar esas FK por IDs provisionales.
+- Se entregan instrucciones manuales para el primer catálogo de soporte:
+  EstadoOrdenMantenimiento, tabla estado_orden_mantenimiento, PK Integer
+  generada, código obligatorio/único máximo 20, normalización trim/mayúsculas
+  y cinco estados CREADA, EN_PROCESO, PAUSADA, FINALIZADA, CANCELADA. Repositorio
+  JpaRepository con Optional findByCodigo. Son estados ya aprobados, no nuevos.
+- Esto prepara dependencias del mismo DER, no implementa aún mantenimiento,
+  pantallas técnicas, generación automática o habilitación de bicicletas.
+  Después deben incorporarse tipo/orden y las referencias de detalle/incidencia
+  al transformar coordinadamente la cabecera y el flujo antiguo.
+- No se crearon clases Java ni precarga en esta etapa; el usuario las creará
+  y compilará. Se conservan catálogos actuales, enum de compatibilidad y reglas.
+- El asistente solo leyó fuentes/estado Git y actualizó documentación; sin
+  compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 162 Estado de orden revisado y catálogo de tipos preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó EstadoOrdenMantenimiento y su repositorio y aportó
+  compileJava BUILD SUCCESSFUL, una tarea ejecutada. Se leyeron los archivos:
+  rutas/paquetes correctos, Entity/Table, PK Integer IDENTITY, código único
+  obligatorio máximo 20, cinco códigos aprobados y normalización Locale.ROOT.
+  Repositorio interface JpaRepository y Optional findByCodigo correctos.
+- Las referencias actuales solo incluyen esa entidad y repositorio; no hay
+  precarga ni consumidores técnicos. No se acredita DDL, UNIQUE, validaciones
+  ejecutadas ni reglas del módulo por compilar estas dos clases.
+- Siguiente bloque manual: TipoMantenimiento y repositorio, conforme al DER
+  y documentos 12/27: id generado, código obligatorio/único PREVENTIVO o
+  CORRECTIVO, normalizado trim/mayúsculas, y descripcion de hasta 255 caracteres
+  con trim. La descripción no es clave ni se copia a cada orden; se deja
+  opcional porque la especificación revisada exige expresamente el código,
+  sin imponer por este paso otra obligatoriedad de descripción.
+- Se entregan instrucciones, no se crean esas clases ni su precarga. No se
+  duplican intervalos preventivos de TipoBicicleta ni se mezclan tipo y estado
+  de orden. Se mantienen las dependencias futuras de orden/detalle/incidencia.
+- Solo lectura de fuentes y edición documental por el asistente, sin cambios
+  Java, compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 163 Tipo de mantenimiento revisado y precarga conjunta preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó TipoMantenimiento y su repositorio y aportó compileJava
+  BUILD SUCCESSFUL, una tarea ejecutada. Se revisaron fuentes: tabla
+  tipo_mantenimiento, PK Integer IDENTITY, código obligatorio/único máximo
+  20, PREVENTIVO/CORRECTIVO y normalización Locale.ROOT correctos; descripción
+  opcional máximo 255 con trim; repositorio JpaRepository/Optional correcto.
+- La precarga de ambos catálogos de mantenimiento todavía no existe. Se
+  entregan instrucciones manuales para agregar las dos dependencias al cargador,
+  conservar las ocho anteriores y cargar solo tipos/estados faltantes. Tipos
+  PREVENTIVO/CORRECTIVO con descripciones de su finalidad, estados CREADA,
+  EN_PROCESO, PAUSADA, FINALIZADA y CANCELADA; no se alteran otros catálogos.
+- Se proponen dos pruebas conjuntas añadidas a las diez anteriores: carga de
+  registros exactos y validación/normalización; y repetición sin duplicar o
+  reemplazar tipos/estados existentes, incluida descripción conservada.
+  Añadir los dos mocks es necesario por las nuevas dependencias de constructor.
+  Doce métodos previstos, todavía no implementados o ejecutados.
+- No se crean órdenes ni se aplican transiciones o revisiones automáticas.
+  No se cambia el perfil, DER o configuración. Compilar las clases no prueba
+  UNIQUE o persistencia real; la posterior prueba propuesta usa repositorios
+  simulados y no necesita reiniciar la aplicación.
+- El asistente solo leyó fuentes y actualizó documentación, sin edición Java,
+  compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 164 Precarga de mantenimiento pegada correctamente y doce pruebas verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario incorporó manualmente ambos bloques y ejecutó el filtro del
+  cargador con BUILD SUCCESSFUL, tres tareas ejecutadas y una actualizada.
+  XML timestamp 2026-11-08T19:10:40.994Z: doce pruebas, cero fallos, errores
+  u omisiones, incluidas las dos nuevas de mantenimiento.
+- Se leyeron cargador/test y su diff: imports y atributos dentro de la clase,
+  diez dependencias correctamente recibidas/asignadas por constructor, carga
+  de dos tipos/cinco estados dentro de run antes de roles. Se mantiene
+  Profile refactor, transacción y todas las cargas anteriores, sin duplicados.
+- En el test los dos mocks están junto a las dependencias existentes y los
+  dos métodos dentro de la clase, separados de los anteriores. El diff conserva
+  íntegras las diez pruebas previas. Se verifican códigos exactos, validación,
+  normalización y repetición sin reemplazar objetos/descripción existentes.
+- No se encontraron correcciones Java necesarias en este bloque. La prueba
+  ejecutada compila y evalúa con JUnit/Mockito/Bean Validation, sin usar MySQL.
+  No se acredita aún DDL/UNIQUE, carga real al arrancar o flujos de órdenes.
+- Se aclaró el propósito: CargaCatalogosRefactor prepara catálogos persistidos
+  al iniciar la aplicación bajo el perfil refactor; su test verifica esa
+  lógica con repositorios simulados y no carga la base real.
+- Solo inspección de fuentes/reportes y actualización documental por el
+  asistente, sin cambios Java, ejecución de pruebas/compilación, SQL, reinicios,
+  navegador o escrituras Git. Las entidades operativas siguientes siguen pendientes.
+
+### Etapa 165 Entidad de orden de mantenimiento preparada para creación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisaron el bloque ORDEN_MANTENIMIENTO del DER y el documento 27,
+  conservando sus dieciséis campos y cuatro FK: bicicleta, tipo y estado
+  obligatorios; técnico opcional inicialmente y en la pausa administrativa
+  aprobada. No se duplica la estación de la bicicleta ni se limita a una
+  sola orden histórica por unidad mediante UNIQUE.
+- Se entregan instrucciones manuales de OrdenMantenimiento y repositorio
+  JpaRepository simple. PK Integer IDENTITY y version Integer administrados;
+  relaciones LAZY sin cascadas destructivas; fechaCreacion inicializada por
+  backend al construir y no actualizable por JPA, sin setter público. Fechas
+  de inicio/fin permanecen opcionales hasta su operación real.
+- Resultado técnico opcional APTA/NO_APTA como códigos de representación del
+  resultado aprobado, no un catálogo/enum o estado nuevo. Costos internos
+  opcionales no negativos, sin inicializar pendientes a cero. Se propone como
+  precisión física DECIMAL(12,2) y Digits(10,2), explicitada en las instrucciones;
+  moneda admite solo ARS cuando se informa. No se registra cargo al cliente.
+- Diagnóstico, descripción de trabajo, observaciones y motivo de pausa/cancelación
+  usan TEXT opcional y trim; no se hacen obligatorios al crear. El servicio deberá
+  controlar sus requisitos por transición, moneda cuando exista importe,
+  fechas, técnico activo/asignado y una sola orden abierta. La entidad sola
+  no implementa esas reglas ni sustituye trazabilidad e historial.
+- No se crean los archivos por el asistente ni endpoints, órdenes reales o
+  automatismos. Se indica compilar manualmente y revisar antes de agregar el
+  historial y las operaciones. No se modifican catálogos, consumidores previos,
+  DER, base o configuración. Continúa pendiente la conexión a alquiler/detalles.
+- Solo lectura de fuentes y edición documental por el asistente; sin cambios
+  Java, compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 166 Orden revisada e historial preparado para creación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó OrdenMantenimiento y su repositorio, guardó y aportó
+  compileJava BUILD SUCCESSFUL, una tarea ejecutada. Se leyeron íntegramente:
+  dieciséis campos coincidentes con el DER, cuatro FK LAZY sin cascadas, tres
+  obligatorias y técnico opcional; fechas/resúmenes, costo DECIMAL(12,2), TEXT,
+  normalización y version Integer correctos. Repositorio JpaRepository simple
+  correctamente ubicado. Sin correcciones Java necesarias en ese bloque.
+- Compilar no prueba DDL/UNIQUE, controles de transiciones, importe/moneda,
+  roles, una sola orden abierta o registro automático de eventos. No se ejecutó
+  un nuevo arranque ni se persistieron órdenes por este avance de modelos.
+- Se contrastó el historial con RN-TRZ-01 (documento 36, secciones 3/4) y
+  documento 27: once campos, FK a orden obligatoria, dos FK de estado opcionales
+  por eventos de datos, FK de actor opcional solo para SISTEMA, acción, fecha,
+  origen, observaciones y valores anteriores/nuevos. No una tabla adicional
+  de atención ni el nombre histórico de historial solo de estados.
+- Se entregan instrucciones manuales de HistorialOrdenMantenimiento y repositorio.
+  Mapeo sin cascadas y sin setters públicos, columnas/joins no actualizables;
+  fecha del backend. Constructor controla origen USUARIO/SISTEMA con actor
+  coherente y rechaza estado anterior sin nuevo o transición al mismo código.
+  Sin estados para eventos solo de datos. Código de acción se normaliza y su
+  lista/contexto se validará en el servicio, no por un estado nuevo del catálogo.
+- El constructor no determina roles, transiciones autorizadas o primer evento:
+  siguen pendientes junto con el servicio y escritura atómica de orden/historial/
+  auditoría cuando corresponda. Valores estructurados deben generarse con datos
+  permitidos del backend, no secretos o una entidad libre enviada por el cliente.
+- No se crearon archivos Java por el asistente; se solicita compilación manual
+  y revisión posterior. Solo fuentes leídas y documentación actualizada, sin
+  compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 167 Historial de orden y repositorio revisados
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó HistorialOrdenMantenimiento y su repositorio, guardó y aportó
+  compileJava BUILD SUCCESSFUL, una tarea ejecutada. Se leyeron ambos archivos
+  completos y contrastaron sus once campos con DER v5/RN-TRZ-01.
+- Tabla, PK Integer IDENTITY y cuatro FK correctas: orden obligatoria, estados
+  anterior/nuevo opcionales según evento y actor opcional según origen. LAZY,
+  sin cascadas destructivas ni unicidades que limiten la historia. Constructor
+  protegido sin argumentos válido para JPA; público de registro con fecha del
+  backend, normalización de acción/origen y observaciones correctas.
+- Se revisaron las comprobaciones de origen/actor, estado anterior sin nuevo
+  y transición al mismo código; getters sin setters y columnas/joins no
+  actualizables por JPA. El repositorio es interface JpaRepository parametrizado
+  con la entidad e Integer, en su paquete correcto. No se detectaron errores
+  de pegado, campos omitidos o correcciones Java necesarias en este bloque.
+- El formato de la condición Objects.equals difiere solo en sangría; no cambia
+  su funcionamiento ni justifica un cambio de código por esta revisión.
+- No se ejecutaron pruebas de constructor/validaciones, arranque/DDL o persistencia
+  real. Compilar no demuestra esos controles en ejecución. Quedan pendientes
+  las pruebas de entidades y el servicio que verificará acción/contexto, rol,
+  primer evento, transiciones, datos permitidos y escritura atómica con la orden.
+  updatable=false/no setters no son un bloqueo de SQL directo o borrado físico;
+  las operaciones normales del módulo no deben exponer esas escrituras.
+- Solo lectura de fuentes y actualización documental por el asistente, sin
+  cambios Java, compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 168 Pruebas unitarias de la entidad de orden preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisaron las entidades de orden/historial y el patrón JUnit 5 + Bean
+  Validation de TipoBicicletaTest. Para mantener el bloque manual acotado se
+  entregan primero instrucciones de OrdenMantenimientoTest; las pruebas del
+  historial se incorporarán después, sin omitirlas ni dar sus controles por probados.
+- Se proponen seis métodos: creación con campos iniciales y técnico opcional;
+  rechazo de referencias obligatorias nulas; costos conocidos cero/positivo/
+  máximo; rechazo de negativos, más de dos decimales y desbordamiento, sin
+  redondeo silencioso; normalización/validación de resultado y moneda; trim
+  de los cuatro textos. Fixture sin persistencia para probar esta entidad,
+  no existencia real de FK o validaciones propias de entidades relacionadas.
+- No se prueba ni aprueba importe sin moneda, resultado por transición,
+  rol/asignación de técnico, cronología o unicidad de una orden abierta;
+  son reglas del servicio todavía pendientes, no de estas seis pruebas.
+- Se indica ejecutar filtro OrdenMantenimientoTest junto con las doce pruebas
+  existentes del cargador: dieciocho previstas una vez creado el archivo.
+  No se creó el test, no se ejecutó Gradle ni se consultó/modificó MySQL.
+- Solo lectura de fuentes y actualización de documentación por el asistente,
+  sin cambios Java, pruebas/compilación, reinicios, navegador o escrituras Git.
+
+### Etapa 169 Dieciocho pruebas verificadas y pruebas de historial preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó OrdenMantenimientoTest y ejecutó los filtros de orden y
+  cargador con BUILD SUCCESSFUL. Se leyó el archivo completo sin errores de
+  pegado y los dos XML: seis pruebas de orden, timestamp 19:42:52.336Z, y doce
+  del cargador, timestamp 19:42:50.928Z; dieciocho sin fallos, errores u omisiones.
+  Las dos tareas actualizadas informadas por Gradle no se presentan como una
+  ejecución nueva de cada tarea. No se reejecutaron pruebas por el asistente.
+- Se entregan instrucciones manuales de HistorialOrdenMantenimientoTest con
+  ocho casos: creación humana normalizada/con datos conservados; creación
+  SISTEMA sin actor; transición efectiva; datos sin transición; orígenes o
+  actores incoherentes; estados incoherentes/iguales; orden ausente; acción
+  obligatoria y máximo 50. JUnit 5/Bean Validation, sin Spring o MySQL.
+- El usuario debe crear el archivo y ejecutar los tres filtros: veintiséis
+  pruebas previstas. El test del historial todavía no existe, no se crean
+  clases por el asistente y no se dan por comprobados esos ocho casos.
+- No se prueban aún permisos, lista de acciones autorizadas, primer evento,
+  datos permitidos, transición de negocio o persistencia/atomicidad. El fixture
+  solo verifica el constructor/atributos de historial, no FK reales o roles de
+  usuarios referenciados. Se mantienen pendientes las operaciones del servicio.
+- Solo lectura de fuentes/reportes y edición documental, sin cambios Java,
+  compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 170 Veintiséis pruebas verificadas y checkpoint del modelo preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó HistorialOrdenMantenimientoTest y ejecutó los tres filtros
+  indicados con BUILD SUCCESSFUL, dos tareas ejecutadas y dos actualizadas.
+  Archivo leído completo: ocho casos y helper correctos, sin correcciones
+  necesarias. Se verificaron tres XML: historial 8 (19:59:44.136Z), orden 6
+  (19:59:44.154Z), cargador 12 (19:59:42.799Z), todos del 8 de noviembre;
+  total veintiséis sin fallos, errores u omisiones. No se reejecutaron pruebas.
+- Se acredita el alcance unitario de constructor, atributos, validaciones y
+  carga en memoria. No se amplía a roles reales, transiciones autorizadas,
+  primera creación, escritura atómica, DDL/FK/UNIQUE o persistencia MySQL.
+- La base de modelos de soporte ya incluye tipos/estados, orden e historial,
+  repositorios, precarga y pruebas, todavía sin servicio técnico o endpoints.
+  Se indica guardar este incremento antes de continuar cabecera/detalles y
+  sus relaciones con incidencia. No se declara completo el módulo de mantenimiento
+  ni el nuevo circuito de alquiler; las dependencias no justifican atajos con
+  FK sueltas o tablas duplicadas.
+- La rama es codex/refactorizacion-practicas-iii y HEAD sigue b5d0893 antes
+  del checkpoint indicado al usuario. El asistente no ejecutó add/commit/push,
+  alteró Java, consultó SQL, arrancó/reinició procesos o usó navegador.
+- Se actualizaron índice, diario y estado parcial del documento 27; las
+  comprobaciones de integración y operaciones siguen pendientes.

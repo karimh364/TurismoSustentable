@@ -16,6 +16,10 @@ import DSII.TurismoSustentable.repositories.PaisRepository;
 import DSII.TurismoSustentable.repositories.RolRepository;
 import DSII.TurismoSustentable.repositories.TipoBicicletaRepository;
 import DSII.TurismoSustentable.repositories.TipoDocumentoRepository;
+import DSII.TurismoSustentable.models.EstadoOrdenMantenimiento;
+import DSII.TurismoSustentable.models.TipoMantenimiento;
+import DSII.TurismoSustentable.repositories.EstadoOrdenMantenimientoRepository;
+import DSII.TurismoSustentable.repositories.TipoMantenimientoRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -36,6 +40,8 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
     private final EstadoBicicletaRepository estadoBicicletaRepository;
     private final EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
     private final EstadoAlquilerRepository estadoAlquilerRepository;
+    private final EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository;
+    private final TipoMantenimientoRepository tipoMantenimientoRepository;
 
     public CargaCatalogosRefactor(
             RolRepository rolRepository,
@@ -45,7 +51,9 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
             TipoBicicletaRepository tipoBicicletaRepository,
             EstadoBicicletaRepository estadoBicicletaRepository,
             EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository,
-            EstadoAlquilerRepository estadoAlquilerRepository
+            EstadoAlquilerRepository estadoAlquilerRepository,
+            EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository,
+            TipoMantenimientoRepository tipoMantenimientoRepository
     ) {
         this.rolRepository = rolRepository;
         this.generoRepository = generoRepository;
@@ -55,6 +63,8 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
         this.estadoBicicletaRepository = estadoBicicletaRepository;
         this.estadoAlquilerDetalleRepository = estadoAlquilerDetalleRepository;
         this.estadoAlquilerRepository = estadoAlquilerRepository;
+        this.estadoOrdenMantenimientoRepository = estadoOrdenMantenimientoRepository;
+        this.tipoMantenimientoRepository = tipoMantenimientoRepository;
     }
 
     @Override
@@ -117,6 +127,41 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
             if (estadoAlquilerDetalleRepository.findByCodigo(codigo).isEmpty()) {
                 estadoAlquilerDetalleRepository.save(
                         new EstadoAlquilerDetalle(codigo)
+                );
+            }
+        }
+
+        // Tipos de mantenimiento aprobados.
+        TipoMantenimiento[] tiposMantenimiento = {
+                new TipoMantenimiento(
+                        "PREVENTIVO",
+                        "Revisión de rutina para prevenir fallas."
+                ),
+                new TipoMantenimiento(
+                        "CORRECTIVO",
+                        "Atención o reparación de una falla reportada o detectada."
+                )
+        };
+
+        for (TipoMantenimiento tipo : tiposMantenimiento) {
+            if (tipoMantenimientoRepository.findByCodigo(tipo.getCodigo()).isEmpty()) {
+                tipoMantenimientoRepository.save(tipo);
+            }
+        }
+
+        // Estados de avance de la orden de mantenimiento.
+        String[] estadosOrdenMantenimiento = {
+                "CREADA",
+                "EN_PROCESO",
+                "PAUSADA",
+                "FINALIZADA",
+                "CANCELADA"
+        };
+
+        for (String codigo : estadosOrdenMantenimiento) {
+            if (estadoOrdenMantenimientoRepository.findByCodigo(codigo).isEmpty()) {
+                estadoOrdenMantenimientoRepository.save(
+                        new EstadoOrdenMantenimiento(codigo)
                 );
             }
         }

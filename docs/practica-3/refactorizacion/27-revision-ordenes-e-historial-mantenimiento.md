@@ -8,6 +8,42 @@ Actualización aprobada del 2 de noviembre: RN-TRZ-01 amplía y renombra el hist
 
 Actualización aprobada del 4 de noviembre: [RN-MAN-02, sección 3.1](17-permisos-y-transiciones-mantenimiento.md), permite la pausa administrativa excepcional y desasignación al inactivar al técnico asignado. Se precisa tecnico_id opcional también en PAUSADA pendiente de reasignación por esa baja, sin nuevas tablas, campos, claves o relaciones. No se implementó en Java ni en una base de datos.
 
+Preparación del 8 de noviembre de 2026 (etapa 165 del documento 37): catálogos
+de tipo/estado y precarga revisados, doce pruebas unitarias del cargador
+verificadas. Se entregan instrucciones de entidad OrdenMantenimiento y su
+repositorio, todavía sin crear ni compilar. Precisión física propuesta para
+costo_repuestos: DECIMAL(12,2), no negativo cuando se conoce y sin cero por
+defecto. Las condiciones por transición y el historial siguen pendientes del
+servicio y su implementación, no se consideran resueltas por el mapeo JPA.
+
+Etapa 166: OrdenMantenimiento y repositorio creados manualmente y revisados,
+con compileJava correcto informado; sin controles/operaciones de servicio o
+persistencia real comprobados. Instrucciones de HistorialOrdenMantenimiento
+y repositorio entregadas conforme a los once campos de RN-TRZ-01, todavía
+sin crear ni probar. No se dan por implementadas las escrituras atómicas.
+
+Etapa 167: HistorialOrdenMantenimiento y repositorio creados por el usuario,
+leídos completos y contrastados con los once campos del DER, sin errores de
+pegado o correcciones Java necesarias. compileJava correcto informado; sin
+pruebas de constructor/validación o persistencia real todavía. Continúan
+pendientes servicio, permisos y registro atómico de orden/historial/auditoría.
+
+Etapa 168: instrucciones de seis pruebas unitarias de OrdenMantenimiento
+entregadas, todavía no creadas/ejecutadas. Se prueban atributos y Bean Validation
+sin Spring/MySQL, no FK reales ni reglas de transiciones; las del historial
+corresponden al bloque siguiente. No se sustituyen pruebas de integración.
+
+Etapa 169: OrdenMantenimientoTest creado y revisado; seis pruebas de orden
+y doce del cargador verificadas por XML sin fallos, errores u omisiones. Se
+entregan instrucciones de ocho pruebas del historial, todavía sin crear o
+ejecutar. Se prueban constructor y atributos, no el servicio o persistencia real.
+
+Etapa 170: HistorialOrdenMantenimientoTest creado manualmente y revisado sin
+correcciones; ocho pruebas del historial, seis de orden y doce del cargador
+verificadas por XML, cero fallos/errores/omisiones. Base de modelos comprobada
+en ese alcance unitario, no el módulo operativo o la persistencia real. Se
+indica checkpoint Git antes de continuar cabecera/detalles e incidencia.
+
 ## 1. Base de la revisión
 
 Se releyeron la sección de mantenimiento y los roles del diccionario original, los objetivos y requerimientos del PDF y sus referencias al trabajo técnico, y los campos de la orden e historial del DER v4. Se contrastaron con RN-MAN-01, RN-MAN-02, RN-MAN-03, RN-MAN-04, la baja de bicicleta, las incidencias aprobadas y el modelo v5. Los originales se conservan sin cambios.

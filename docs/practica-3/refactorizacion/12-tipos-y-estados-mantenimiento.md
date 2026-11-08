@@ -2,7 +2,30 @@
 
 Fecha de aprobación: 25 de octubre de 2026.
 
-Estado: aprobada la incorporación del catálogo TIPO_MANTENIMIENTO y de los cinco estados de ORDEN_MANTENIMIENTO. No implementados todavía en Java ni en una base de datos. Los permisos y las transiciones manuales se aprobaron posteriormente en RN-MAN-02; las decisiones expresamente pendientes siguen separadas.
+Estado vigente (etapa 164): TIPO_MANTENIMIENTO y ESTADO_ORDEN_MANTENIMIENTO implementados como entidades, repositorios y precarga en refactor; doce pruebas del cargador verificadas por XML, incluidas las dos nuevas de mantenimiento. No se ha comprobado aún su persistencia real ni se implementaron órdenes, transiciones o permisos técnicos. RN-MAN-02 y los demás pendientes continúan separados. Las notas siguientes conservan la secuencia histórica de preparación.
+
+Preparación del 8 de noviembre de 2026 (etapa 161 del documento 37): se
+entregan instrucciones manuales para entidad/repositorio de
+EstadoOrdenMantenimiento, como dependencia de la orden referenciada por
+AlquilerDetalle. No se crearon ni compilaron esos archivos todavía; no se
+precargaron registros ni se implementaron transiciones o permisos técnicos.
+
+Etapa 162: entidad EstadoOrdenMantenimiento y repositorio creados por el usuario,
+revisados y con compileJava correcto informado; sin precarga o flujo técnico.
+Se entregan instrucciones para TipoMantenimiento y repositorio (códigos
+PREVENTIVO/CORRECTIVO y descripción), todavía no creados ni probados. No se
+consideran implementadas las reglas de una orden por estos catálogos aislados.
+
+Etapa 163: TipoMantenimiento y repositorio creados manualmente, revisados y con
+compileJava correcto informado. Se entregan instrucciones para precarga de ambos
+catálogos y dos pruebas conjuntas, conservando las diez previas; todavía no se
+implementan ni ejecutan. Sin órdenes, transiciones, permisos o persistencia real
+comprobados por este paso.
+
+Etapa 164: bloques incorporados manualmente y revisados en cargador/test sin
+correcciones Java necesarias. Doce pruebas sin fallos, errores u omisiones;
+precarga exacta y repetida verificada con repositorios simulados. La ejecución
+no cargó MySQL ni demuestra todavía el funcionamiento del módulo de órdenes.
 
 ## 1. Separación aprobada
 

@@ -31,6 +31,8 @@ class CargaCatalogosRefactorTest {
     @Mock private EstadoBicicletaRepository estadoBicicletaRepository;
     @Mock private EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
     @Mock private EstadoAlquilerRepository estadoAlquilerRepository;
+    @Mock private EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository;
+    @Mock private TipoMantenimientoRepository tipoMantenimientoRepository;
     @InjectMocks private CargaCatalogosRefactor cargador;
 
     private final Map<String, Pais> paises = new HashMap<>();
@@ -445,4 +447,123 @@ class CargaCatalogosRefactorTest {
         verify(estadoAlquilerRepository, never())
                 .delete(any(EstadoAlquiler.class));
     }
+
+    @Test
+    void cargaTiposYEstadosMantenimientoAprobadosYValidos() {
+        cargador.run();
+
+        ArgumentCaptor<TipoMantenimiento> tipos =
+                ArgumentCaptor.forClass(TipoMantenimiento.class);
+        ArgumentCaptor<EstadoOrdenMantenimiento> estados =
+                ArgumentCaptor.forClass(EstadoOrdenMantenimiento.class);
+
+        verify(tipoMantenimientoRepository, times(2)).save(tipos.capture());
+        verify(estadoOrdenMantenimientoRepository, times(5)).save(estados.capture());
+
+        Set<String> codigosTipos = new HashSet<>();
+        Set<String> codigosEstados = new HashSet<>();
+
+        try (ValidatorFactory factory =
+                     Validation.buildDefaultValidatorFactory()) {
+
+            for (TipoMantenimiento tipo : tipos.getAllValues()) {
+                codigosTipos.add(tipo.getCodigo());
+                assertTrue(factory.getValidator().validate(tipo).isEmpty());
+            }
+
+            for (EstadoOrdenMantenimiento estado : estados.getAllValues()) {
+                codigosEstados.add(estado.getCodigo());
+                assertTrue(factory.getValidator().validate(estado).isEmpty());
+            }
+
+            TipoMantenimiento tipoNormalizado =
+                    new TipoMantenimiento(" preventivo ", " Revisión de rutina ");
+
+            assertEquals("PREVENTIVO", tipoNormalizado.getCodigo());
+            assertEquals("Revisión de rutina", tipoNormalizado.getDescripcion());
+            assertTrue(factory.getValidator().validate(tipoNormalizado).isEmpty());
+
+            EstadoOrdenMantenimiento estadoNormalizado =
+                    new EstadoOrdenMantenimiento(" en_proceso ");
+
+            assertEquals("EN_PROCESO", estadoNormalizado.getCodigo());
+            assertTrue(factory.getValidator().validate(estadoNormalizado).isEmpty());
+
+            String[] invalidos = {null, "", "   ", "INVENTADO", "X".repeat(21)};
+
+            for (String codigo : invalidos) {
+                assertFalse(factory.getValidator()
+                        .validate(new TipoMantenimiento(codigo, null)).isEmpty());
+                assertFalse(factory.getValidator()
+                        .validate(new EstadoOrdenMantenimiento(codigo)).isEmpty());
+            }
+
+            assertFalse(factory.getValidator()
+                    .validate(new TipoMantenimiento("CREADA", null)).isEmpty());
+            assertFalse(factory.getValidator()
+                    .validate(new EstadoOrdenMantenimiento("PREVENTIVO")).isEmpty());
+            assertFalse(factory.getValidator()
+                    .validate(new TipoMantenimiento("PREVENTIVO", "X".repeat(256)))
+                    .isEmpty());
+        }
+
+        assertEquals(Set.of("PREVENTIVO", "CORRECTIVO"), codigosTipos);
+        assertEquals(
+                Set.of("CREADA", "EN_PROCESO", "PAUSADA", "FINALIZADA", "CANCELADA"),
+                codigosEstados
+        );
+    }
+
+    @Test
+    void repetirCargaConservaTiposYEstadosMantenimientoExistentes() {
+        Map<String, TipoMantenimiento> tipos = new HashMap<>();
+        Map<String, EstadoOrdenMantenimiento> estados = new HashMap<>();
+
+        TipoMantenimiento preventivo =
+                new TipoMantenimiento("PREVENTIVO", "Descripción conservada");
+        EstadoOrdenMantenimiento creada =
+                new EstadoOrdenMantenimiento("CREADA");
+
+        tipos.put("PREVENTIVO", preventivo);
+        estados.put("CREADA", creada);
+
+        when(tipoMantenimientoRepository.findByCodigo(anyString()))
+                .thenAnswer(i -> Optional.ofNullable(tipos.get(i.getArgument(0))));
+        when(estadoOrdenMantenimientoRepository.findByCodigo(anyString()))
+                .thenAnswer(i -> Optional.ofNullable(estados.get(i.getArgument(0))));
+
+        when(tipoMantenimientoRepository.save(any(TipoMantenimiento.class)))
+                .thenAnswer(i -> {
+                    TipoMantenimiento tipo = i.getArgument(0);
+                    tipos.put(tipo.getCodigo(), tipo);
+                    return tipo;
+                });
+
+        when(estadoOrdenMantenimientoRepository.save(any(EstadoOrdenMantenimiento.class)))
+                .thenAnswer(i -> {
+                    EstadoOrdenMantenimiento estado = i.getArgument(0);
+                    estados.put(estado.getCodigo(), estado);
+                    return estado;
+                });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(2, tipos.size());
+        assertEquals(5, estados.size());
+        assertSame(preventivo, tipos.get("PREVENTIVO"));
+        assertSame(creada, estados.get("CREADA"));
+        assertEquals("Descripción conservada", preventivo.getDescripcion());
+
+        verify(tipoMantenimientoRepository, times(1))
+                .save(any(TipoMantenimiento.class));
+        verify(estadoOrdenMantenimientoRepository, times(4))
+                .save(any(EstadoOrdenMantenimiento.class));
+
+        verify(tipoMantenimientoRepository, never())
+                .delete(any(TipoMantenimiento.class));
+        verify(estadoOrdenMantenimientoRepository, never())
+                .delete(any(EstadoOrdenMantenimiento.class));
+    }
+
 }
