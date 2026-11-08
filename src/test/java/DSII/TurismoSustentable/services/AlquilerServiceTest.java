@@ -4,7 +4,7 @@ import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
 import DSII.TurismoSustentable.models.Alquiler;
 import DSII.TurismoSustentable.models.Bicicleta;
 import DSII.TurismoSustentable.models.Estacion;
-import DSII.TurismoSustentable.models.EstadoAlquiler;
+import DSII.TurismoSustentable.models.CodigoEstadoAlquiler;
 import DSII.TurismoSustentable.models.EstadoBicicleta;
 import DSII.TurismoSustentable.models.TipoBicicleta;
 import DSII.TurismoSustentable.models.Usuario;
@@ -244,7 +244,7 @@ class AlquilerServiceTest {
         BigDecimal esperado = PRECIO.divide(new BigDecimal("3600"), 10, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(segundos)).setScale(2, java.math.RoundingMode.HALF_UP);
         assertEquals(esperado, alquiler.getCostoTotal());
-        assertEquals(EstadoAlquiler.FINALIZADO, alquiler.getEstado());
+        assertEquals(CodigoEstadoAlquiler.FINALIZADO, alquiler.getEstado());
         assertEquals("DISPONIBLE", bicicleta.getEstado().getCodigo());
         assertSame(destino, bicicleta.getUbicacionActual());
         verify(trazabilidadInventario).estado(eq(bicicleta), any(EstadoBicicleta.class),
@@ -260,7 +260,7 @@ class AlquilerServiceTest {
                 .thenReturn(Optional.of(destino));
         assertThrows(DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException.class,
                 () -> alquilerService.finalizarAlquiler(10, "Destino QA"));
-        assertEquals(EstadoAlquiler.INICIADO, alquiler.getEstado());
+        assertEquals(CodigoEstadoAlquiler.INICIADO, alquiler.getEstado());
         assertEquals(FIN_ESTIMADO, alquiler.getFechaFin());
         assertNull(alquiler.getUbicacionDevolucion());
         assertEquals("EN_USO", bicicleta.getEstado().getCodigo());
@@ -351,7 +351,7 @@ class AlquilerServiceTest {
                 INICIO,
                 FIN_ESTIMADO,
                 COSTO_ESTIMADO,
-                EstadoAlquiler.INICIADO,
+                CodigoEstadoAlquiler.INICIADO,
                 origen,
                 null
         );
@@ -365,7 +365,7 @@ class AlquilerServiceTest {
     }
 
     private void comprobarDevolucionSinCambios(Alquiler alquiler) {
-        assertEquals(EstadoAlquiler.INICIADO, alquiler.getEstado());
+        assertEquals(CodigoEstadoAlquiler.INICIADO, alquiler.getEstado());
         assertEquals(INICIO, alquiler.getFechaInicio());
         assertEquals(FIN_ESTIMADO, alquiler.getFechaFin());
         assertEquals(COSTO_ESTIMADO, alquiler.getCostoTotal());

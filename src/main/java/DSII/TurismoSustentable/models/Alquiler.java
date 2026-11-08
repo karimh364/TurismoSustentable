@@ -45,7 +45,7 @@ public class Alquiler {
     // ------------------------------------
 
     @Enumerated(EnumType.STRING)
-    private EstadoAlquiler estado;
+    private CodigoEstadoAlquiler estado;
 
     private boolean borradoAlquiler = false;
 
@@ -66,7 +66,7 @@ public class Alquiler {
                 LocalDateTime.now(),
                 null,
                 BigDecimal.ZERO,
-                EstadoAlquiler.INICIADO,
+                CodigoEstadoAlquiler.INICIADO,
                 ubicacionRetiro,
                 null
         );
@@ -79,7 +79,7 @@ public class Alquiler {
             LocalDateTime fechaInicio,
             LocalDateTime fechaFin,
             BigDecimal costoTotal,
-            EstadoAlquiler estado,
+            CodigoEstadoAlquiler estado,
             Estacion ubicacionRetiro,
             Estacion ubicacionDevolucion
     ) {
@@ -129,7 +129,7 @@ public class Alquiler {
         return precioPorHoraAplicado;
     }
 
-    public EstadoAlquiler getEstado() {
+    public CodigoEstadoAlquiler getEstado() {
         return estado;
     }
 
@@ -180,7 +180,7 @@ public class Alquiler {
                 precioPorHoraAplicado;
     }
 
-    public void setEstado(EstadoAlquiler estado) {
+    public void setEstado(CodigoEstadoAlquiler estado) {
         this.estado = estado;
     }
 

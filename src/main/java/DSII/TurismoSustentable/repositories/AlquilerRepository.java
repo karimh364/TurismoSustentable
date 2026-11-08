@@ -16,7 +16,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
 
     boolean existsByBicicletaAndEstado(
             DSII.TurismoSustentable.models.Bicicleta bicicleta,
-            DSII.TurismoSustentable.models.EstadoAlquiler estado);
+            DSII.TurismoSustentable.models.CodigoEstadoAlquiler estado);
 
     /**
      * Agrupa alquileres finalizados por tipo de bicicleta
@@ -27,7 +27,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
      */
     @Query("SELECT a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo, COUNT(a.id) " +
             "FROM Alquiler a " +
-            "WHERE a.estado = DSII.TurismoSustentable.models.EstadoAlquiler.FINALIZADO " +
+            "WHERE a.estado = DSII.TurismoSustentable.models.CodigoEstadoAlquiler.FINALIZADO " +
             "GROUP BY a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo " +
             "ORDER BY a.usuario.persona.genero.codigo, COUNT(a.id) DESC")
     List<Object[]> contarPreferenciasBicicletaPorGenero();
@@ -38,7 +38,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
      * 2. CANTIDAD DE BICICLETAS ALQUILADAS
      * * Devuelve la cantidad de alquileres que están actualmente en curso (estado INICIADO).
      */
-    @Query("SELECT COUNT(a) FROM Alquiler a WHERE a.estado = DSII.TurismoSustentable.models.EstadoAlquiler.INICIADO")
+    @Query("SELECT COUNT(a) FROM Alquiler a WHERE a.estado = DSII.TurismoSustentable.models.CodigoEstadoAlquiler.INICIADO")
     Long contarBicicletasAlquiladasActuales();
 
     // ----------------------------------------------------------------------------------------------------

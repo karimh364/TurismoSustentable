@@ -4,6 +4,22 @@ Fecha de aprobación: 28 de octubre de 2026.
 
 Estado: seis estados iniciales confirmados y ampliación posterior RN-INC-01 con CERRADO_POR_INCIDENCIA; el catálogo de diseño tiene siete estados. La precisión económica de la sección 8 de RN-INC-01 también está aprobada. No implementado en Java ni en una base de datos. Los criterios de aceptación no se ejecutaron.
 
+Avance del 8 de noviembre de 2026, etapa 153 del documento 37: entidad
+EstadoAlquilerDetalle y repositorio creados manualmente, revisados y con
+compileJava correcto informado por el usuario. La precarga y las operaciones
+de AlquilerDetalle siguen pendientes; esta base de catálogo no implementa
+transiciones, reserva, retiro, cierre excepcional ni liquidación.
+
+Etapa 154: precarga de los siete códigos en CargaCatalogosRefactor y dos
+pruebas específicas incorporadas con autorización del usuario. Compilación,
+ejecución de pruebas y precarga real de este cambio todavía pendientes;
+no se modificó el proceso de alquiler ni se reinició la aplicación.
+
+Etapa 155: el XML de CargaCatalogosRefactorTest confirma ocho pruebas sin
+fallos, errores u omisiones, incluidas las dos de estados de detalle. La
+precarga se verificó con repositorios simulados; persiste pendiente comprobar
+el esquema/carga real y conectar los estados a las operaciones del detalle.
+
 ## 1. Alcance
 
 ALQUILER_DETALLE representa una bicicleta específica dentro de una contratación. Su estado describe el recorrido de esa unidad, no el estado del conjunto, la condición técnica de la bicicleta ni el resultado de un pago.

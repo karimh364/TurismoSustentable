@@ -197,7 +197,7 @@ public class BicicletaService {
         }
     }
     private void comprobarSinAlquiler(Bicicleta bicicleta) {
-        if (alquileres.existsByBicicletaAndEstado(bicicleta, EstadoAlquiler.INICIADO)) {
+        if (alquileres.existsByBicicletaAndEstado(bicicleta, CodigoEstadoAlquiler.INICIADO)) {
             throw error(HttpStatus.CONFLICT,
                     "La bicicleta tiene un alquiler activo. Debe finalizarse antes de editarla.");
         }

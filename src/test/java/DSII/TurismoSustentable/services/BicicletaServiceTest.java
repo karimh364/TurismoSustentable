@@ -127,7 +127,7 @@ class BicicletaServiceTest {
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.actualizar(1, solicitud));
     }
     @Test void alquilerAsociadoImpideEditarAunqueEstadoFueraIncoherente() {
-        when(alquileres.existsByBicicletaAndEstado(bici, EstadoAlquiler.INICIADO)).thenReturn(true);
+        when(alquileres.existsByBicicletaAndEstado(bici, CodigoEstadoAlquiler.INICIADO)).thenReturn(true);
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.actualizar(1, solicitud));
     }
     @Test void estadosDeProcesoNoSeLiberanDesdeEdicionGeneral() {
@@ -256,7 +256,7 @@ class BicicletaServiceTest {
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.eliminarLogico(1, dto));
     }
     @Test void eliminarConAlquilerAsociadoNoCierraElViajeNiLiberaLaBici() {
-        when(alquileres.existsByBicicletaAndEstado(bici, EstadoAlquiler.INICIADO)).thenReturn(true);
+        when(alquileres.existsByBicicletaAndEstado(bici, CodigoEstadoAlquiler.INICIADO)).thenReturn(true);
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.eliminarLogico(1, eliminacion()));
         verify(alquileres, never()).save(any());
     }

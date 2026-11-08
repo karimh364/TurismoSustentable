@@ -8093,3 +8093,210 @@ Fecha: 8 de noviembre de 2026.
   guardar el cambio y la evidencia en la rama actual mediante commit/push.
 - El asistente solo realizó SELECT y actualización documental; no alteró datos,
   código, procesos, navegador, pruebas o Git.
+
+### Etapa 153 Catálogo de estados de detalle creado manualmente y revisado
+
+Fecha: 8 de noviembre de 2026.
+
+- Se verificó el checkpoint 632c210 del bloque RN-INV-04 y la referencia remota
+  sin commits divergentes durante la revisión anterior. El usuario mantiene
+  implementación manual salvo autorización expresa para un bloque puntual.
+- El usuario creó EstadoAlquilerDetalle y EstadoAlquilerDetalleRepository y
+  aportó compileJava BUILD SUCCESSFUL, una tarea ejecutada. Se leyeron ambos
+  archivos: paquetes/rutas correctos, entidad estado_alquiler_detalle, PK Integer
+  generada, código obligatorio/único de hasta 30 caracteres, validación de los
+  siete códigos aprobados y normalización trim/mayúsculas con Locale.ROOT.
+  Repositorio interface JpaRepository y búsqueda Optional por código correctos.
+- No hay precarga ni consumidores de este catálogo todavía; no se modificó
+  EstadoAlquiler enum, Alquiler, su servicio o los endpoints existentes.
+  Compilar no acredita creación/UNIQUE en MySQL ni pruebas de validación.
+- Siguiente bloque manual: añadir su repositorio al constructor del cargador
+  refactor y crear solo estados faltantes; añadir el mock y pruebas específicas
+  de códigos válidos/carga repetida. Se entregan instrucciones, no se declara
+  implementada ni probada la precarga antes de revisar los cambios del usuario.
+- El asistente solo leyó fuentes y actualizó documentación, sin editar Java,
+  ejecutar compilación/pruebas, SQL, navegador, reinicios o escrituras Git.
+
+### Etapa 154 Precarga de estados de detalle y pruebas incorporadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario autorizó expresamente implementar solo los bloques 1 y 2 de la
+  propuesta anterior, reservándose guardar/comprobar (bloque 3). Se leyeron
+  las fuentes y se verificó que no había bloques ya pegados en cargador/test.
+  Se preservaron los cambios y el staging de las dos clases creadas por él.
+- CargaCatalogosRefactor incorpora los imports de entidad/repositorio, el
+  atributo final y su inyección por constructor, conservando las seis
+  dependencias anteriores. Dentro de run, antes de roles, agrega los siete
+  códigos aprobados de detalle y guarda solo los que no encuentra por código.
+  Continúan Profile refactor y la transacción existentes; no se cambian otros
+  catálogos, valores QA, entidades, endpoints o configuración de base.
+- CargaCatalogosRefactorTest incorpora el mock para la nueva dependencia y
+  dos pruebas: carga exacta/validación/normalización/rechazo de códigos ajenos;
+  y dos ejecuciones con RESERVADO ya existente, conservándolo y guardando solo
+  los seis faltantes. Se mantienen íntegramente las seis pruebas anteriores.
+  La comprobación de carga repetida usa repositorios simulados, no una prueba
+  de UNIQUE, concurrencia o persistencia real en MySQL.
+- Se revisó el diff y diff --check sin errores. No se ejecutaron Gradle,
+  compilación, pruebas, SQL o reinicios. El usuario debe ejecutar el filtro
+  CargaCatalogosRefactorTest; ocho métodos preparados, sin resultado todavía.
+  El proceso Java ya abierto no cargó este nuevo código por editar las fuentes.
+- Se actualizan índice y estado parcial de RN-ALQ-09. No se modifican
+  EstadoAlquiler enum, Alquiler, sus consumidores, DER, originales o Git.
+  La precarga no implementa aún los recorridos de AlquilerDetalle.
+
+### Etapa 155 Ocho pruebas del cargador verificadas y siguiente paso preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario ejecutó el filtro CargaCatalogosRefactorTest con BUILD SUCCESSFUL,
+  tres tareas ejecutadas y una actualizada. Se leyó su XML, timestamp
+  2026-11-08T18:34:58.110Z: ocho pruebas, cero fallos, errores u omisiones,
+  incluidas las dos nuevas sobre estados de detalle.
+- Se acredita la validación y carga repetida con repositorios simulados,
+  conservando las seis pruebas anteriores. No acredita DDL, UNIQUE, bloqueo
+  concurrente ni precarga real del proceso MySQL, que no se reinició.
+- La siguiente entidad aprobada es ESTADO_ALQUILER de la cabecera con RESERVADO,
+  EN_PROGRESO, FINALIZADO, CANCELADO y VENCIDO. El nombre Java está ocupado por
+  el enum legado (INICIADO, FINALIZADO, CANCELADO, RECHAZADO), todavía consumido
+  por Alquiler, sus repositorio/servicio, BicicletaService y dos clases de pruebas.
+- Se entregan instrucciones manuales para renombrar solo ese enum a
+  CodigoEstadoAlquiler y actualizar referencias, incluidas dos constantes en
+  cadenas JPQL. Es un paso temporal de compatibilidad, no un nuevo catálogo
+  de negocio, una nueva tabla ni un cambio de valores persistidos. Se retirará
+  con sus consumidores al conectar la nueva cabecera/detalles.
+- La entidad EstadoAlquiler todavía no se crea y no se cambia el flujo de
+  reservas/retiros. Se propone comprobar el renombre antes de crear la entidad
+  para evitar que las referencias antiguas se resuelvan silenciosamente al
+  nuevo tipo. No se ejecutó ese renombre ni otro cambio Java en esta etapa.
+- El asistente solo leyó fuentes/reportes y actualizó los MD; no ejecutó
+  pruebas, compilación, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 156 Renombre temporal del enum de alquiler implementado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario autorizó implementar exclusivamente el renombre y sus referencias,
+  dejando a su cargo el bloque 3 de guardar/comprobar. Se preservaron los
+  cambios previos y el staging de las clases del catálogo de detalle.
+- EstadoAlquiler.java se movió a CodigoEstadoAlquiler.java y su declaración
+  enum se renombró. Conserva INICIADO, FINALIZADO, CANCELADO y RECHAZADO, mismo
+  orden y comportamiento. No se creó aún la nueva entidad EstadoAlquiler.
+- Se actualizaron el tipo del atributo/constructor/getter/setter de Alquiler,
+  los usos de AlquilerService y la comprobación de alquiler activo de
+  BicicletaService. Se mantiene Enumerated STRING y sus valores persistidos;
+  no se modifican columnas, transiciones, importes o respuestas HTTP.
+- AlquilerRepository actualiza el parámetro de existsByBicicletaAndEstado y
+  las constantes de FINALIZADO/INICIADO en sus dos cadenas JPQL. Se adaptaron
+  import/referencias de AlquilerServiceTest y los dos casos de alquiler activo
+  de BicicletaServiceTest, sin cambiar sus expectativas o escenarios.
+- Una comparación estática de huellas antes/después, normalizando finales de
+  línea, confirma que los siete archivos solo cambiaron por la sustitución
+  exacta del identificador y el movimiento del enum. Búsqueda por palabra
+  completa sin referencias residuales a EstadoAlquiler en src; EstadoAlquilerDetalle
+  y su precarga no fueron alterados por este bloque. diff --check sin errores.
+- El usuario debe ejecutar los filtros CargaCatalogosRefactorTest,
+  AlquilerServiceTest, BicicletaServiceTest y BicicletaControllerTest. No se
+  ejecutaron aquí compilación, pruebas, arranque, SQL o escrituras Git.
+  Las pruebas unitarias no sustituyen la futura validación de JPQL al arrancar.
+- Este enum es compatibilidad temporal del flujo anterior y debe retirarse
+  con sus consumidores al conectar cabecera/detalles nuevos, no conservarse
+  como catálogo paralelo definitivo. DER y reglas aprobadas no se modifican.
+
+### Etapa 157 Renombre comprobado y entidad de estados de cabecera preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario ejecutó los cuatro filtros indicados con BUILD SUCCESSFUL, tres
+  tareas ejecutadas y una actualizada. Se leyeron sus XML: CargaCatalogosRefactorTest
+  8, AlquilerServiceTest 8, BicicletaServiceTest 35 y BicicletaControllerTest 15;
+  total 66, todos sin fallos, errores u omisiones. Timestamps del 8 de noviembre
+  entre 18:41:24.169Z y 18:41:26.217Z. No se reejecutaron por el asistente.
+- Se comprobó CodigoEstadoAlquiler con sus cuatro valores anteriores y ausencia
+  de referencias a la palabra completa EstadoAlquiler en src. El nombre queda
+  libre para la entidad del catálogo; no se comprobó aún JPQL mediante arranque.
+- Se entregan instrucciones manuales para crear EstadoAlquiler como entidad
+  estado_alquiler y EstadoAlquilerRepository, con PK Integer generada y código
+  obligatorio/único de hasta 20 caracteres, normalizado trim/mayúsculas y
+  restringido a RESERVADO, EN_PROGRESO, FINALIZADO, CANCELADO y VENCIDO.
+- No se implementaron esos archivos ni su precarga en esta etapa. Alquiler y
+  sus consumidores siguen temporalmente con CodigoEstadoAlquiler; no se agrega
+  todavía la FK ni se cambian transiciones, reservas o importes. Compilar luego
+  el nuevo catálogo no acreditará su carga en MySQL ni el módulo completo.
+- Solo lectura de reportes/fuentes y actualización documental por el asistente,
+  sin edición Java, compilación/pruebas, SQL, reinicios, navegador o cambios Git.
+
+### Etapa 158 Entidad y repositorio de estados de cabecera revisados
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó EstadoAlquiler y EstadoAlquilerRepository, guardó y aportó
+  compileJava BUILD SUCCESSFUL con una tarea ejecutada. Se leyeron ambos:
+  clase Entity/Table estado_alquiler, PK Integer IDENTITY, código obligatorio
+  y único de hasta 20 caracteres, cinco códigos aprobados y normalización
+  trim/mayúsculas Locale.ROOT correctos. Repositorio interface JpaRepository
+  con Optional findByCodigo correcto, ubicado en el paquete correspondiente.
+- Búsqueda de referencias confirma que la entidad nueva solo aparece en su
+  definición/repositorio. El flujo anterior mantiene CodigoEstadoAlquiler;
+  no se sustituyeron referencias de legado por la entidad de forma accidental.
+- La precarga de cabecera todavía no existe. Se entregan instrucciones manuales
+  para agregar imports, repositorio/constructor y carga de cinco estados
+  faltantes en CargaCatalogosRefactor, además del mock y dos pruebas análogas
+  a las del detalle. Las ocho pruebas existentes se deben conservar; serían
+  diez al incorporar las propuestas. No se declaran implementadas ni ejecutadas.
+- Compilar no acredita DDL/UNIQUE ni persistencia de este catálogo. No se
+  agregan FK o transiciones al alquiler ni se cambia DER, configuración o datos.
+- Solo lectura de fuentes y edición documental por el asistente; sin cambios
+  Java, compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 159 Precarga de estados de cabecera y dos pruebas incorporadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario autorizó implementar solo los bloques 1 y 2 de la propuesta de
+  precarga/pruebas, reservándose el bloque 3 de guardar y comprobar. Se leyó
+  el cargador y su test antes de editar; no había partes ya pegadas de cabecera.
+  Se preservaron los cambios previos y el staging de los archivos del usuario.
+- CargaCatalogosRefactor agrega imports de EstadoAlquiler y su repositorio,
+  atributo final e inyección por constructor, conservando las siete dependencias
+  anteriores. Dentro de run, antes de estados de detalle, carga RESERVADO,
+  EN_PROGRESO, FINALIZADO, CANCELADO y VENCIDO solo cuando no existen por código.
+  Se mantienen el perfil refactor, la transacción y todas las precargas previas.
+- CargaCatalogosRefactorTest incorpora el mock de la nueva dependencia y dos
+  métodos: cinco códigos exactos válidos, normalización y rechazo de códigos
+  ajenos/legados; y dos cargas con RESERVADO previo, conservándolo y guardando
+  solo los cuatro faltantes. Se mantienen las ocho pruebas anteriores.
+- No se modifican EstadoAlquiler, su repositorio, CodigoEstadoAlquiler, Alquiler
+  o sus consumidores; tampoco endpoints, frontend, seguridad, DER o configuración.
+  La precarga no conecta aún el catálogo nuevo al flujo de contratación.
+- Se revisaron fuentes/diff y diff --check sin errores. Diez métodos de prueba
+  preparados; ejecución pendiente del usuario mediante el filtro del cargador.
+  No se ejecutaron Gradle, compilación, pruebas, SQL, reinicios, navegador o
+  escrituras Git. El proceso Java abierto no se actualizó por editar las fuentes.
+- Se actualizan índice y avance parcial de RN-ALQ-07; la carga repetida se
+  comprobará con repositorios simulados, sin acreditar por ello UNIQUE,
+  concurrencia o persistencia real del catálogo en MySQL.
+
+### Etapa 160 Diez pruebas del cargador verificadas y checkpoint preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario ejecutó CargaCatalogosRefactorTest con BUILD SUCCESSFUL, tres tareas
+  ejecutadas y una actualizada. Se leyó el XML con timestamp
+  2026-11-08T18:51:52.742Z: diez pruebas, cero fallos, errores u omisiones,
+  incluidas carga/validación y repetición del nuevo catálogo de cabecera.
+- Quedan comprobadas las precargas de ambos catálogos de alquiler mediante
+  repositorios simulados. No se acredita DDL, UNIQUE real, evaluación JPQL
+  de repositorios ni carga en la aplicación abierta: no hubo nuevo arranque.
+- Se revisaron las relaciones de ALQUILER/ALQUILER_DETALLE en DER v5 y el
+  modelo actual. La nueva cabecera requiere sus campos/estado y detalles; el
+  detalle referencia además ORDEN_MANTENIMIENTO e INCIDENCIA, todavía ausentes.
+  La siguiente implementación debe organizar estas dependencias sin inventar
+  tablas paralelas ni sustituir FK por identificadores sueltos provisionales.
+- Antes de esa transformación coordinada se indica guardar en Git el bloque
+  ya comprobado: dos catálogos, repositorios, precarga, renombre del enum y
+  pruebas/documentación. La rama sigue codex/refactorizacion-practicas-iii y
+  HEAD 632c210; no se afirma otro commit o push hasta que el usuario lo ejecute.
+- Solo se leyeron fuentes/reportes/estado Git y se actualizó documentación.
+  El asistente no modificó Java, ejecutó pruebas/compilación, SQL, reinicios,
+  navegador ni escrituras Git. El ciclo nuevo de alquiler sigue pendiente.

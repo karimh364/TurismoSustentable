@@ -184,7 +184,7 @@ public class AlquilerService {
                 fechaInicio,
                 fechaFinEstimada,
                 costoEstimado,
-                EstadoAlquiler.INICIADO,
+                CodigoEstadoAlquiler.INICIADO,
                 estacionRetiro,
                 null
         );
@@ -226,7 +226,7 @@ public class AlquilerService {
                 );
 
         // Un viaje activo debe devolverse físicamente antes de borrarse
-        if (alquiler.getEstado() == EstadoAlquiler.INICIADO) {
+        if (alquiler.getEstado() == CodigoEstadoAlquiler.INICIADO) {
             throw new IllegalStateException(
                     "No se puede eliminar un alquiler en curso. " +
                             "Primero debe finalizarse indicando una estación de devolución."
@@ -271,7 +271,7 @@ public class AlquilerService {
         }
 
         // 4. Comprobar el estado
-        if (alquiler.getEstado() != EstadoAlquiler.INICIADO) {
+        if (alquiler.getEstado() != CodigoEstadoAlquiler.INICIADO) {
             throw new IllegalStateException(
                     "El alquiler ya fue finalizado o cancelado."
             );
@@ -327,7 +327,7 @@ public class AlquilerService {
         LocalDateTime fechaDevolucion = LocalDateTime.now();
 
         alquiler.setFechaFin(fechaDevolucion);
-        alquiler.setEstado(EstadoAlquiler.FINALIZADO);
+        alquiler.setEstado(CodigoEstadoAlquiler.FINALIZADO);
         alquiler.setUbicacionDevolucion(nuevaEstacion);
 
         // 8. Calcular duración real

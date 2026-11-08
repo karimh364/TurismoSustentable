@@ -2,7 +2,25 @@
 
 Actualizado: 8 de noviembre de 2026.
 
-Estado más reciente: etapa 152 del documento 37. RN-INV-04 está implementada:
+Estado más reciente: etapa 160 del documento 37. EstadoAlquilerDetalle y su
+repositorio fueron creados manualmente, revisados y compilados según salida
+del usuario. Precarga del catálogo en refactor y dos pruebas incorporadas con
+autorización puntual; ocho pruebas del cargador verificadas por XML, sin fallos,
+errores u omisiones, incluidas las dos nuevas de estados de detalle.
+No se reinició ni comprobó la precarga real en MySQL y no hay conexión a detalles
+todavía. El enum legado se renombró con autorización a CodigoEstadoAlquiler,
+incluidas referencias Java, pruebas y dos cadenas JPQL. Conserva los mismos
+valores; es compatibilidad temporal, no el catálogo nuevo. Renombre comprobado
+con 66 pruebas sin fallos/errores/omisiones en los cuatro XML. EstadoAlquiler
+y su repositorio fueron creados manualmente, revisados y compilados según salida
+del usuario. Precarga de sus cinco estados y dos pruebas incorporadas con
+autorización puntual, conservando las ocho anteriores. Diez pruebas del cargador
+verificadas por XML sin fallos/errores/omisiones, sin conectar aún el flujo legado
+a la entidad nueva ni comprobar la carga real en MySQL. Siguiente paso: checkpoint
+Git de este bloque y organización de cabecera/detalles con sus dependencias del
+DER, sin tablas paralelas o identificadores provisionales en lugar de FK.
+El checkpoint de inventario se guardó en
+632c210; las cifras y resultados siguientes corresponden a RN-INV-04:
 50 pruebas Java sin fallos/errores/omisiones corroboradas por XML y 15 Node
 correctas según salida aportada por el usuario. Retirada de QA-RET-01 desde
 pública verificada: fila conservada, DE_BAJA, borrado true, ubicación nula,
@@ -12,8 +30,8 @@ La pública quedó vacía/dos libres; Taller una presente/cuatro libres, según 
 INV04-01 verificado: Dar de baja desde pública rechazado, sin cambios ni
 eventos de éxito. INV04-02 verificado en su variante cancelar: texto correcto
 y sin cambios/eventos nuevos. INV04-03 e INV04-04 verificados, incluida la
-consulta visual de eliminadas informada por el usuario. Cambio puntual validado;
-pendiente guardar el avance mediante commit/push, sin dar por completo el DER.
+consulta visual de eliminadas informada por el usuario. Cambio puntual validado
+y guardado mediante commit/push, sin dar por completo el DER.
 Eliminar con retirada física confirmada admite
 origen público o interno activo; Dar de baja sin eliminar sigue exigiendo
 Taller. No cambia permisos, estados ni estructura del DER. La etapa 145 y

@@ -29,6 +29,8 @@ class CargaCatalogosRefactorTest {
     @Mock private PaisRepository paisRepository;
     @Mock private TipoBicicletaRepository tipoBicicletaRepository;
     @Mock private EstadoBicicletaRepository estadoBicicletaRepository;
+    @Mock private EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
+    @Mock private EstadoAlquilerRepository estadoAlquilerRepository;
     @InjectMocks private CargaCatalogosRefactor cargador;
 
     private final Map<String, Pais> paises = new HashMap<>();
@@ -264,5 +266,183 @@ class CargaCatalogosRefactorTest {
 
         verify(estadoBicicletaRepository, never())
                 .delete(any(EstadoBicicleta.class));
+    }
+
+    @Test
+    void cargaEstadosDetalleAprobadosYValidos() {
+        cargador.run();
+
+        ArgumentCaptor<EstadoAlquilerDetalle> captor =
+                ArgumentCaptor.forClass(EstadoAlquilerDetalle.class);
+
+        verify(estadoAlquilerDetalleRepository, times(7))
+                .save(captor.capture());
+
+        Set<String> codigos = new HashSet<>();
+
+        try (ValidatorFactory factory =
+                     Validation.buildDefaultValidatorFactory()) {
+
+            for (EstadoAlquilerDetalle estado : captor.getAllValues()) {
+                codigos.add(estado.getCodigo());
+                assertTrue(
+                        factory.getValidator().validate(estado).isEmpty()
+                );
+            }
+
+            EstadoAlquilerDetalle normalizado =
+                    new EstadoAlquilerDetalle(" pendiente_retiro ");
+
+            assertEquals("PENDIENTE_RETIRO", normalizado.getCodigo());
+            assertTrue(
+                    factory.getValidator().validate(normalizado).isEmpty()
+            );
+
+            String[] invalidos = {
+                    null, "", "   ", "INVENTADO",
+                    "EN_PROGRESO", "DEVUELTA_OK", "X".repeat(31)
+            };
+
+            for (String codigo : invalidos) {
+                assertFalse(
+                        factory.getValidator()
+                                .validate(new EstadoAlquilerDetalle(codigo))
+                                .isEmpty(),
+                        "Debería rechazar el código: " + codigo
+                );
+            }
+        }
+
+        assertEquals(
+                Set.of(
+                        "RESERVADO", "PENDIENTE_RETIRO", "EN_CURSO",
+                        "DEVUELTO", "CANCELADO", "VENCIDO",
+                        "CERRADO_POR_INCIDENCIA"
+                ),
+                codigos
+        );
+    }
+
+    @Test
+    void repetirLaCargaNoDuplicaNiReemplazaEstadosDetalleExistentes() {
+        Map<String, EstadoAlquilerDetalle> estados = new HashMap<>();
+
+        EstadoAlquilerDetalle reservado =
+                new EstadoAlquilerDetalle("RESERVADO");
+
+        estados.put("RESERVADO", reservado);
+
+        when(estadoAlquilerDetalleRepository.findByCodigo(anyString()))
+                .thenAnswer(invocacion -> Optional.ofNullable(
+                        estados.get(invocacion.getArgument(0))
+                ));
+
+        when(estadoAlquilerDetalleRepository.save(
+                any(EstadoAlquilerDetalle.class)
+        )).thenAnswer(invocacion -> {
+            EstadoAlquilerDetalle estado = invocacion.getArgument(0);
+            estados.put(estado.getCodigo(), estado);
+            return estado;
+        });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(7, estados.size());
+        assertSame(reservado, estados.get("RESERVADO"));
+
+        // RESERVADO ya existía: solo se guardan los otros seis.
+        verify(estadoAlquilerDetalleRepository, times(6))
+                .save(any(EstadoAlquilerDetalle.class));
+
+        verify(estadoAlquilerDetalleRepository, never())
+                .delete(any(EstadoAlquilerDetalle.class));
+    }
+
+    @Test
+    void cargaEstadosCabeceraAprobadosYValidos() {
+        cargador.run();
+
+        ArgumentCaptor<EstadoAlquiler> captor =
+                ArgumentCaptor.forClass(EstadoAlquiler.class);
+
+        verify(estadoAlquilerRepository, times(5))
+                .save(captor.capture());
+
+        Set<String> codigos = new HashSet<>();
+
+        try (ValidatorFactory factory =
+                     Validation.buildDefaultValidatorFactory()) {
+
+            for (EstadoAlquiler estado : captor.getAllValues()) {
+                codigos.add(estado.getCodigo());
+                assertTrue(
+                        factory.getValidator().validate(estado).isEmpty()
+                );
+            }
+
+            EstadoAlquiler normalizado =
+                    new EstadoAlquiler(" en_progreso ");
+
+            assertEquals("EN_PROGRESO", normalizado.getCodigo());
+            assertTrue(
+                    factory.getValidator().validate(normalizado).isEmpty()
+            );
+
+            String[] invalidos = {
+                    null, "", "   ", "INVENTADO",
+                    "INICIADO", "RECHAZADO", "EN_CURSO", "X".repeat(21)
+            };
+
+            for (String codigo : invalidos) {
+                assertFalse(
+                        factory.getValidator()
+                                .validate(new EstadoAlquiler(codigo))
+                                .isEmpty(),
+                        "Debería rechazar el código: " + codigo
+                );
+            }
+        }
+
+        assertEquals(
+                Set.of(
+                        "RESERVADO", "EN_PROGRESO", "FINALIZADO",
+                        "CANCELADO", "VENCIDO"
+                ),
+                codigos
+        );
+    }
+
+    @Test
+    void repetirLaCargaNoDuplicaNiReemplazaEstadosCabeceraExistentes() {
+        Map<String, EstadoAlquiler> estados = new HashMap<>();
+
+        EstadoAlquiler reservado = new EstadoAlquiler("RESERVADO");
+        estados.put("RESERVADO", reservado);
+
+        when(estadoAlquilerRepository.findByCodigo(anyString()))
+                .thenAnswer(invocacion -> Optional.ofNullable(
+                        estados.get(invocacion.getArgument(0))
+                ));
+
+        when(estadoAlquilerRepository.save(any(EstadoAlquiler.class)))
+                .thenAnswer(invocacion -> {
+                    EstadoAlquiler estado = invocacion.getArgument(0);
+                    estados.put(estado.getCodigo(), estado);
+                    return estado;
+                });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(5, estados.size());
+        assertSame(reservado, estados.get("RESERVADO"));
+
+        // RESERVADO ya existía: solo se guardan los otros cuatro.
+        verify(estadoAlquilerRepository, times(4))
+                .save(any(EstadoAlquiler.class));
+
+        verify(estadoAlquilerRepository, never())
+                .delete(any(EstadoAlquiler.class));
     }
 }

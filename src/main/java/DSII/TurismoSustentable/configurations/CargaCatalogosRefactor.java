@@ -1,11 +1,15 @@
 package DSII.TurismoSustentable.configurations;
 
+import DSII.TurismoSustentable.models.EstadoAlquiler;
+import DSII.TurismoSustentable.models.EstadoAlquilerDetalle;
 import DSII.TurismoSustentable.models.EstadoBicicleta;
 import DSII.TurismoSustentable.models.Genero;
 import DSII.TurismoSustentable.models.Pais;
 import DSII.TurismoSustentable.models.Rol;
 import DSII.TurismoSustentable.models.TipoBicicleta;
 import DSII.TurismoSustentable.models.TipoDocumento;
+import DSII.TurismoSustentable.repositories.EstadoAlquilerRepository;
+import DSII.TurismoSustentable.repositories.EstadoAlquilerDetalleRepository;
 import DSII.TurismoSustentable.repositories.EstadoBicicletaRepository;
 import DSII.TurismoSustentable.repositories.GeneroRepository;
 import DSII.TurismoSustentable.repositories.PaisRepository;
@@ -30,6 +34,8 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
     private final PaisRepository paisRepository;
     private final TipoBicicletaRepository tipoBicicletaRepository;
     private final EstadoBicicletaRepository estadoBicicletaRepository;
+    private final EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
+    private final EstadoAlquilerRepository estadoAlquilerRepository;
 
     public CargaCatalogosRefactor(
             RolRepository rolRepository,
@@ -37,7 +43,9 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
             TipoDocumentoRepository tipoDocumentoRepository,
             PaisRepository paisRepository,
             TipoBicicletaRepository tipoBicicletaRepository,
-            EstadoBicicletaRepository estadoBicicletaRepository
+            EstadoBicicletaRepository estadoBicicletaRepository,
+            EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository,
+            EstadoAlquilerRepository estadoAlquilerRepository
     ) {
         this.rolRepository = rolRepository;
         this.generoRepository = generoRepository;
@@ -45,6 +53,8 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
         this.paisRepository = paisRepository;
         this.tipoBicicletaRepository = tipoBicicletaRepository;
         this.estadoBicicletaRepository = estadoBicicletaRepository;
+        this.estadoAlquilerDetalleRepository = estadoAlquilerDetalleRepository;
+        this.estadoAlquilerRepository = estadoAlquilerRepository;
     }
 
     @Override
@@ -71,6 +81,42 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
             if (estadoBicicletaRepository.findByCodigo(codigo).isEmpty()) {
                 estadoBicicletaRepository.save(
                         new EstadoBicicleta(codigo)
+                );
+            }
+        }
+
+        // Estados de la cabecera del alquiler aprobados en el diccionario.
+        String[] estadosAlquiler = {
+                "RESERVADO",
+                "EN_PROGRESO",
+                "FINALIZADO",
+                "CANCELADO",
+                "VENCIDO"
+        };
+
+        for (String codigo : estadosAlquiler) {
+            if (estadoAlquilerRepository.findByCodigo(codigo).isEmpty()) {
+                estadoAlquilerRepository.save(
+                        new EstadoAlquiler(codigo)
+                );
+            }
+        }
+
+        // Estados del detalle de alquiler aprobados en el diccionario.
+        String[] estadosDetalleAlquiler = {
+                "RESERVADO",
+                "PENDIENTE_RETIRO",
+                "EN_CURSO",
+                "DEVUELTO",
+                "CANCELADO",
+                "VENCIDO",
+                "CERRADO_POR_INCIDENCIA"
+        };
+
+        for (String codigo : estadosDetalleAlquiler) {
+            if (estadoAlquilerDetalleRepository.findByCodigo(codigo).isEmpty()) {
+                estadoAlquilerDetalleRepository.save(
+                        new EstadoAlquilerDetalle(codigo)
                 );
             }
         }

@@ -4,6 +4,34 @@ Fecha de aprobación: 25 de octubre de 2026.
 
 Estado: aprobada para implementar. No implementada en la nueva versión ni verificada mediante pruebas de ejecución.
 
+Preparación del 8 de noviembre de 2026 (etapa 156 del documento 37): el enum
+anterior se renombró temporalmente a CodigoEstadoAlquiler con sus consumidores,
+sin cambiar sus códigos. La entidad EstadoAlquiler del DER v5 todavía no se
+creó; este renombre no implementa los estados o transiciones de esta regla.
+Comprobación de compilación/pruebas pendiente del usuario.
+
+Etapa 157: renombre corroborado con 66 pruebas sin fallos/errores/omisiones
+en cuatro reportes XML. Instrucciones manuales de entidad EstadoAlquiler y
+repositorio entregadas, todavía no creados ni precargados. Los recorridos de
+cabecera continúan pendientes; los tests ejecutados corresponden a la
+compatibilidad del flujo anterior, no a las transiciones nuevas de esta regla.
+
+Etapa 158: EstadoAlquiler y su repositorio creados por el usuario, revisados
+y con compileJava correcto informado. Cinco códigos permitidos, clave primaria
+y unicidad declaradas; precarga, pruebas específicas y conexión con la cabecera
+pendientes. No se acreditó aún persistencia/UNIQUE en una base real.
+
+Etapa 159: precarga de los cinco códigos en el perfil refactor y dos pruebas
+incorporadas con autorización del usuario; las ocho previas se conservan.
+Compilación/ejecución de este cambio pendientes del usuario. No se modificó
+el alquiler legado ni se acreditó carga/persistencia real en MySQL.
+
+Etapa 160: diez pruebas del cargador verificadas por XML, cero fallos, errores
+u omisiones, incluidas las dos nuevas de cabecera. Catálogo/precarga comprobados
+con repositorios simulados; conexión a Alquiler, transiciones y persistencia
+real del nuevo esquema siguen pendientes. No hubo reinicio ni prueba de negocio
+de las operaciones nuevas de esta regla.
+
 ## 1. Alcance
 
 La cabecera ALQUILER resume la contratación y el uso del conjunto de bicicletas. Su estado no sustituye la situación financiera ni el estado operativo de cada bicicleta.
