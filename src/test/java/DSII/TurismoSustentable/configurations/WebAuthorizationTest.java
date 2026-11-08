@@ -1,6 +1,8 @@
 package DSII.TurismoSustentable.configurations;
 
 import DSII.TurismoSustentable.controllers.EstacionController;
+import DSII.TurismoSustentable.controllers.BicicletaController;
+import DSII.TurismoSustentable.services.BicicletaService;
 import DSII.TurismoSustentable.controllers.UsuarioController;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
@@ -47,11 +49,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(controllers = {
         UsuarioController.class,
-        EstacionController.class
+        EstacionController.class,
+        BicicletaController.class
 })
 @ContextConfiguration(classes = {
         UsuarioController.class,
         EstacionController.class,
+        BicicletaController.class,
         WebAuthorization.class,
         SecurityConfig.class
 })
@@ -90,6 +94,56 @@ class WebAuthorizationTest {
 
     @MockBean
     private BicicletaRepository bicicletaRepository;
+
+    @MockBean
+    private BicicletaService bicicletaService;
+
+    @Test
+    void inventarioAnonimoExigeSesion() throws Exception {
+        mockMvc.perform(get("/api/admin/tipos-bicicleta")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/bicicletas").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/bicicletas").param("incluirEliminadas", "true"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"motivo\":\"Retiro QA\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(bicicletaService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void administradorPuedeConsultarTiposYTarifas() throws Exception {
+        when(bicicletaService.listarTipos()).thenReturn(List.of());
+        mockMvc.perform(get("/api/admin/tipos-bicicleta"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        verify(bicicletaService).listarTipos();
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void administradorPuedeConsultarElListadoConYSinEliminadas() throws Exception {
+        when(bicicletaService.listar(false)).thenReturn(List.of());
+        when(bicicletaService.listar(true)).thenReturn(List.of());
+        mockMvc.perform(get("/api/bicicletas"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        mockMvc.perform(get("/api/bicicletas").param("incluirEliminadas", "true"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        verify(bicicletaService).listar(false);
+        verify(bicicletaService).listar(true);
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void administradorPuedeEnviarEliminacionConSalidaConfirmada() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"motivo\":\"Retiro QA\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isNoContent());
+        verify(bicicletaService).eliminarLogico(eq(1),
+                any(DSII.TurismoSustentable.dto.EliminarBicicletaDTO.class));
+    }
 
     // Simulamos la carga de cuentas; los filtros y BCrypt son reales.
     @MockBean
@@ -425,7 +479,9 @@ class WebAuthorizationTest {
                 "/api/usuarios",
                 "/api/usuarios/99",
                 "/api/admin/estadisticas/resumen",
-                "/api/admin/estaciones"
+                "/api/admin/estaciones",
+                "/api/bicicletas",
+                "/api/admin/tipos-bicicleta"
         };
 
         for (String ruta : rutas) {
@@ -433,10 +489,29 @@ class WebAuthorizationTest {
                     .andExpect(status().isForbidden());
         }
 
+        mockMvc.perform(get("/api/bicicletas").param("incluirEliminadas", "true"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"motivo\":\"Retiro QA\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isForbidden());
+
         mockMvc.perform(post("/api/estaciones")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(ALTA_ESTACION_JSON))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .put("/api/admin/tipos-bicicleta/1/tarifa")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"precioPorHoraUsd\":12.00,\"precioAnterior\":10.00}"))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .patch("/api/admin/bicicletas/1/estado/EN_USO")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"version\":0,\"motivo\":\"No permitido\"}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(bicicletaService);
 
         verifyNoInteractions(
                 usuarioRepository,

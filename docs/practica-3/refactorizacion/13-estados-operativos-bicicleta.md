@@ -1,5 +1,21 @@
 # RN-BIC-01: estados operativos de la bicicleta
 
+Regla vigente adicional aprobada el 8 de noviembre de 2026: RN-INV-03
+(documento 26, sección 9) permite a ADMIN la baja EXTRAVIADA a DE_BAJA por
+pérdida definitiva confirmada y trazada, con detalle cerrado y sin procesos
+incompatibles, sin exigir Taller ni inventar recepción. La eliminación lógica
+posterior requiere ese respaldo y no libera cupos ficticios. Sustituye las
+prohibiciones absolutas de baja sin recuperación de la revisión del 6 de
+noviembre. Su código queda pendiente de integrar incidencias.
+
+Actualización aprobada el 8 de noviembre de 2026: RN-INV-02, sección 8 del
+documento 26, reemplaza el archivo que conservaba ubicación. Eliminar exige
+confirmación de retirada física y registra conjuntamente DE_BAJA,
+borrado_bici true y estacion_id nulo, con auditoría e historial si cambia el
+estado. Dar de baja sin eliminar sigue conservando la ocupación. Las menciones
+anteriores al borrado sin salida corresponden a la regla sustituida.
+No se agregan estados ni se implementa el cambio mediante esta anotación.
+
 Fecha de aprobación: 25 de octubre de 2026.
 
 Estado: seis estados iniciales aprobados y ampliación posterior RN-INC-01 con EXTRAVIADA. El catálogo de diseño tiene siete estados. RN-BIC-02 aprueba la administración y RN-INC-01 el circuito mínimo de incidencias; la precisión económica de su sección 8 también está aprobada. No implementado todavía en Java ni en una base de datos.
@@ -58,7 +74,13 @@ El 28 de octubre se aprobó en [RN-MAN-02](17-permisos-y-transiciones-mantenimie
 
 La INACTIVA administrativa no es una vía para saltarse una revisión técnica pendiente. Las operaciones de habilitación deben verificar los impedimentos aplicables, no aceptar libremente el estado enviado por el frontend.
 
-Una EXTRAVIADA recuperada pasa a MANTENIMIENTO con recepción y ubicación reales y revisión antes de habilitar. No se habilita por el solo hecho de encontrarla ni se le inventa una estación. La condición de Taller aprobada en RN-INV-01 restringe la anterior excepción de baja sin recepción: una unidad no recuperada conserva EXTRAVIADA; su baja definitiva requiere presencia real en Taller, motivo, detalle cerrado y ausencia de órdenes abiertas incompatibles. Esto no modifica el cierre contractual o financiero. La recuperación posterior no revierte automáticamente una DE_BAJA de legado.
+Una EXTRAVIADA recuperada pasa a MANTENIMIENTO con recepción y ubicación reales
+y revisión antes de habilitar. No se habilita por encontrarla ni se inventa
+una estación. Si permanece ausente, RN-INV-03 permite baja por pérdida
+definitiva con incidencia confirmada, decisión/motivo de ADMIN, detalle cerrado
+y sin operaciones incompatibles; conserva ubicación nula. No es automática ni
+modifica por sí sola la situación financiera. Una recuperación posterior a
+DE_BAJA no revierte la baja ni restaura el registro automáticamente.
 
 ## 5. Criterios de aceptación
 

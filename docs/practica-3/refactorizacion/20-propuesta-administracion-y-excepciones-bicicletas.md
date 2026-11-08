@@ -1,5 +1,21 @@
 # RN-BIC-02 Administración de bicicletas y límites de incidencias
 
+Excepción adicional aprobada el 8 de noviembre de 2026: RN-INV-03 (documento
+26, sección 9) habilita baja por pérdida definitiva desde EXTRAVIADA sin Taller,
+respaldada por incidencia confirmada, detalle cerrado, decisión administrativa
+y ausencia de operaciones incompatibles. La eliminación lógica posterior
+exige ese antecedente, no una falsa confirmación de retirada física.
+No se permite cualquier DE_BAJA sin ubicación ni un cambio libre desde inventario.
+No implementado todavía: se conectará con incidencias.
+
+Actualización aprobada el 8 de noviembre de 2026: el recorrido Eliminar de
+RN-INV-02 (documento 26, sección 8) sustituye el borrado que conservaba estado
+y presencia física descrito como antecedente en este documento. Con confirmación
+de retirada real, ADMIN registra en una transacción DE_BAJA, borrado_bici true
+y estacion_id nulo, bajo los controles previos del Taller y procesos pendientes.
+Se conserva historia y auditoría. Dar de baja por sí solo no libera lugar.
+No se agrega otra operación obligatoria de salida ni nuevas tablas.
+
 Fecha de propuesta: 28 de octubre de 2026.
 
 Fecha de aprobación de las reglas administrativas 1 a 6: 28 de octubre de 2026.

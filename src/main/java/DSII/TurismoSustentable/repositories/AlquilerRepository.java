@@ -9,17 +9,26 @@ import java.util.List;
 
 public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
 
+    @org.springframework.data.jpa.repository.Lock(javax.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT a FROM Alquiler a WHERE a.id = :id")
+    java.util.Optional<Alquiler> buscarPorIdConBloqueo(
+            @org.springframework.data.repository.query.Param("id") Integer id);
+
+    boolean existsByBicicletaAndEstado(
+            DSII.TurismoSustentable.models.Bicicleta bicicleta,
+            DSII.TurismoSustentable.models.EstadoAlquiler estado);
+
     /**
      * Agrupa alquileres finalizados por tipo de bicicleta
      * y código de género de la persona.
      *
      * Cada fila contiene:
-     * [CodigoTipoBicicleta, String codigoGenero, Long cantidad].
+     * [String codigoTipoBicicleta, String codigoGenero, Long cantidad].
      */
-    @Query("SELECT a.bicicleta.tipo, a.usuario.persona.genero.codigo, COUNT(a.id) " +
+    @Query("SELECT a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo, COUNT(a.id) " +
             "FROM Alquiler a " +
             "WHERE a.estado = DSII.TurismoSustentable.models.EstadoAlquiler.FINALIZADO " +
-            "GROUP BY a.bicicleta.tipo, a.usuario.persona.genero.codigo " +
+            "GROUP BY a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo " +
             "ORDER BY a.usuario.persona.genero.codigo, COUNT(a.id) DESC")
     List<Object[]> contarPreferenciasBicicletaPorGenero();
 

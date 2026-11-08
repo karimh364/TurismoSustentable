@@ -1,6 +1,16 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 7 de noviembre de 2026.
+Actualizado: 8 de noviembre de 2026.
+
+Estado más reciente: etapa 145 del documento 37. RN-INV-02 está implementada:
+121 pruebas Java verificadas por XML y 15 Node informadas correctas. Se reinició
+el entorno QA y se comprobaron altas, capacidad, traslado, pausa/habilitación,
+baja y eliminación física con persistencia/trazabilidad, consulta visual de
+eliminadas, conflicto de versión y eliminación directa desde DISPONIBLE.
+Los casos exclusivamente automáticos se distinguen en el documento 39.
+RN-INV-03 aprueba la excepción por pérdida
+definitiva sin Taller (documento 26, sección 9); no está implementada y se
+conectará con incidencias. No cambian las 29 entidades/55 relaciones.
 
 ## Cómo leer la documentación
 
@@ -27,7 +37,7 @@ El 28 de octubre de 2026 el usuario ratificó que el desarrollo principal es est
 
 Se inspeccionaron en modo lectura las copias entrega-v3.2-registro-imagenes-admin y entrega-v3.6-correos-y-libro-diario. La comparación de la v3.6 con la v3.2 confirmó nuevas funciones de correo, comprobantes y cierre diario, pero conserva diferencias con las reglas aprobadas de este repositorio. No se integraron esas copias ni se reprodujeron sus pruebas durante la revisión. El documento 38 registra propuestas de mejora, no una autorización para sustituir esta base ni importar su SQL.
 
-Como referencia histórica, el diagnóstico anterior a la implementación tomó main en ab91d6a, su CommandLineRunner y el enum de rol único. Esa descripción no es el estado actual de la refactorización. El trabajo continúa en codex/refactorizacion-practicas-iii; su avance y comprobaciones están documentados en el archivo 37. Rol, UsuarioRol y su clave compuesta ya se incorporaron como entidades; CodigoRol ya no existe ni tiene referencias en src. TipoBicicleta y EstadoBicicleta ya existen como entidades con repositorios y precarga en refactor. Los enums anteriores se renombraron a CodigoTipoBicicleta y CodigoEstadoBicicleta, y sus consumidores actuales siguen utilizándolos transitoriamente. No se consideran aún adaptadas las FK, la tarifa por tipo ni el circuito operativo nuevo de Bicicleta.
+Como referencia histórica, el diagnóstico anterior a la implementación tomó main en ab91d6a, su CommandLineRunner y el enum de rol único. Esa descripción no es el estado actual de la refactorización. El trabajo continúa en codex/refactorizacion-practicas-iii; su avance y comprobaciones están documentados en el archivo 37. Rol, UsuarioRol y su clave compuesta ya se incorporaron como entidades; CodigoRol ya no existe ni tiene referencias en src. TipoBicicleta y EstadoBicicleta existen como entidades con repositorios y precarga en refactor. En la etapa 119 se conectó Bicicleta a esos catálogos mediante FK, se incorporaron fecha_alta/version y se retiraron el precio por unidad y los enums transitorios CodigoTipoBicicleta/CodigoEstadoBicicleta. Se adaptaron inventario, consumidores, tarifa por tipo y compatibilidad con el alquiler existente, más su trazabilidad mínima prevista en el DER. La compilación, pruebas y comprobación del nuevo esquema quedan pendientes del usuario; esto no completa todavía los nuevos módulos de reservas, detalles de alquiler, incidencias, mantenimiento o pagos.
 
 ## Documentos y decisiones
 
@@ -71,6 +81,7 @@ Como referencia histórica, el diagnóstico anterior a la implementación tomó 
 | [36-incorporacion-aprobada-trazabilidad-der.md](36-incorporacion-aprobada-trazabilidad-der.md) | RN-TRZ-01: campos, claves, relaciones, nulabilidad, fundamento del corte y pruebas previstas | Incorporación aprobada: 29 entidades y 55 FK/relaciones; se conservan las otras 25 entidades y se documentan controles que el dibujo no garantiza |
 | [37-implementacion-entidades.md](37-implementacion-entidades.md) | Registro de implementación manual, revisiones, pruebas y pendientes del backend | Fuente del estado efectivo del código; no declara completado todo el DER |
 | [38-mejoras-futuras-desde-version-companero.md](38-mejoras-futuras-desde-version-companero.md) | Mejoras técnicas, cola de correos, comprobantes, reporte financiero, último ADMIN y cierres opcionales | Propuestas documentadas a pedido; pendientes de confirmación; sin cambios al DER o Java |
+| [39-pruebas-inventario-eliminacion-definitiva.md](39-pruebas-inventario-eliminacion-definitiva.md) | Ejecución filtrada Java/Node, matriz manual RN-INV-02 y consultas de evidencia sin secretos | Preparadas para el usuario; no ejecutadas por el asistente en este bloque |
 
 Modelo editable asociado: [der-v5-propuesto.mmd](der-v5-propuesto.mmd). No sustituye ni sobrescribe DERv4.txt.
 

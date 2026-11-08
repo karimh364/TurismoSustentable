@@ -96,7 +96,15 @@
         <div class="tab-pane fade" id="tab-bicicletas">
             <div class="d-flex justify-content-between mb-3">
                 <h4>Gestión de Bicicletas</h4>
-                <button class="btn btn-success" onclick="abrirModalBicicleta()">+ Nueva Bicicleta</button>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-success" onclick="editarTarifaTipo()">Tarifas por tipo</button>
+                    <button class="btn btn-success" onclick="abrirModalBicicleta()">+ Nueva Bicicleta</button>
+                </div>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="bici-incluir-eliminadas"
+                       onchange="cargarBicicletas()">
+                <label class="form-check-label" for="bici-incluir-eliminadas">Mostrar eliminadas</label>
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover bg-white shadow-sm">
@@ -164,32 +172,30 @@
             <div class="modal-header bg-success text-white"><h5 class="modal-title">Datos de Bicicleta</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="bici-id">
-                <div class="mb-2"><label>Código</label><input type="text" class="form-control" id="bici-codigo"></div>
+                <div class="mb-2"><label>Código</label><input type="text" class="form-control" id="bici-codigo" maxlength="255"></div>
                 <div class="mb-2"><label>Tipo</label>
-                    <select class="form-select" id="bici-tipo">
-                        <option value="MONTANA">Montaña</option><option value="PASEO">Paseo</option><option value="ELECTRICA">Eléctrica</option>
+                    <select class="form-select" id="bici-tipo" onchange="mostrarTarifaBicicleta()">
                     </select>
                 </div>
                 <div class="mb-2"><label>Estado</label>
-                    <select class="form-select" id="bici-estado">
-                        <option value="DISPONIBLE">Disponible</option>
-                        <option value="MANTENIMIENTO">Mantenimiento</option>
-                        <option value="INACTIVA">Inactiva</option>
-                        <option value="ALQUILADA" disabled>Alquilada (estado automático)</option>
-                    </select>
+                    <select class="form-select" id="bici-estado" disabled></select>
+                    <small class="text-muted">Los cambios de estado se realizan desde las acciones del inventario o su proceso correspondiente.</small>
                 </div>
                 <div id="bici-alquiler-aviso"
                      class="alert alert-warning d-none py-2">
-                    Esta bicicleta tiene un alquiler activo. Solo puede modificarse
-                    el precio. Para cambiar su estado debe finalizar el alquiler.
+                    Esta bicicleta no admite edición general en su estado actual.
+                    Debe completar su proceso correspondiente. Las tarifas se administran por tipo.
                 </div>
-                <div class="mb-2"><label>Precio/Hora USD</label><input type="number" class="form-control" id="bici-precio"></div>
+                <div class="mb-2"><label>Tarifa del tipo (USD/h)</label><input type="number" class="form-control" id="bici-precio" disabled></div>
                 <div class="mb-2"><label>Ubicación Actual</label>
-                    <select class="form-select" id="bici-estacion-select">
+                    <select class="form-select" id="bici-estacion-select" onchange="actualizarMotivoTraslado()">
                     </select>
                 </div>
+                <div class="mb-2 d-none" id="bici-motivo-grupo"><label for="bici-motivo">Motivo del traslado (obligatorio)</label>
+                    <textarea class="form-control" id="bici-motivo" maxlength="1000" rows="2" disabled></textarea>
+                </div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success px-4" onclick="guardarBicicleta()">Guardar</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button id="bici-guardar" class="btn btn-success px-4" onclick="guardarBicicleta()">Guardar</button></div>
         </div>
     </div>
 </div>

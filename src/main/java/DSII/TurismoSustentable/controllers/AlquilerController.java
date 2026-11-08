@@ -2,6 +2,7 @@ package DSII.TurismoSustentable.controllers;
 
 import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
+import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
@@ -53,6 +54,8 @@ public class AlquilerController {
             // 3. Devuelve la respuesta OK
             return new ResponseEntity<>(alquilerGuardado, HttpStatus.CREATED);
 
+        } catch (ConfiguracionSistemaException e) {
+            throw e; // La configuración faltante se informa como 500 por el manejador global.
         } catch (Exception e) {
             // 4. Si el servicio lanzó un error, devuélvelo como 400 Bad Request
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -111,6 +114,8 @@ public class AlquilerController {
 
             return ResponseEntity.ok(alquilerFinalizado);
 
+        } catch (ConfiguracionSistemaException e) {
+            throw e;
         } catch (AccessDeniedException e) {
             // Intentó finalizar el alquiler de otro usuario
             return new ResponseEntity<>(

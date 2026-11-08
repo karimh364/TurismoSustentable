@@ -118,6 +118,11 @@ Las longitudes, precisión decimal, índices, estrategia de bloqueo y datos inic
 
 ## 7. RN-INV-01 Taller interno y borrado lógico aprobados
 
+Actualización del 8 de noviembre de 2026: RN-INV-02, sección 8, sustituye las
+condiciones de archivo/borrado y salida separada que figuran a continuación.
+La sección 7 conserva la decisión anterior como antecedente; para el nuevo
+recorrido Eliminar rige la sección 8. El resto de permisos y restricciones continúa.
+
 Fecha de aprobación: 6 de noviembre de 2026. Estado: aprobado para el diseño y reflejado en el DER lógico; implementación y pruebas del nuevo criterio pendientes.
 
 ### Representación y acceso
@@ -160,3 +165,133 @@ Estos escenarios se especifican, no se ejecutaron:
 - CP-INV-14: las nuevas acciones no liberan RESERVADA o EN_USO ni cierran órdenes o incidencias para eludir sus recorridos; no se inventa un Taller para una EXTRAVIADA ausente.
 - CP-INV-15: estado, borrado y movimiento conservan la auditoría correspondiente sin borrar historia ni generar transiciones ficticias.
 - CP-INV-16: TECNICO puede ver la ubicación de la bicicleta, incluido el Taller, en una orden asignada a él, pero no obtiene por ello acceso al listado administrativo ni permisos para modificar estaciones. La consulta de órdenes ajenas se rechaza conforme a RN-MAN-02.
+
+## 8. RN-INV-02 Eliminación con salida definitiva y presentación del inventario
+
+Fecha: 8 de noviembre de 2026. Recorrido físico implementado en la etapa 128;
+pruebas automáticas verificadas en la 129 y comprobaciones manuales en curso
+en el documento 37. La pérdida definitiva de la sección 9 sigue pendiente de código.
+
+Se mantienen las siete categorías de estado y las columnas existentes.
+DE_BAJA y borrado_bici siguen siendo datos diferentes, pero el nuevo recorrido
+Eliminar combina expresamente la retirada física definitiva y el borrado lógico.
+Sustituye el archivo que conservaba estado/ubicación y el CP-INV-13 anterior
+en lo referente al borrado. No modifica los originales PDF/Word/DERv4.
+
+### Selector de estaciones
+
+- Mostrar uso y espacios libres calculados por backend. Deshabilitar destinos
+  sin capacidad, excepto la ubicación actual durante una edición.
+- Conservar la comprobación transaccional del backend; el selector no garantiza
+  que el espacio continúe libre al guardar. No permitir ingresos nuevos en
+  estaciones borradas ni excluir físicamente presentes para simular cupos.
+
+### Operaciones y salida física
+
+- Inactivar es una pausa: conserva presencia física y ocupación.
+- Dar de baja retira del servicio: conserva ubicación/ocupación mientras la
+  unidad siga en Taller y no activa borrado_bici automáticamente.
+- Eliminar exige ADMIN activo, versión, motivo y confirmación de que la unidad
+  ya fue retirada físicamente del inventario. Requiere una ubicación previa
+  registrada en Taller habilitado y ausencia de procesos incompatibles.
+  Esta es la causa de retirada física; RN-INV-03, sección 9, define la
+  excepción aprobada por pérdida definitiva sin recepción.
+- En una sola transacción deja estado DE_BAJA, borrado_bici true y estacion_id
+  nulo. No obliga a pulsar antes Dar de baja: desde una situación permitida
+  puede registrar esa transición dentro de la propia eliminación.
+- Registrar responsable, fecha, motivo y ubicación anterior/nueva en auditoría;
+  agregar historial de estado solo si realmente cambia a DE_BAJA. Si ya estaba
+  DE_BAJA, no duplicar una transición ficticia.
+- No cerrar viajes, reservas, órdenes o incidencias para permitir la eliminación.
+  EXTRAVIADA sin recuperación no satisface presencia previa en Taller y no usa
+  esta retirada física: requiere el recorrido específico de la sección 9.
+- No se agrega un botón obligatorio de salida ni el endpoint separado propuesto
+  anteriormente. La excepción propuesta para eliminar una unidad ya sin ubicación
+  por una salida independiente no forma parte de esta alternativa.
+- No se borran filas, relaciones, contratos, obligaciones ni eventos históricos.
+  No se restauran eliminadas ni se reactiva DE_BAJA. El conteo físico continúa
+  basado en ubicaciones reales, no en ignorar filas por su indicador.
+
+### Listado y criterios de aceptación
+
+- Sustituir el texto Archivar por Eliminar, explicando la confirmación real y
+  el borrado lógico. Ocultar eliminadas en el listado habitual.
+- Mostrar eliminadas permite a ADMIN consultar también esas filas y su historia;
+  no concede edición, restauración, contratación ni nuevas facultades.
+- Una eliminación física válida libera exactamente el lugar de la ubicación anterior
+  y conserva evidencia de la salida. Un rechazo no deja cambios parciales.
+- Una DE_BAJA todavía en Taller conserva ocupación hasta eliminarla con salida
+  real confirmada. Una eliminación no convierte la falta física en espacio
+  ficticio: la confirmación administrativa debe corresponder a la realidad.
+- Los registros de pruebas o históricos creados con el recorrido anterior no se
+  reinterpretan ni se liberan masivamente por modificar este documento. Cualquier
+  tratamiento de filas previas requiere comprobar su situación física real.
+
+La estructura del DER no cambia: continúan 29 entidades y 55 relaciones.
+Los comentarios de ambos Mermaid se actualizan con la regla, no se ejecuta SQL.
+
+## 9. RN-INV-03 Baja y eliminación por pérdida definitiva
+
+Fecha de aprobación: 8 de noviembre de 2026. Implementación pendiente de incidencias.
+
+### Alcance y diferencia con EXTRAVIADA
+
+EXTRAVIADA representa pérdida o robo confirmados y unidad todavía no recuperada;
+no significa retiro definitivo automático. No se ofrece para alquilar ni se
+asocia a una estación ficticia. El mero reporte del cliente no crea ese estado:
+se mantiene la revisión y cierre excepcional de RN-INC-01.
+
+Si la unidad se recupera antes de la baja definitiva, se registra recepción y
+ubicación reales con capacidad y pasa a MANTENIMIENTO. No se habilita por encontrarla.
+
+### Baja administrativa sin recepción física
+
+ADMIN activo puede resolver EXTRAVIADA a DE_BAJA por pérdida definitiva:
+
+- Incidencia de pérdida/robo confirmada y vinculada al detalle de la misma
+  bicicleta; decisión administrativa explícita y motivo obligatorio.
+- Detalle del viaje cerrado por su recorrido excepcional, sin devolverlo
+  ficticiamente, y ausencia de operaciones pendientes incompatibles.
+- Control de versión y transacción con sus bloqueos al implementar.
+- Estado DE_BAJA, ubicación nula y borrado_bici false hasta una eventual
+  eliminación lógica posterior. No se requiere pasar por Taller ni se
+  registra una salida física de un lugar que nunca ocupó.
+- Historial EXTRAVIADA a DE_BAJA y auditoría ADMIN con causa de pérdida,
+  decisión, incidencia vinculada, actor, fecha y motivo verificables.
+
+No se fija un plazo automático de días ni una baja por simple demora.
+No se cierran otros procesos para hacer pasar la validación. Esta decisión
+no elimina deudas, pagos o reembolsos ni atribuye culpa/indemnizaciones.
+El cierre operativo no se confunde con una liquidación o cobranza completadas.
+
+### Eliminación lógica posterior
+
+ADMIN podrá eliminar una DE_BAJA originada en esa pérdida definitiva sin exigir
+Taller o confirmar una retirada material inexistente. Debe verificarse el
+respaldo de la misma bicicleta/incidencia y la decisión de baja, no solamente
+DE_BAJA con estacion_id nulo ni un motivo libre enviado por el navegador.
+
+La eliminación conserva DE_BAJA, ubicación nula, historial y relaciones; marca
+borrado_bici true y registra la actuación administrativa con causa de pérdida.
+No duplica un cambio de estado ni incrementa los cupos de ninguna estación.
+La confirmación en pantalla debe distinguir pérdida definitiva de retirada física.
+Se mantienen los mismos botones generales, con el recorrido autorizado según
+la situación y sus antecedentes; no se habilita edición libre de EXTRAVIADA.
+
+Una recuperación posterior a DE_BAJA no la reactiva ni restaura automáticamente.
+La eventual revisión excepcional no pertenece al recorrido normal aprobado.
+
+### Estructura, implementación y criterios pendientes
+
+- No se agregan tablas, estados o columnas en esta aprobación: siguen las
+  29 entidades/55 relaciones del DERv5. La prueba de la causa deberá usar
+  incidencias, su detalle, los historiales y la auditoría existentes en el diseño.
+- Se implementará al conectar incidencias. Hoy el servicio de inventario
+  conserva el bloqueo de EXTRAVIADA; no se agrega una excepción sin respaldo.
+- Verificar: reporte sin validación no permite baja; viaje activo no se
+  libera; baja por pérdida confirmada no exige Taller; eliminación posterior
+  requiere su respaldo; no aparece ocupación ni salida ficticia; versiones,
+  roles y eventos son coherentes; encontrarla no reabre el viaje ni la habilita.
+- Se sustituyen las prohibiciones absolutas anteriores de baja sin recuperación,
+  no los controles de recepción/capacidad del recorrido físico RN-INV-02.
+  No se reinterpretan pérdidas ni bajas históricas automáticamente.

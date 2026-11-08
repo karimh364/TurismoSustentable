@@ -1,4 +1,4 @@
-%% DER v5 de trabajo - actualizado el 6 de noviembre de 2026.
+%% DER v5 de trabajo - actualizado el 8 de noviembre de 2026.
 %% Base: DERv4.txt original de 21 entidades y reglas aprobadas RN-*.
 %% Modelo logico de 29 entidades; trazabilidad RN-TRZ-01 incorporada con aprobacion.
 %% No es SQL ni esquema fisico definitivo; los demas pendientes se conservan.
@@ -24,8 +24,15 @@
 %% El ciclo detalle/incidencia se inicia con incidencia_corte_id nulo; se completa al validar el corte.
 %% RN-INV-01 aprobada 2026-11-06: estado, borrado logico y presencia fisica son independientes.
 %% es_publica=true: estacion para clientes; false: Taller/deposito interno, sin alquiler ni devolucion de clientes.
-%% DE_BAJA y borrado_bici solo se registran desde Taller; no liberan ubicacion ni ocupacion automaticamente.
-%% INACTIVA conserva su ubicacion; ADMIN puede consultar el stock fisico incluso de registros archivados.
+%% DE_BAJA presente en Taller conserva ocupacion; INACTIVA conserva su ubicacion.
+%% RN-INV-02 aprobada 2026-11-08: Eliminar confirma salida fisica desde Taller y deja
+%% DE_BAJA, borrado_bici=true y estacion_id=null en una transaccion con trazabilidad.
+%% No exige Dar de baja antes ni un boton separado de salida. ADMIN puede consultar eliminadas.
+%% No se reinterpretan registros anteriores ni se borran filas o referencias historicas.
+%% RN-INV-03 aprobada 2026-11-08: perdida definitiva confirmada permite
+%% EXTRAVIADA -> DE_BAJA sin Taller, con incidencia, detalle cerrado y decision ADMIN trazada.
+%% Su eliminacion posterior exige ese respaldo; no inventa recepcion/salida ni libera cupos.
+%% No basta DE_BAJA con estacion_id nulo. Implementacion pendiente de incidencias.
 erDiagram
     PERSONA ||..|| USUARIO : posee_cuenta
     GENERO ||..o{ PERSONA : identifica
@@ -194,7 +201,7 @@ erDiagram
         string codigo_bicicleta UK
         int tipo_bicicleta_id FK
         int estado_bicicleta_id FK
-        boolean borrado_bici "Borrado logico independiente del estado; conserva historia y presencia fisica"
+        boolean borrado_bici "Eliminar: true con DE_BAJA y retiro fisico o perdida definitiva respaldada; conserva historia"
         int estacion_id FK "Opcional; solo presencia fisica registrada"
         date fecha_alta "Referencia inicial; no inventar fechas de legado"
         int version

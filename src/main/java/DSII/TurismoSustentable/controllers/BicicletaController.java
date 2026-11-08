@@ -1,329 +1,86 @@
 package DSII.TurismoSustentable.controllers;
 
-import DSII.TurismoSustentable.dto.BicicletaDTO;
-import DSII.TurismoSustentable.models.Bicicleta;
-import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
-import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
-import DSII.TurismoSustentable.models.Estacion;
-import org.springframework.transaction.annotation.Transactional;
-import DSII.TurismoSustentable.repositories.EstacionRepository;
-import DSII.TurismoSustentable.repositories.BicicletaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import DSII.TurismoSustentable.dto.*;
+import DSII.TurismoSustentable.services.BicicletaService;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.*;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.server.ResponseStatusException;
 import javax.validation.Valid;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
 public class BicicletaController {
+    private final BicicletaService service;
+    public BicicletaController(BicicletaService service) { this.service = service; }
 
-    @Autowired
-    private BicicletaRepository bicicletaRepository;
-
-    @Autowired
-    private EstacionRepository estacionRepository;
-
-    // OBTENER TODAS LAS BICIS DE LA BD (Solo las no borradas)
     @GetMapping("/bicicletas")
-    public List<BicicletaDTO> getBicicletas(){
-        // Filtra solo por borrado lógico (muestra MANTENIMIENTO, ALQUILADA, etc.)
-        return bicicletaRepository.findByBorradoBiciFalse()
-                .stream()
-                .map(BicicletaDTO:: new)
-                .collect(Collectors.toList());
+    public List<BicicletaDTO> getBicicletas(
+            @RequestParam(name = "incluirEliminadas", defaultValue = "false") boolean incluirEliminadas) {
+        return service.listar(incluirEliminadas);
     }
 
-    // Disponibles para clientes: únicamente en estaciones públicas activas.
     @GetMapping("/bicicletas/disponibles")
-    public List<BicicletaDTO> getBicicletasDisponibles() {
-        return bicicletaRepository
-                .buscarPorEstadoEnEstacionesPublicas(
-                        CodigoEstadoBicicleta.DISPONIBLE
-                )
-                .stream()
-                .map(BicicletaDTO::new)
-                .collect(Collectors.toList());
-    }
+    public List<BicicletaDTO> getBicicletasDisponibles() { return service.disponibles(); }
 
-    // OBTENER BICICLETAS FILTRADAS POR TIPO (Montaña, Paseo, Eléctrica)
     @GetMapping("/bicicletas/tipo/{tipo}")
-    public List<BicicletaDTO> getBicicletasPorTipo(@PathVariable CodigoTipoBicicleta tipo){
-        return bicicletaRepository.findByBorradoBiciFalseAndTipo(tipo)
-                .stream()
-                .map(BicicletaDTO::new)
-                .collect(Collectors.toList());
+    public List<BicicletaDTO> getBicicletasPorTipo(@PathVariable String tipo) {
+        return service.porTipo(tipo);
     }
 
-    // GET por ID
     @GetMapping("/bicicletas/{id}")
-    public ResponseEntity<BicicletaDTO> getBicicletaPorId(@PathVariable Integer id) {
+    public BicicletaDTO getBicicletaPorId(@PathVariable Integer id) { return service.obtener(id); }
 
-        Optional<Bicicleta> bicicletaOpt = bicicletaRepository.findById(id);
-
-        if (bicicletaOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        Bicicleta bicicleta = bicicletaOpt.get();
-
-        // Filtro de seguridad. Si la bici está borrada lógicamente, devuelve 404
-        if (bicicleta.isBorradoBici()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        return ResponseEntity.ok(new BicicletaDTO(bicicleta));
-    }
-
-    // POST /api/bicicletas: Crear nueva bicicleta (Solo ADMIN)
     @PostMapping("/bicicletas")
-    @Transactional
-    public ResponseEntity<Object> crearBicicleta(
-            @Valid @RequestBody Bicicleta bicicleta
-    ) {
-
-        // La nueva bicicleta debe tener una estación
-        if (bicicleta.getUbicacionActual() == null
-                || bicicleta.getUbicacionActual().getId() <= 0) {
-
-            return new ResponseEntity<>(
-                    "Debe seleccionar una estación válida.",
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        Integer estacionId =
-                bicicleta.getUbicacionActual().getId();
-
-        // Buscar y bloquear la estación durante la creación
-        Estacion estacion = estacionRepository
-                .buscarActivaPorIdConBloqueo(estacionId)
-                .orElse(null);
-
-        if (estacion == null) {
-            return new ResponseEntity<>(
-                    "La estación seleccionada no existe o está inactiva.",
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        // Consultar la ocupación real
-        long espaciosOcupados = bicicletaRepository
-                .countByUbicacionActual(estacion);
-
-        if (espaciosOcupados >= estacion.getCapacidad()) {
-            return new ResponseEntity<>(
-                    "No se puede agregar la bicicleta: " +
-                            "la estación no tiene espacios libres.",
-                    HttpStatus.CONFLICT
-            );
-        }
-
-        // Usar la estación administrada y bloqueada por JPA
-        bicicleta.setUbicacionActual(estacion);
-
-        // Una bicicleta nueva no puede nacer alquilada ni borrada
-        bicicleta.setEstado(CodigoEstadoBicicleta.DISPONIBLE);
-        bicicleta.setBorradoBici(false);
-
-        Bicicleta nuevaBicicleta = bicicletaRepository.save(bicicleta);
-
-        return new ResponseEntity<>(
-                new BicicletaDTO(nuevaBicicleta),
-                HttpStatus.CREATED
-        );
+    public ResponseEntity<BicicletaDTO> crearBicicleta(@Valid @RequestBody CrearBicicletaDTO dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(dto));
     }
 
-    // DELETE /api/bicicletas/{id}: Borrado Lógico (Solo ADMIN)
-    @DeleteMapping("/bicicletas/{id}")
-    public ResponseEntity<Object> eliminarBicicletaLogico(@PathVariable Integer id) {
-
-        Optional<Bicicleta> bicicletaOptional = bicicletaRepository.findById(id);
-
-        if (bicicletaOptional.isEmpty()) {
-            return new ResponseEntity<>("La bicicleta no existe.", HttpStatus.NOT_FOUND);
-        }
-
-        Bicicleta bicicleta = bicicletaOptional.get();
-
-        if (bicicleta.getEstado() == CodigoEstadoBicicleta.ALQUILADA) {
-            return new ResponseEntity<>(
-                    "No se puede eliminar una bicicleta que está actualmente alquilada.",
-                    HttpStatus.CONFLICT // 409 Conflict es el código correcto
-            );
-        }
-        // ---------------------------------
-
-        // Borrado lógico
-        bicicleta.setBorradoBici(true);
-        bicicleta.setEstado(CodigoEstadoBicicleta.INACTIVA);
-
-        bicicletaRepository.save(bicicleta);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    // PUT /api/bicicletas/{id}: Actualizar bicicleta (Solo ADMIN)
     @PutMapping("/bicicletas/{id}")
-    @Transactional
-    public ResponseEntity<Object> actualizarBicicleta(
-            @PathVariable Integer id,
-            @RequestBody Bicicleta bicicletaDetalles
-    ) {
+    public BicicletaDTO actualizarBicicleta(@PathVariable Integer id,
+                                          @Valid @RequestBody ActualizarBicicletaDTO dto) {
+        return service.actualizar(id, dto);
+    }
 
-        Optional<Bicicleta> bicicletaOpt =
-                bicicletaRepository.findById(id);
+    @DeleteMapping("/bicicletas/{id}")
+    public ResponseEntity<Void> eliminarBicicletaLogico(@PathVariable Integer id,
+                                                      @Valid @RequestBody EliminarBicicletaDTO dto) {
+        service.eliminarLogico(id, dto);
+        return ResponseEntity.noContent().build();
+    }
 
-        if (bicicletaOpt.isEmpty()
-                || bicicletaOpt.get().isBorradoBici()) {
+    @PatchMapping("/admin/bicicletas/{id}/estado/{codigo}")
+    public BicicletaDTO cambiarEstado(@PathVariable Integer id, @PathVariable String codigo,
+                                      @Valid @RequestBody OperacionBicicletaDTO dto) {
+        return service.cambiarEstado(id, codigo, dto);
+    }
 
-            return new ResponseEntity<>(
-                    "La bicicleta no existe o está inactiva.",
-                    HttpStatus.NOT_FOUND
-            );
-        }
+    @GetMapping("/admin/tipos-bicicleta")
+    public List<TipoBicicletaDTO> tipos() { return service.listarTipos(); }
 
-        Bicicleta bicicletaExistente = bicicletaOpt.get();
+    @PutMapping("/admin/tipos-bicicleta/{id}/tarifa")
+    public TipoBicicletaDTO actualizarTarifa(@PathVariable Integer id,
+                                            @Valid @RequestBody ActualizarTarifaTipoDTO dto) {
+        return service.actualizarTarifa(id, dto);
+    }
 
-        boolean estabaAlquilada =
-                bicicletaExistente.getEstado()
-                        == CodigoEstadoBicicleta.ALQUILADA;
-
-        /*
-         * El estado solamente puede modificarse si la bicicleta
-         * no está actualmente alquilada.
-         */
-        if (!estabaAlquilada
-                && bicicletaDetalles.getEstado() != null) {
-
-            if (bicicletaDetalles.getEstado()
-                    == CodigoEstadoBicicleta.ALQUILADA) {
-
-                return new ResponseEntity<>(
-                        "No se puede marcar manualmente una bicicleta " +
-                                "como alquilada. Debe iniciarse un alquiler.",
-                        HttpStatus.CONFLICT
-                );
-            }
-
-        }
-
-        /*
-         * La estación solamente puede modificarse si la bicicleta
-         * no está actualmente alquilada.
-         */
-        if (!estabaAlquilada
-                && bicicletaDetalles.getUbicacionActual() != null) {
-
-            int estacionDestinoId =
-                    bicicletaDetalles.getUbicacionActual().getId();
-
-            if (estacionDestinoId <= 0) {
-                return new ResponseEntity<>(
-                        "Debe seleccionar una estación válida.",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            Estacion estacionActual =
-                    bicicletaExistente.getUbicacionActual();
-
-            boolean cambiaDeEstacion =
-                    estacionActual == null
-                            || estacionActual.getId()
-                            != estacionDestinoId;
-
-            /*
-             * Si permanece en la misma estación,
-             * no ocupa un espacio adicional.
-             */
-            if (cambiaDeEstacion) {
-
-                Estacion estacionDestino = estacionRepository
-                        .buscarActivaPorIdConBloqueo(
-                                estacionDestinoId
-                        )
-                        .orElse(null);
-
-                if (estacionDestino == null) {
-                    return new ResponseEntity<>(
-                            "La estación seleccionada no existe " +
-                                    "o está inactiva.",
-                            HttpStatus.BAD_REQUEST
-                    );
-                }
-
-                long espaciosOcupados = bicicletaRepository
-                        .countByUbicacionActual(estacionDestino);
-
-                if (espaciosOcupados
-                        >= estacionDestino.getCapacidad()) {
-
-                    return new ResponseEntity<>(
-                            "No se puede mover la bicicleta: " +
-                                    "la estación de destino está llena.",
-                            HttpStatus.CONFLICT
-                    );
-                }
-
-                bicicletaExistente.setUbicacionActual(
-                        estacionDestino
-                );
-            }
-        }
-
-        // Aplicar código y estado después de validar el destino.
-        if (!estabaAlquilada
-                && bicicletaDetalles.getCodigoBicicleta() != null) {
-
-            bicicletaExistente.setCodigoBicicleta(
-                    bicicletaDetalles.getCodigoBicicleta()
-            );
-        }
-
-        if (!estabaAlquilada
-                && bicicletaDetalles.getEstado() != null) {
-
-            bicicletaExistente.setEstado(
-                    bicicletaDetalles.getEstado()
-            );
-        }
-
-        // El tipo no puede modificarse durante un alquiler
-        if (!estabaAlquilada
-                && bicicletaDetalles.getTipo() != null) {
-            bicicletaExistente.setTipo(
-                    bicicletaDetalles.getTipo()
-            );
-        }
-
-        // Se puede modificar el precio aunque esté alquilada
-        if (bicicletaDetalles.getPrecioPorHora() != null) {
-            bicicletaExistente.setPrecioPorHora(
-                    bicicletaDetalles.getPrecioPorHora()
-            );
-        }
-
-        /*
-         * Si estaba alquilada, se conservan obligatoriamente
-         * su estado ALQUILADA y su ubicación vacía.
-         */
-        if (estabaAlquilada) {
-            bicicletaExistente.setEstado(
-                    CodigoEstadoBicicleta.ALQUILADA
-            );
-            bicicletaExistente.setUbicacionActual(null);
-        }
-
-        Bicicleta bicicletaActualizada =
-                bicicletaRepository.save(bicicletaExistente);
-
-        return ResponseEntity.ok(
-                new BicicletaDTO(bicicletaActualizada)
-        );
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<String> negocio(ResponseStatusException error) {
+        return ResponseEntity.status(error.getStatus()).body(error.getReason());
+    }
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<String> version(ObjectOptimisticLockingFailureException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Los datos fueron modificados. Recargá antes de guardar.");
+    }
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> integridad(DataIntegrityViolationException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body("Los datos entran en conflicto con un registro existente.");
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> solicitud(HttpMessageNotReadableException error) {
+        return ResponseEntity.badRequest().body("La solicitud contiene datos o campos no permitidos. Recargá el formulario.");
     }
 }

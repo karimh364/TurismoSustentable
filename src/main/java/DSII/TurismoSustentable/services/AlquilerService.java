@@ -7,6 +7,9 @@ import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
+import DSII.TurismoSustentable.repositories.TipoBicicletaRepository;
+import DSII.TurismoSustentable.repositories.EstadoBicicletaRepository;
+import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
@@ -39,6 +43,18 @@ public class AlquilerService {
 
     @Autowired
     private CorreoService correoService;
+
+    @Autowired
+    private TipoBicicletaRepository tipoBicicletaRepository;
+    @Autowired
+    private EstadoBicicletaRepository estadoBicicletaRepository;
+    @Autowired
+    private TrazabilidadInventarioService trazabilidadInventario;
+
+    private EstadoBicicleta estadoBicicleta(String codigo) {
+        return estadoBicicletaRepository.findByCodigo(codigo).orElseThrow(() ->
+                new ConfiguracionSistemaException("Falta el estado de bicicleta: " + codigo));
+    }
 
     private static final BigDecimal SEGUNDOS_EN_HORA =
             new BigDecimal("3600");
@@ -79,7 +95,7 @@ public class AlquilerService {
     }
 
     // CREAR UN ALQUILER
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AlquilerDTO crearAlquiler(
             AlquilerRequestDTO alquilerRequest
     ) throws Exception {
@@ -97,7 +113,7 @@ public class AlquilerService {
                 );
 
         // 3. Verificar disponibilidad
-        if (bicicleta.getEstado() != CodigoEstadoBicicleta.DISPONIBLE) {
+        if (!"DISPONIBLE".equals(bicicleta.getEstado().getCodigo())) {
             throw new IllegalStateException(
                     "La bicicleta no está disponible."
             );
@@ -143,7 +159,15 @@ public class AlquilerService {
         );
 
         // 6. Calcular precio estimado
-        BigDecimal precioPorHora = bicicleta.getPrecioPorHora();
+        // Mismo bloqueo que la edición de tarifa: la contratación toma un valor consistente.
+        TipoBicicleta tipoContratado = tipoBicicletaRepository
+                .buscarPorIdConBloqueo(bicicleta.getTipo().getId())
+                .orElseThrow(() -> new ConfiguracionSistemaException("Falta el tipo de bicicleta."));
+        BigDecimal precioPorHora = tipoContratado.getPrecioPorHoraUsd();
+        if (precioPorHora == null || precioPorHora.signum() <= 0) {
+            throw new ConfiguracionSistemaException("El tipo de bicicleta no tiene una tarifa válida.");
+        }
+        EstadoBicicleta enUso = estadoBicicleta("EN_USO");
 
         BigDecimal duracion = BigDecimal.valueOf(
                 alquilerRequest.getDuracionEnHoras()
@@ -170,9 +194,11 @@ public class AlquilerService {
         nuevoAlquiler.setCostoTotal(costoEstimado);
 
         // 8. Cambiar estado y sacar físicamente la bicicleta de la estación
-        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
+        EstadoBicicleta estadoAnterior = bicicleta.getEstado();
+        bicicleta.setEstado(enUso);
         bicicleta.setUbicacionActual(null);
         bicicletaRepository.save(bicicleta);
+        trazabilidadInventario.estado(bicicleta, estadoAnterior, usuario, "Inicio de alquiler.");
 
         // 9. Guardar alquiler
         Alquiler alquilerGuardado = alquilerRepository.save(nuevoAlquiler);
@@ -215,7 +241,7 @@ public class AlquilerService {
     /*
      * FINALIZAR UN ALQUILER
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AlquilerDTO finalizarAlquiler(
             Integer id,
             String nombreEstacionDestino
@@ -225,7 +251,7 @@ public class AlquilerService {
         Usuario usuarioAutenticado = obtenerUsuarioAutenticado();
 
         // 2. Buscar el alquiler
-        Alquiler alquiler = alquilerRepository.findById(id)
+        Alquiler alquiler = alquilerRepository.buscarPorIdConBloqueo(id)
                 .filter(a -> !a.isBorradoAlquiler())
                 .orElseThrow(() ->
                         new Exception("El alquiler no existe.")
@@ -290,6 +316,13 @@ public class AlquilerService {
             );
         }
 
+        BigDecimal precioPorHora = alquiler.getPrecioPorHoraAplicado();
+        if (precioPorHora == null || precioPorHora.signum() <= 0) {
+            // No reconstruir contratos antiguos con una tarifa actual diferente.
+            throw new ConfiguracionSistemaException("El alquiler no tiene una tarifa contratada válida.");
+        }
+        EstadoBicicleta disponible = estadoBicicleta("DISPONIBLE");
+
         // 7. Registrar la hora real de devolución
         LocalDateTime fechaDevolucion = LocalDateTime.now();
 
@@ -308,12 +341,6 @@ public class AlquilerService {
         }
 
         // 9. Calcular costo final en USD
-        BigDecimal precioPorHora = alquiler.getPrecioPorHoraAplicado();
-
-        if (precioPorHora == null) {
-            precioPorHora = alquiler.getBicicleta().getPrecioPorHora();
-        }
-
         BigDecimal precioPorSegundo = precioPorHora.divide(
                 SEGUNDOS_EN_HORA,
                 10,
@@ -338,10 +365,19 @@ public class AlquilerService {
         // 11. Liberar y trasladar la bicicleta
         Bicicleta bicicleta = alquiler.getBicicleta();
 
-        bicicleta.setEstado(CodigoEstadoBicicleta.DISPONIBLE);
+        EstadoBicicleta estadoAnterior = bicicleta.getEstado();
+        bicicleta.setEstado(disponible);
         bicicleta.setUbicacionActual(nuevaEstacion);
 
         bicicletaRepository.save(bicicleta);
+        trazabilidadInventario.estado(bicicleta, estadoAnterior, usuarioAutenticado,
+                "Devolución de alquiler.");
+        // Tener ADMIN además de CLIENTE no convierte su propio viaje en una acción administrativa.
+        if (esAdmin && !esPropietario) {
+            trazabilidadInventario.administracion(usuarioAutenticado, "BICICLETA", bicicleta.getId(),
+                    "FINALIZAR_ALQUILER", "estado=" + estadoAnterior.getCodigo(),
+                    trazabilidadInventario.datos(bicicleta), "Devolución de alquiler.");
+        }
 
         // 12. Guardar alquiler finalizado
         Alquiler alquilerFinalizado = alquilerRepository.save(alquiler);

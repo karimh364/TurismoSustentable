@@ -1,7 +1,6 @@
 package DSII.TurismoSustentable.dto;
 
 import DSII.TurismoSustentable.models.Estacion;
-import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
 
 public class EstacionDTO {
 
@@ -36,8 +35,8 @@ public class EstacionDTO {
                             .stream()
                             .filter(b -> !b.isBorradoBici())
                             .filter(b ->
-                                    b.getEstado()
-                                            == CodigoEstadoBicicleta.DISPONIBLE
+                                    b.getEstado() != null
+                                            && "DISPONIBLE".equals(b.getEstado().getCodigo())
                             )
                             .count();
 

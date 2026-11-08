@@ -5,8 +5,8 @@ import DSII.TurismoSustentable.models.Alquiler;
 import DSII.TurismoSustentable.models.Bicicleta;
 import DSII.TurismoSustentable.models.Estacion;
 import DSII.TurismoSustentable.models.EstadoAlquiler;
-import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
-import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
+import DSII.TurismoSustentable.models.EstadoBicicleta;
+import DSII.TurismoSustentable.models.TipoBicicleta;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
@@ -65,6 +65,13 @@ class AlquilerServiceTest {
     @Mock
     private CorreoService correoService;
 
+    @Mock
+    private DSII.TurismoSustentable.repositories.TipoBicicletaRepository tipoBicicletaRepository;
+    @Mock
+    private DSII.TurismoSustentable.repositories.EstadoBicicletaRepository estadoBicicletaRepository;
+    @Mock
+    private TrazabilidadInventarioService trazabilidadInventario;
+
     @Spy
     @InjectMocks
     private AlquilerService alquilerService;
@@ -88,12 +95,12 @@ class AlquilerServiceTest {
 
         bicicleta = new Bicicleta(
                 "QA-B01",
-                CodigoTipoBicicleta.MONTANA,
-                CodigoEstadoBicicleta.DISPONIBLE,
-                PRECIO,
+                new TipoBicicleta("MONTANA", PRECIO, 3),
+                new EstadoBicicleta("DISPONIBLE"),
                 origen
         );
         bicicleta.setId(1);
+        ReflectionTestUtils.setField(bicicleta.getTipo(), "id", 1);
 
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(
@@ -189,6 +196,94 @@ class AlquilerServiceTest {
         );
     }
 
+
+    @Test
+    void inicioUsaTarifaDelTipoYLaCongelaEnElContrato() throws Exception {
+        // Una cuenta con dos roles sigue actuando como cliente al contratar su propio viaje.
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(EMAIL, null, List.of(
+                        new SimpleGrantedAuthority("ADMIN"), new SimpleGrantedAuthority("CLIENTE"))));
+        when(bicicletaRepository.buscarActivaPorIdConBloqueo(1)).thenReturn(Optional.of(bicicleta));
+        when(tipoBicicletaRepository.buscarPorIdConBloqueo(1)).thenReturn(Optional.of(bicicleta.getTipo()));
+        when(estadoBicicletaRepository.findByCodigo("EN_USO"))
+                .thenReturn(Optional.of(new EstadoBicicleta("EN_USO")));
+        when(alquilerRepository.save(any(Alquiler.class))).thenAnswer(inv -> {
+            Alquiler a = inv.getArgument(0); a.setId(10); return a;
+        });
+        AlquilerRequestDTO request = new AlquilerRequestDTO();
+        request.setBicicletaId(1); request.setDuracionEnHoras(2);
+        alquilerService.crearAlquiler(request);
+        org.mockito.ArgumentCaptor<Alquiler> captor = org.mockito.ArgumentCaptor.forClass(Alquiler.class);
+        verify(alquilerRepository).save(captor.capture());
+        bicicleta.getTipo().setPrecioPorHoraUsd(new BigDecimal("90.00"));
+        assertEquals(PRECIO, captor.getValue().getPrecioPorHoraAplicado());
+        assertEquals(COSTO_ESTIMADO, captor.getValue().getCostoTotal());
+        assertEquals("EN_USO", bicicleta.getEstado().getCodigo());
+        assertNull(bicicleta.getUbicacionActual());
+        verify(trazabilidadInventario).estado(eq(bicicleta), any(EstadoBicicleta.class),
+                eq(usuario), eq("Inicio de alquiler."));
+        verifyNoInteractions(estacionRepository);
+        verify(trazabilidadInventario, never()).administracion(any(), anyString(), anyInt(),
+                anyString(), any(), any(), any());
+    }
+
+    @Test
+    void devolucionUsaTarifaCongeladaAunqueElTipoAhoraCuesteMas() throws Exception {
+        Alquiler alquiler = prepararAlquilerEnCurso();
+        alquiler.setFechaInicio(LocalDateTime.now().minusMinutes(45));
+        bicicleta.getTipo().setPrecioPorHoraUsd(new BigDecimal("90.00"));
+        when(estacionRepository.buscarActivaPorNombreConBloqueo("Destino QA"))
+                .thenReturn(Optional.of(destino));
+        when(estadoBicicletaRepository.findByCodigo("DISPONIBLE"))
+                .thenReturn(Optional.of(new EstadoBicicleta("DISPONIBLE")));
+        when(alquilerRepository.save(alquiler)).thenReturn(alquiler);
+        alquilerService.finalizarAlquiler(10, "Destino QA");
+        assertEquals(PRECIO, alquiler.getPrecioPorHoraAplicado());
+        long segundos = java.time.temporal.ChronoUnit.SECONDS.between(
+                alquiler.getFechaInicio(), alquiler.getFechaFin());
+        BigDecimal esperado = PRECIO.divide(new BigDecimal("3600"), 10, java.math.RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(segundos)).setScale(2, java.math.RoundingMode.HALF_UP);
+        assertEquals(esperado, alquiler.getCostoTotal());
+        assertEquals(EstadoAlquiler.FINALIZADO, alquiler.getEstado());
+        assertEquals("DISPONIBLE", bicicleta.getEstado().getCodigo());
+        assertSame(destino, bicicleta.getUbicacionActual());
+        verify(trazabilidadInventario).estado(eq(bicicleta), any(EstadoBicicleta.class),
+                eq(usuario), eq("Devolución de alquiler."));
+        verify(tipoBicicletaRepository, never()).buscarPorIdConBloqueo(anyInt());
+    }
+
+    @Test
+    void sinTarifaHistoricaNoRecalculaConLaActualNiMutaElAlquiler() {
+        Alquiler alquiler = prepararAlquilerEnCurso();
+        alquiler.setPrecioPorHoraAplicado(null);
+        when(estacionRepository.buscarActivaPorNombreConBloqueo("Destino QA"))
+                .thenReturn(Optional.of(destino));
+        assertThrows(DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException.class,
+                () -> alquilerService.finalizarAlquiler(10, "Destino QA"));
+        assertEquals(EstadoAlquiler.INICIADO, alquiler.getEstado());
+        assertEquals(FIN_ESTIMADO, alquiler.getFechaFin());
+        assertNull(alquiler.getUbicacionDevolucion());
+        assertEquals("EN_USO", bicicleta.getEstado().getCodigo());
+        verify(alquilerRepository, never()).save(any());
+        verify(bicicletaRepository, never()).save(any());
+        verifyNoInteractions(estadoBicicletaRepository, correoService, trazabilidadInventario);
+        verify(alquilerService, never()).obtenerCotizacionDolar();
+    }
+
+    @Test
+    void devolucionDeOtroUsuarioSeRechazaAntesDeTocarInventario() {
+        prepararAlquilerEnCurso();
+        // El contrato sigue perteneciendo a id 1; la sesión resuelve ahora a id 2.
+        Usuario otro = new Usuario();
+        otro.setId(2); otro.setActivo(true);
+        when(usuarioRepository.findByEmail(EMAIL)).thenReturn(Optional.of(otro));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,
+                () -> alquilerService.finalizarAlquiler(10, "Destino QA"));
+        verifyNoInteractions(estacionRepository, bicicletaRepository, estadoBicicletaRepository,
+                tipoBicicletaRepository, correoService, trazabilidadInventario);
+        verify(alquilerRepository, never()).save(any());
+    }
+
     private Estacion crearEstacion(
             int id,
             String nombre,
@@ -223,9 +318,9 @@ class AlquilerServiceTest {
         );
 
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(CodigoEstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
-        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
-        assertEquals(PRECIO, bicicleta.getPrecioPorHora());
+        assertEquals("DISPONIBLE", bicicleta.getEstado().getCodigo());
+        assertEquals("MONTANA", bicicleta.getTipo().getCodigo());
+        assertEquals(PRECIO, bicicleta.getTipo().getPrecioPorHoraUsd());
         assertSame(origen, bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());
 
@@ -247,7 +342,7 @@ class AlquilerServiceTest {
     }
 
     private Alquiler prepararAlquilerEnCurso() {
-        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
+        bicicleta.setEstado(new EstadoBicicleta("EN_USO"));
         bicicleta.setUbicacionActual(null);
 
         Alquiler alquiler = new Alquiler(
@@ -263,7 +358,7 @@ class AlquilerServiceTest {
         alquiler.setId(10);
         alquiler.setPrecioPorHoraAplicado(PRECIO);
 
-        when(alquilerRepository.findById(10))
+        when(alquilerRepository.buscarPorIdConBloqueo(10))
                 .thenReturn(Optional.of(alquiler));
 
         return alquiler;
@@ -283,14 +378,14 @@ class AlquilerServiceTest {
         assertFalse(alquiler.isBorradoAlquiler());
 
         assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(CodigoEstadoBicicleta.ALQUILADA, bicicleta.getEstado());
-        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
-        assertEquals(PRECIO, bicicleta.getPrecioPorHora());
+        assertEquals("EN_USO", bicicleta.getEstado().getCodigo());
+        assertEquals("MONTANA", bicicleta.getTipo().getCodigo());
+        assertEquals(PRECIO, bicicleta.getTipo().getPrecioPorHoraUsd());
         assertNull(bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());
 
         verify(usuarioRepository).findByEmail(EMAIL);
-        verify(alquilerRepository).findById(10);
+        verify(alquilerRepository).buscarPorIdConBloqueo(10);
         verify(estacionRepository)
                 .buscarActivaPorNombreConBloqueo("Destino QA");
 

@@ -8,7 +8,12 @@ Fecha de aprobación de la precisión económica: 28 de octubre de 2026.
 
 Estado: circuito mínimo y precisión económica de la sección 8 aprobados expresamente para incorporar al diseño. La respuesta «Sí, esperar la revisión antes de liquidar» confirma registrar inmediatamente la devolución sin seguir contando tiempo y esperar la validación del corte antes de determinar el ajuste final. No se implementaron estados, tablas o endpoints nuevos ni se ejecutaron pruebas.
 
-Actualización aprobada el 6 de noviembre de 2026: RN-INV-01 exige Taller para DE_BAJA y borrado lógico. Restringe la excepción anterior de baja de una EXTRAVIADA sin recepción; mientras siga ausente conserva EXTRAVIADA. No cambia el cierre excepcional ni las reglas de cobro o recuperación descritas aquí.
+Actualización vigente del 8 de noviembre de 2026: RN-INV-03 (documento 26,
+sección 9) sustituye la restricción absoluta de Taller aprobada el 6 de noviembre.
+Permite baja por pérdida definitiva confirmada y eliminación lógica posterior
+respaldada, sin recepción/salida ficticias, con detalle cerrado y decisión
+administrativa trazada. No cambia el cierre excepcional ni las reglas de
+cobro o recuperación; la implementación sigue pendiente de este módulo.
 
 ## 1. Decisión de incorporación
 
@@ -45,7 +50,13 @@ Las demás bicicletas del conjunto conservan sus viajes o reservas. Cuando todos
 - Pérdida o robo confirmados y bicicleta todavía no recuperada: se incorpora EXTRAVIADA a BICICLETA, sin ofrecerla a clientes ni atribuirle una estación de devolución. No es una baja definitiva automática. Si ya se recuperó cuando se decide, se registra la situación actual y su revisión; no se la presenta falsamente como todavía desaparecida.
 - Avería o accidente que deja la bicicleta fuera de uso: MANTENIMIENTO, con revisión correctiva por el recorrido correspondiente. No se inventaría presencia en una estación ni aptitud técnica. El inicio de trabajo efectivo requiere acceso físico a la unidad; una orden CREADA no significa que ya fue recogida o revisada.
 - Recuperación física: registrar recepción y ubicación reales, respetando capacidad si ingresa a una estación. Una EXTRAVIADA recuperada pasaría a MANTENIMIENTO para revisión, no directamente a DISPONIBLE. La habilitación posterior mantendría RN-MAN-02 y RN-MAN-04.
-- Retiro definitivo: la aprobación posterior del 6 de noviembre de 2026 de [RN-INV-01, sección 7](26-revision-estaciones-tipos-y-bicicletas.md) exige presencia física real en Taller para DE_BAJA o borrado lógico. Restringe la excepción anterior de baja sin recepción: mientras la unidad no se recupere conserva EXTRAVIADA; no se inventa un Taller. Si se recupera y posteriormente ADMIN decide su retiro definitivo, exige Taller, motivo, detalle cerrado y ausencia de órdenes abiertas incompatibles, conservando historia. No cambia el cierre excepcional ni la liquidación del contrato y no es una transición por simple demora.
+- Retiro definitivo: RN-INV-03 permite EXTRAVIADA a DE_BAJA sin Taller cuando
+  ADMIN confirma pérdida definitiva con su incidencia, motivo, detalle cerrado
+  y sin operaciones incompatibles. La ubicación permanece nula y la eliminación
+  lógica posterior debe verificar ese respaldo, no fingir una retirada material.
+  Una unidad recuperada utiliza recepción/revisión reales y el recorrido físico
+  aplicable. No cambia el cierre excepcional o la liquidación y no se activa
+  por simple demora.
 
 Recuperar una unidad después de su cierre excepcional no reabre su contador ni duplica la liquidación. No se revierte una DE_BAJA desde el panel normal por el solo hecho de encontrarla después.
 

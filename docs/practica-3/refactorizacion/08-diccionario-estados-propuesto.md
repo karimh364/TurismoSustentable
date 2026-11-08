@@ -1,5 +1,13 @@
 # Propuesta unificada de estados y transiciones
 
+Actualización vigente del 8 de noviembre de 2026: RN-INV-03 (documento 26,
+sección 9) añade la excepción administrativa por pérdida definitiva. Desde
+EXTRAVIADA se podrá pasar a DE_BAJA, con incidencia confirmada, detalle cerrado,
+motivo y decisión de ADMIN, sin Taller/recepción ficticios. Su eliminación
+lógica posterior exige ese respaldo y no libera lugares. Las restricciones
+absolutas anteriores de Taller se conservan solo como antecedente. No se
+agregan estados; implementación pendiente al integrar incidencias.
+
 Fecha: 25 de octubre de 2026.
 
 Actualizado: 28 de octubre de 2026.

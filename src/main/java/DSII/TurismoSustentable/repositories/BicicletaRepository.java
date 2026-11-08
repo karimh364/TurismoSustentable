@@ -1,8 +1,6 @@
 package DSII.TurismoSustentable.repositories;
 
 import DSII.TurismoSustentable.models.Bicicleta;
-import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
-import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
 import DSII.TurismoSustentable.models.Estacion;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,28 +17,39 @@ public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
     /**
      * 3. ESTADOS DE LAS BICICLETAS (Preferencias/Estados de Bicis en general)
      * * Consulta que utiliza la tabla Bicicleta (no Alquiler) para contar cuántas bicicletas
-     * están en cada CodigoEstadoBicicleta.
-     * * Resultado: List<Object[]> donde cada Object[] contiene [CodigoEstadoBicicleta, Long Cantidad].
+     * están en cada estado. Resultado: [String código, Long cantidad].
      */
 
-    @Query("SELECT b.estado, COUNT(b.id) FROM Bicicleta b GROUP BY b.estado")
+    @Query("SELECT b.estado.codigo, COUNT(b.id) FROM Bicicleta b GROUP BY b.estado.codigo")
     List<Object[]> contarBicicletasPorEstado();
 
     Optional<Bicicleta> findByCodigoBicicleta(String codigoBicicleta);
+    boolean existsByCodigoBicicletaIgnoreCaseAndIdNot(String codigoBicicleta, int id);
+
+    @Override
+    @EntityGraph(attributePaths = {"tipo", "estado", "ubicacionActual"})
+    List<Bicicleta> findAll();
+
+    @Override
+    @EntityGraph(attributePaths = {"tipo", "estado", "ubicacionActual"})
+    Optional<Bicicleta> findById(Integer id);
+
+    @EntityGraph(attributePaths = {"tipo", "estado", "ubicacionActual"})
     List<Bicicleta> findByBorradoBiciFalse();
-    @EntityGraph(attributePaths = "ubicacionActual")
+    @EntityGraph(attributePaths = {"tipo", "estado", "ubicacionActual"})
     @Query(
             "SELECT b FROM Bicicleta b " +
                     "JOIN b.ubicacionActual e " +
                     "WHERE b.borradoBici = false " +
-                    "AND b.estado = :estado " +
+                    "AND b.estado.codigo = :estado " +
                     "AND e.borradoEstacion = false " +
                     "AND e.esPublica = true"
     )
     List<Bicicleta> buscarPorEstadoEnEstacionesPublicas(
-            @Param("estado") CodigoEstadoBicicleta estado
+            @Param("estado") String estado
     );
-    List<Bicicleta> findByBorradoBiciFalseAndTipo(CodigoTipoBicicleta tipo);
+    @EntityGraph(attributePaths = {"tipo", "estado", "ubicacionActual"})
+    List<Bicicleta> findByBorradoBiciFalseAndTipo_Codigo(String codigo);
 
     // Cuenta las bicicletas que están físicamente en una estación y que no fueron eliminadas lógicamente
     long countByUbicacionActualAndBorradoBiciFalse(

@@ -7082,3 +7082,847 @@ Fecha: 7 de noviembre de 2026.
   límites de verificación. Solo se hicieron lecturas de XML/DER y consultas Git
   y se editaron documentos, sin cambios de fuentes, DB, permisos o reglas,
   reinicios, Gradle, SQL, peticiones de aplicación o escrituras de Git.
+
+### Etapa 116 Punto de guardado confirmado y entrada de alta de bicicleta propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- El usuario informó working tree clean y rama actualizada contra origin.
+  La revisión local confirmó árbol limpio antes de esta anotación y último
+  commit be1f66c, Preparar catalogos de tipos y estados de bicicleta.
+  No se hizo fetch ni se afirma una comprobación independiente del remoto.
+- Se revisaron Bicicleta, BicicletaDTO, el alta del controlador y los campos
+  del DERv5. El controlador todavía recibe directamente una entidad con enums
+  y precio por unidad. Cambiar únicamente un atributo a @ManyToOne rompería
+  firmas, serialización DTO, consultas, pruebas y solicitudes del frontend.
+- Se propone como primera pieza permanente CrearBicicletaDTO, en main/dto,
+  para recibir codigoBicicleta (obligatorio, hasta 255 caracteres como la columna
+  actual, trim de extremos sin introducir otro formato), tipoBicicletaId y
+  estacionId (Integer obligatorios/positivos). No contiene entidad anidada,
+  precio, estado, id, borrado o version enviados por el visitante.
+- Los dos IDs deberán resolverse contra registros válidos en el servicio,
+  no se consideran válidos por superar @Positive solamente. La tarifa viene
+  de TipoBicicleta; el estado inicial DISPONIBLE se conserva del alta actual,
+  no se habilitan estados manuales de viaje por esta entrada.
+- Este turno no crea la fuente ni cambia el endpoint o su JSON. El usuario
+  pegará/guardará el DTO y comprobará los cuatro filtros. Después se adaptarán
+  conjuntamente modelo/servicio/controlador/DTO de salida y consumidores que
+  corresponda, para retirar enums y precio propio sin introducir puentes
+  provisionales o afirmar que el modelo actual ya cumple todo el DERv5.
+- Solo se leyeron fuentes/DER y consultas de Git y se editó este diario.
+  No se modificaron fuentes, datos, reglas o permisos ni se ejecutaron Gradle,
+  SQL, reinicios, peticiones o escrituras Git. Esta anotación es posterior
+  al punto de guardado informado, por lo que el diario vuelve a quedar modificado.
+
+### Etapa 117 DTO de alta revisado y entrada de actualización propuesta
+
+Fecha: 7 de noviembre de 2026.
+
+- Se revisó CrearBicicletaDTO en main/dto: package, los tres campos, anotaciones,
+  constructor y getters/setters coinciden con la propuesta. No faltan bloques.
+- El usuario aportó BUILD SUCCESSFUL en tres segundos. XML verificados:
+  CargaCatalogosRefactorTest 6, TipoBicicletaTest 6, BicicletaControllerTest 6 y
+  AlquilerServiceTest 4, total 22 sin fallos, errores u omisiones. Timestamps
+  UTC 2026-11-08T00:55:58.505Z y 00:55:59.465Z/.377Z/.483Z. Compilan el DTO;
+  no prueban todavía sus validaciones ni lo conectan al POST actual.
+- Se propone Crear la clase ActualizarBicicletaDTO, todavía no existente:
+  codigoBicicleta obligatorio, máximo 255 y trim; tipoBicicletaId obligatorio
+  positivo; estacionId opcional y positivo cuando se informa; version
+  obligatoria/no negativa. Mantiene la semántica actual: estación nula no
+  solicita vaciar ubicación; solo las operaciones autorizadas registran una salida.
+- Se propone motivo opcional con límite de entrada de 1000 caracteres y trim,
+  destinado a AUDITORIA_SISTEMA, no a una columna nueva de Bicicleta. El motivo
+  es opcional en edición rutinaria y el servicio deberá exigirlo cuando la
+  acción lo requiera, incluido movimiento físico según documento 26. Se
+  contrastaron documento 35 y campo del DER; no se vuelve obligatorio para
+  toda edición. Las validaciones condicionales no están implementadas por el DTO.
+- No se aceptan precio, estado o borrado en esta entrada de edición general.
+  La tarifa pertenece al tipo y los estados/bajas tienen recorridos controlados.
+  La versión prepara el control previsto por DER, no lo implementa por sí sola.
+- El usuario creará/guardará el DTO y ejecutará los filtros indicados; no se
+  cambia aún PUT, modelo o frontend. Solo se leyeron fuentes/decisiones/XML y
+  se actualizó este diario; no hubo cambios Java, DB, reglas/DER, permisos,
+  Gradle, SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 118 DTO de actualización revisado y adaptación coordinada pendiente
+
+Fecha: 7 de noviembre de 2026.
+
+- Se leyó ActualizarBicicletaDTO.java en main/dto: package, los cinco campos,
+  anotaciones, constructor y getters/setters coinciden con la propuesta. Se
+  confirmó guardado en disco y presencia del archivo .class en build/classes.
+  Fuente modificada a las 22:02:37 locales; no se detectó un archivo vacío o
+  creado en test por error. Se conservó su estado Git AM y el del DTO de alta.
+- La salida aportada indica cuatro tareas UP-TO-DATE, por lo que no se afirma
+  una nueva ejecución de las pruebas a partir de esa salida. Se leyeron los
+  reportes disponibles, timestamps UTC 2026-11-08T01:02:47.275Z y
+  01:02:48.343Z/.243Z/.363Z: 6+6+6+4, veintidós casos sin fallos/errores.
+  Es evidencia de compilación previa y resultado conservado, no una prueba
+  directa de las validaciones nuevas de los DTO ni su integración HTTP.
+- Los DTO de alta/actualización están preparados, todavía sin sustituir los
+  parámetros de los endpoints. La adaptación central debe coordinar Bicicleta
+  (FK a tipo/estado, fecha_alta/version, retirada de precio por unidad), DTO de
+  salida, repositorios, servicios, controladores, solicitudes del frontend y
+  pruebas afectadas. No se propone reemplazar un campo aisladamente dejando
+  el resto incompatible ni crear métodos puente que mantengan dos fuentes de tarifa.
+- Se plantea solicitar autorización puntual para ejecutar ese bloque coordinado
+  por su alcance entre archivos, manteniendo las decisiones aprobadas, guardas
+  existentes y límites de módulos pendientes. No se obtuvo esa autorización
+  todavía ni se implementa la migración por este mensaje. Reinicio/create-drop
+  y comprobaciones del usuario no se ejecutarán por cuenta del asistente.
+- Solo se leyeron fuentes, reportes y referencias de auditoría/DER y se
+  actualizó este diario. No hubo cambios de fuentes, DB, permisos, reglas/DER,
+  Gradle, SQL, reinicios, peticiones o escrituras Git por el asistente.
+
+### Etapa 119 Adaptación coordinada de Bicicleta al inventario del DERv5
+
+Fecha de referencia del entorno: 7 de noviembre de 2026.
+
+Autorización: el usuario pidió implementar este bloque coordinado y dejarle
+la parte de guardar y comprobar. Se conservaron los cambios previos y el
+estado de staging de sus DTO. No se cambiaron ramas, commits ni el remoto.
+
+Implementación realizada en fuentes, pendiente de ejecución:
+
+1. Bicicleta ahora referencia TipoBicicleta y EstadoBicicleta por FK
+   obligatorias y LAZY. Agrega fecha_alta DATE, fijada por el servidor al
+   crear, y version con @Version. Conserva estacion_id opcional, borrado_bici
+   independiente y referencias a los alquileres existentes. Su igualdad/hash
+   no depende ya del código editable, para no romper colecciones Set.
+2. Se retiraron el atributo/métodos de precio propio y los dos enums
+   transitorios sin consumidores restantes en src. No se mantienen precios
+   duplicados ni métodos puente. Los archivos eliminados siguen recuperables
+   desde Git; no se borraron datos ni clases de otros dominios.
+3. POST/PUT reciben CrearBicicletaDTO/ActualizarBicicletaDTO con @Valid, no
+   entidades enlazadas por JSON. Rechazan campos ajenos, incluidos estado,
+   precio y borrado. La edición exige la versión leída; estacionId nulo no
+   vacía la ubicación. Cambiar de estación exige motivo y capacidad real.
+4. BicicletaService concentra las operaciones antes mezcladas en el controlador.
+   Las escrituras validan actor ADMIN activo, catálogo, código, versión,
+   alquiler asociado y restricciones de estado antes de modificar. Se bloquea
+   la bicicleta y se bloquea la estación receptora antes de contar todas las
+   unidades físicas, incluidas archivadas. READ_COMMITTED evita reutilizar un
+   conteo de snapshot anterior al bloqueo. @Version cubre también escrituras
+   concurrentes externas a estas rutas.
+5. BicicletaDTO conserva tipo/estado como códigos y precio como dato de salida,
+   derivado exclusivamente del tipo. Añade IDs de tipo/estación, version,
+   fechaAlta y borradoBici. Se adaptaron EstacionDTO y las consultas/estadísticas
+   para usar códigos de las entidades y no serializar entidades como etiquetas.
+6. ADMIN puede consultar unidades archivadas. DELETE ahora exige cuerpo con
+   version/motivo y ubicación real en un taller interno activo; conserva el
+   estado, la ubicación y la ocupación. Dar DE_BAJA es una transición separada:
+   no archiva automáticamente. No hay borrados físicos ni cascadas nuevas.
+7. Se habilitaron acciones administrativas controladas de DISPONIBLE a INACTIVA
+   y viceversa y baja desde inventario sin proceso activo. Para habilitar se
+   exige ubicación registrada y activa. EN_USO/RESERVADA/MANTENIMIENTO/
+   EXTRAVIADA no se liberan desde edición general. La edición ordinaria se
+   limita a DISPONIBLE/INACTIVA; DE_BAJA queda consultable/archivable en taller.
+   No se permite inventar viajes, reservas, pérdidas, revisiones u órdenes.
+   Los recorridos especiales y las restricciones cruzadas de los módulos
+   pendientes deberán conectarse al implementarlos; no se simula su existencia.
+8. Se incorporaron HISTORIAL_ESTADO_BICICLETA y AUDITORIA_SISTEMA, ya previstas
+   en el DER, con sus FK, repositorios y un servicio de trazabilidad que exige
+   transacción existente. No se agregó HISTORIAL_ATENCION_MANTENIMIENTO.
+   El alta registra estado inicial (anterior nulo), las transiciones registran
+   ambos estados, fecha, actor real y origen USUARIO. Ediciones/movimientos/
+   archivo/tarifa registran auditoría ADMIN con lista explícita de datos de
+   inventario, sin serializar cuentas o secretos. Un archivo sin transición
+   no inventa un cambio de estado. No se implementó todavía una pantalla de
+   consulta de historiales ni la auditoría del resto de módulos.
+9. GET /api/admin/tipos-bicicleta devuelve datos de catálogo por DTO.
+   PUT /api/admin/tipos-bicicleta/{id}/tarifa modifica solamente la tarifa:
+   positiva, hasta ocho dígitos enteros/dos decimales, sin redondeo de entrada.
+   Usa bloqueo del tipo y compara el precio anterior enviado por el formulario
+   para rechazar una edición obsoleta, sin agregar columnas ajenas al DER.
+   El intervalo preventivo no se altera desde esta operación.
+10. AlquilerService toma y congela la tarifa del tipo bajo el mismo bloqueo,
+    usa EN_USO al retirar y DISPONIBLE al devolver, y registra la transición.
+    Contratar o devolver el viaje propio conserva el historial de dominio,
+    incluso si la cuenta también tiene ADMIN. La finalización de un contrato
+    ajeno mediante el permiso ADMIN agrega además auditoría administrativa;
+    tener dos roles no convierte todas sus actuaciones en administrativas.
+    La devolución usa exclusivamente precioPorHoraAplicado: si falta no se
+    reconstruye con una tarifa actual; se informa un fallo de configuración,
+    antes de mutar el alquiler. Se bloquea el contrato para serializar dos
+    finalizaciones simultáneas. Se conservan propiedad del alquiler, destinos
+    públicos habilitados, capacidad física y cálculo económico existente.
+    Los métodos modificados revierten también ante excepciones comprobadas.
+    AlquilerController deja pasar la excepción de configuración al manejador
+    global 500, en lugar de atribuírsela al visitante como 400.
+11. admin.js/admin.html cargan IDs de tipos/estaciones desde backend, muestran
+    la tarifa como solo lectura y ofrecen Tarifas por tipo por separado.
+    El formulario envía los DTO y la versión leída; no estados/precios/entidades
+    anidadas. Muestra los estados de proceso sin permitir edición general y
+    ofrece acciones justificadas separadas. Las archivadas siguen visibles.
+    Se conserva la estética Bootstrap existente y los errores se muestran como
+    texto, sin insertar datos de inventario en HTML. No se tocaron login,
+    recuperación, registro, pantallas de clientes ni configuración de sesión.
+12. No cambió WebAuthorization: las rutas nuevas administrativas usan el
+    prefijo /api/admin/** ya restringido a ADMIN. Se ampliaron sus pruebas
+    para cubrir inventario/tipos/tarifas y denegación a otros roles.
+
+Pruebas preparadas, NO ejecutadas por el asistente:
+
+- BicicletaControllerTest se adaptó a entradas DTO y HTTP con MockMvc:
+  validación, campos no permitidos, versión, archivo y tarifa decimal.
+- Nuevo BicicletaServiceTest cubre integridad del inventario, motivos, capacidad,
+  rechazo sin mutaciones, estados, auditoría/historial, archivo independiente,
+  lectura administrativa y tarifa por tipo. Sustituye las antiguas comprobaciones
+  de negocio que estaban en el test del controlador; no se pierden esas guardas.
+- AlquilerServiceTest conserva los rechazos de estaciones y agrega tarifa
+  congelada al iniciar/finalizar, tarifa histórica faltante sin mutaciones y
+  prohibición de finalizar contratos ajenos. Los dobles evitan APIs/correos/DB.
+- Los tests unitarios NO demuestran por sí solos bloqueos reales de MySQL/JPA.
+  Quedan pendientes el arranque y la comprobación del esquema/FK, tarifas,
+  versiones, historiales y pantallas con datos descartables.
+
+Comprobación que realizará el usuario:
+
+```powershell
+.\gradlew.bat test --tests "CargaCatalogosRefactorTest" --tests "TipoBicicletaTest" --tests "BicicletaControllerTest" --tests "BicicletaServiceTest" --tests "AlquilerServiceTest" --tests "WebAuthorizationTest" --tests "EstacionControllerTest" --tests "EstacionServiceTest"
+```
+
+No se ejecutó Gradle, javac, Node, pruebas, SQL ni reinicios. Solo se inspeccionaron
+fuentes/referencias/diff y se verificó whitespace con git diff --check. La base
+en ejecución no ha sido migrada y sigue correspondiendo al proceso anterior.
+Antes de probar estas modificaciones en navegador hará falta un reinicio
+controlado del perfil refactor: create-drop eliminará sus datos de prueba.
+No se inventaron fecha_alta ni tarifas para datos antiguos, ni se creó una
+migración destructiva sobre la base en uso. No se completaron reservas,
+alquiler_detalle, Mercado Pago, incidencias o mantenimiento; la compatibilidad
+del alquiler actual es solo el enlace necesario para avanzar con inventario.
+Los dos Mermaid se conservaron sin cambios; estas entidades/campos ya estaban
+aprobados en ellos. No hay un nuevo diseño paralelo ni una nueva regla de pago.
+
+### Etapa 120 Compilación y pruebas del inventario verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario informó BUILD SUCCESSFUL en 19 segundos y cuatro tareas ejecutadas
+  con los ocho filtros de la etapa anterior. Se leyeron los XML de
+  build/test-results/test, no solo el texto de la terminal.
+- Resultado: CargaCatalogosRefactorTest 6, TipoBicicletaTest 6,
+  BicicletaControllerTest 10, BicicletaServiceTest 20, AlquilerServiceTest 8,
+  WebAuthorizationTest 19, EstacionControllerTest 22 y EstacionServiceTest 10.
+  Total: 101 pruebas, cero fallos, cero errores y cero omisiones.
+- Timestamps de las suites: 2026-11-08T12:32:56.192Z a
+  2026-11-08T12:33:00.535Z (09:32:56 a 09:33:00, Argentina). Los .class de
+  Bicicleta y BicicletaService son posteriores a sus fuentes modificadas.
+  La evidencia corresponde a esta ejecución, no a reportes anteriores.
+- Se contrastaron las FK, fecha_alta y version en Bicicleta, las referencias
+  a catálogos y su precarga refactor. No quedan referencias en src a
+  CodigoTipoBicicleta/CodigoEstadoBicicleta ni métodos de precio por unidad.
+  git diff --check no detectó errores de whitespace; mostró únicamente el
+  aviso habitual de conversión LF/CRLF del índice documental.
+- El asistente no volvió a ejecutar Gradle ni inició/detuvo procesos, no hizo
+  consultas o escrituras SQL y no modificó fuentes, configuración o Git.
+  Solo se actualiza este diario con la evidencia de las pruebas del usuario.
+- Siguiente paso: arranque controlado del perfil refactor con MySQL activo,
+  para verificar creación del esquema, FK y precarga real antes de continuar
+  las pruebas manuales de bicicletas, tarifas y trazabilidad. El perfil sigue
+  usando create-drop: se advierte que reiniciarlo elimina los datos locales
+  de prueba previamente autorizados como descartables. No se considera ya
+  comprobada la base ni el navegador por haber pasado los tests con dobles.
+
+### Etapa 121 Esquema y catálogos comprobados después del arranque
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario inició la aplicación y compartió Started TurismoSustentableApplication
+  a las 09:51:23, puerto 8080, en 4.288 segundos. El indicador 80% de bootRun
+  corresponde al proceso que sigue atendiendo peticiones, no a un fallo.
+  El aviso open-in-view no impidió el arranque; no se cambió esa configuración.
+- Se consultó MySQL local mediante SELECT exclusivamente, contra
+  turismo_sustentable. Existen bicicleta, tipo_bicicleta, estado_bicicleta,
+  historial_estado_bicicleta y auditoria_sistema.
+- BICICLETA tiene id PK, codigo_bicicleta VARCHAR(255) NOT NULL UNIQUE,
+  borrado_bici NOT NULL, fecha_alta DATE NOT NULL, version INT NOT NULL,
+  tipo_bicicleta_id/estado_bicicleta_id obligatorias y estacion_id opcional.
+  Ya no existe una columna de precio individual ni las columnas de enum anteriores.
+- information_schema confirmó las ocho FK esperadas entre esas tres tablas
+  operativas y sus referencias: tres de Bicicleta, cuatro del historial
+  (bicicleta, estado anterior/nuevo, actor) y una de auditoría (administrador).
+- Precarga real: MONTANA USD 10.00/3 meses, PASEO USD 8.00/2 meses,
+  ELECTRICA USD 15.00/1 mes. Hay siete estados: DISPONIBLE, RESERVADA,
+  EN_USO, MANTENIMIENTO, INACTIVA, DE_BAJA y EXTRAVIADA.
+- Los conteos de usuarios, estaciones, bicicletas, historial y auditoría
+  son todos cero, consistentes con el entorno de prueba recreado. La aplicación
+  precarga catálogos, no una cuenta ADMIN ni inventario de demostración.
+- No se consultaron credenciales, hashes o tokens. No se ejecutaron escrituras
+  SQL, pruebas, reinicios o cambios Git por el asistente. Solo se documenta
+  el resultado. Próximo paso: registro manual de una cuenta QA, asignación
+  explícita de ADMIN sin quitar CLIENTE y pruebas del inventario desde el panel.
+  La existencia de tablas/FK no demuestra todavía los recorridos de interfaz
+  ni los bloqueos con solicitudes reales concurrentes.
+
+### Etapa 122 Cuenta QA creada y asignación administrativa preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó el registro manual. Se verificó por SELECT la cuenta
+  id 1, nickname admin.bicicletas, activa, con rol CLIENTE. Existen los
+  catálogos ADMIN (id 1), CLIENTE (id 2) y TECNICO (id 3).
+- Se entrega al usuario un INSERT condicionado al nickname/cuenta activa y
+  a la ausencia del vínculo ADMIN. Agrega solo usuario_rol, sin quitar CLIENTE,
+  seguido de un SELECT de comprobación. No fue ejecutado por el asistente:
+  la asignación y su resultado siguen pendientes.
+- Si había una sesión abierta, deberá cerrarla e iniciar otra para que la
+  autenticación cargue los nuevos permisos. No se reinicia la aplicación.
+  No se leyeron secretos ni se hicieron escrituras SQL, cambios Java o Git.
+
+### Etapa 123 Roles QA y dos ubicaciones de prueba verificados
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario informó que inició sesión con ambos roles y creó las dos estaciones
+  desde el panel. Se comprobaron por SELECT la cuenta y las ubicaciones.
+- admin.bicicletas (id 1) está activo y conserva ADMIN y CLIENTE.
+- Estación id 1: dirección Calle de Prueba 100, pública, capacidad 2,
+  coordenadas -53.7865/-67.7045, borrado_estacion false y version 0.
+- Taller QA Central (id 2): dirección Calle de Prueba 200, uso interno,
+  capacidad 5, coordenadas -53.787/-67.705, borrado_estacion false y version 0.
+  La clasificación corresponde a es_publica true/false, no al nombre.
+- Todavía no hay bicicletas. Próxima prueba: alta manual QA-01 del tipo
+  MONTANA en la ubicación pública, comprobando estado inicial DISPONIBLE y
+  tarifa del tipo USD 10.00/h de solo lectura. Alta e historial/auditoría
+  de esa bicicleta permanecen pendientes, no se dan por comprobados.
+- El asistente solo consultó datos no sensibles y actualizó este diario.
+  No hubo escrituras SQL, cambios de fuentes, pruebas, reinicios o cambios Git.
+
+### Etapa 124 Formulario de bicicleta distingue alta, edición y traslado
+
+Fecha: 8 de noviembre de 2026.
+
+- Durante la preparación del alta el usuario detectó campos readonly que
+  recibían foco, una opción de estación ambigua y un motivo de traslado visible
+  sin que hubiera una bicicleta existente. Aprobó los tres ajustes de presentación.
+- admin.html: estado y tarifa del tipo ahora usan disabled, manteniendo sus
+  valores visibles y el aspecto deshabilitado de Bootstrap existente. No se
+  cambia su fuente: el backend determina estado inicial y tarifa del tipo.
+- admin.js: prepararCatalogosBicicleta distingue alta de edición. En alta,
+  Seleccioná una estación es una opción inicial deshabilitada; debe elegirse
+  un destino real. En edición, Mantener ubicación actual permite enviar
+  estacionId nulo con la semántica existente de no solicitar traslado.
+- El grupo del motivo comienza oculto. Un único manejador de cambio lo muestra
+  y marca obligatorio solo cuando se edita una unidad editable y se elige una
+  estación distinta de la original. Se oculta, deshabilita y limpia al volver
+  a la ubicación original, elegir mantener ubicación, abrir un alta o consultar
+  una unidad no editable. Se evita arrastrar una justificación de otro contexto.
+- No se cambiaron DTO, servicios, endpoints, reglas, permisos, DER o CSS general.
+  Se conserva el rechazo de alta sin estación y de traslado sin motivo, tanto
+  en las guardas frontend existentes como en las validaciones backend.
+- Verificación ejecutada por el asistente: Node --check de admin.js correcto;
+  ensayo en memoria con VM, DOM y Axios simulados correcto para alta, opción
+  obligatoria, edición, traslado, retorno al origen, opción mantener ubicación,
+  proceso no editable y reapertura de alta. El ensayo no hizo peticiones HTTP.
+  Se verificaron atributos disabled y enlace onchange en el HTML. git diff
+  --check sin errores de whitespace, con el aviso LF/CRLF ya conocido del índice.
+- No se ejecutó Gradle ni se reinició la aplicación o modificaron datos/Git.
+  La apariencia y el comportamiento en navegador quedan para la comprobación
+  manual tras recargar el panel sin caché. Continúa pendiente el alta QA-01;
+  no se afirma que exista ni que su historial/auditoría estén comprobados.
+
+### Etapa 125 Estado con el mismo control bloqueado que el país del registro
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó que la tarifa vacía correspondía a no haber seleccionado
+  un tipo: no había un fallo de cálculo. Se conserva la tarifa y su implementación.
+- La inspección del navegador confirmó INPUT disabled con valor DISPONIBLE.
+  No era editable; la selección visual del texto no equivalía a editarlo.
+  En registro, el país usa SELECT disabled. Se corrigió solamente el estado
+  para tener ese mismo tipo de control y comportamiento.
+- admin.html ahora usa SELECT disabled para bici-estado. admin.js incorpora
+  mostrarEstadoBicicleta, que coloca una sola opción con el código vigente;
+  se usa al abrir alta y edición. No se ofrece un listado estático de posibles
+  transiciones ni se permite cambiar estado desde el formulario.
+- Node --check y git diff --check correctos (salvo aviso LF/CRLF ya conocido).
+  Ensayo en memoria correcto para los siete códigos: una opción seleccionada
+  con el estado vigente y el selector siempre deshabilitado.
+- Se recargó el panel en el navegador integrado, se abrió Nueva Bicicleta y
+  se verificó en su árbol de accesibilidad: estado como selector deshabilitado,
+  DISPONIBLE visible, tipo MONTANA y tarifa 10. No se pulsó Guardar ni se
+  enviaron escrituras por el asistente. La tabla ya mostraba QA-01,
+  MONTANA, DISPONIBLE, USD 10 en Estación QA Centro; es evidencia de la
+  interfaz, no una comprobación nueva de sus eventos históricos en MySQL.
+- No se cambiaron el backend, el cálculo, precios, catálogo, DER o configuración.
+  No hubo SQL, Gradle, reinicios de la aplicación o cambios Git. Se deja el
+  formulario de prueba abierto para continuar la revisión manual del usuario.
+
+### Etapa 126 Eliminada la opción redundante de conservar ubicación
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario aprobó retirar Mantener ubicación actual del selector de edición.
+  admin.js ahora carga directamente las estaciones y selecciona el ID vigente.
+  Dejar esa selección sin cambiarla conserva la ubicación, sin opción adicional.
+- El alta mantiene Seleccioná una estación como opción inicial deshabilitada
+  y sus validaciones de destino obligatorio. El motivo sigue apareciendo
+  únicamente al solicitar un traslado real durante una edición permitida.
+- Al consultar una bicicleta sin ubicación física, por ejemplo EN_USO, se
+  muestra Sin estación asignada como opción informativa deshabilitada. No se
+  selecciona por defecto una estación existente para aparentar que está allí.
+  No se cambió la semántica backend de estacionId nulo ni los permisos.
+- Verificación: Node --check y git diff --check correctos, salvo aviso LF/CRLF
+  ya conocido. Ensayo en memoria con DOM/Axios simulados correcto para alta,
+  edición con estación id 2 (distinta de la primera opción), ausencia de opción
+  vacía redundante, motivo al cambiar/volver, unidad EN_USO sin estación y
+  reapertura del alta. No se hicieron peticiones reales ni se guardaron datos.
+- Solo se modificaron admin.js y este diario. No se tocaron Java, HTML, CSS,
+  DER, SQL, configuración, procesos o Git. Comprobación visual pendiente
+  del usuario tras recargar el panel sin reiniciar la aplicación.
+
+### Etapa 127 Alcance aprobado para disponibilidad y eliminación definitiva
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario aprobó integrar salida física y borrado lógico en Eliminar, sin
+  un botón adicional obligatorio, y los ajustes del selector/listado.
+- Alcance: mostrar capacidad y bloquear destinos llenos (salvo ubicación actual);
+  eliminar con confirmación real, motivo, ADMIN, versión, Taller previo y sin
+  procesos incompatibles; dejar DE_BAJA, borrado_bici true y estacion_id nulo
+  de forma atómica, conservando auditoría y la transición cuando corresponda;
+  ocultar eliminadas por defecto y permitir su consulta administrativa.
+- No se requiere Dar de baja antes de eliminar. Dar de baja sin eliminar sí
+  conserva presencia y ocupación. No se aprueban restauración, reactivación
+  de DE_BAJA, eliminación física de filas ni liberaciones masivas de datos previos.
+- Sustituye la alternativa anterior de archivo sin cambios de estado/ubicación
+  y la propuesta de endpoint separado de salida. RN-INV-02 detalla el acuerdo
+  vigente en documento 26, sección 8. Documentos 13/20 remiten a esa revisión;
+  los dos Mermaid reflejan la condición sin modificar entidades, campos o FK.
+- En este turno solo se asienta la aprobación y se resume el bloque. No se
+  modifican fuentes, pruebas, datos o configuración; tampoco se ejecuta SQL,
+  Gradle, reinicios o cambios Git. El usuario aún decidirá quién implementa.
+
+### Etapa 128 RN-INV-02 implementada; comprobaciones a cargo del usuario
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario autorizó implementar solo los tres ajustes aprobados y pidió
+  explicación de archivos/motivos y conservar la ejecución de las pruebas.
+  Se respetaron fuentes previas, archivos nuevos del bloque anterior y staging.
+
+Código:
+
+1. admin.js muestra uso y espaciosLibres ya provistos por EstacionDTO. Deshabilita
+   destinos llenos o con disponibilidad no informada, excepto la ubicación
+   actual. La edición consulta primero la bicicleta para identificar esa
+   excepción; no consume un lugar adicional por mantenerla. No cambia la
+   comprobación de capacidad con bloqueo en backend ni el conteo físico.
+2. BicicletaService.listar recibe incluirEliminadas y usa consultas existentes:
+   findByBorradoBiciFalse por defecto y findAll al incluirlas. El controlador
+   expone @RequestParam explícito con default false en GET /api/bicicletas.
+   GET por ID conserva consulta histórica administrativa sin habilitar edición.
+3. admin.html incorpora Mostrar eliminadas; admin.js envía el parámetro, cambia
+   Archivar/Archivada por Eliminar/Eliminada y conserva solo Ver para borradas.
+   Una respuesta de un filtro anterior no repinta un filtro distinto ya elegido.
+   Una eliminada con ubicación nula se presenta como Fuera del inventario.
+4. Nuevo EliminarBicicletaDTO extiende OperacionBicicletaDTO para reutilizar
+   version/motivo y exige salidaFisicaConfirmada mediante @NotNull/@AssertTrue.
+   Es entrada HTTP: no entidad/columna. Las otras operaciones no exigen ese dato.
+   El servicio también comprueba explícitamente true para llamadas internas.
+5. El DELETE existente recibe ese DTO y delega a eliminarLogico. Se retiró el
+   nombre/método archivar del código de este recorrido, sin crear un puente
+   que mantenga el comportamiento anterior ni un endpoint separado de salida.
+6. eliminarLogico conserva ADMIN activo, bloqueo de bicicleta, versión, motivo,
+   Taller habilitado bloqueado y control de alquiler/procesos. Solo acepta
+   las situaciones editables actuales DISPONIBLE/INACTIVA o una DE_BAJA
+   sin alquiler activo. EN_USO/RESERVADA/MANTENIMIENTO/EXTRAVIADA se rechazan.
+   Se resuelve el catálogo antes de mutar y en una sola transacción
+   READ_COMMITTED se deja DE_BAJA, borrado true y ubicación nula.
+7. Se conserva auditoría con acción ELIMINAR_SALIDA_DEFINITIVA, valores
+   anteriores/nuevos (incluida estación previa), actor, motivo y fecha. Se
+   registra historial de estado solo si cambió a DE_BAJA; no se duplica una
+   transición DE_BAJA a DE_BAJA. No se eliminan filas ni relaciones.
+8. La confirmación del panel explica retirada real, liberación y conservación
+   histórica; Confirmar retiro y eliminar envía explícitamente el indicador.
+   Cancelar no envía escrituras. Dar de baja por separado sigue sin liberar
+   lugar; no se modifica la petición ni lógica de inactivar/habilitar.
+
+Límites preservados:
+
+- No se cambiaron entidades, esquema, repositorios, configuración de sesión,
+  reglas de tarifas, cálculo económico o fuentes de alquileres/estaciones.
+- Los módulos nuevos de reservas, incidencias y órdenes todavía no tienen su
+  implementación completa: no se inventaron consultas a tablas/repositorios
+  inexistentes. Se conserva el rechazo por estados de proceso y alquiler
+  activo; al implementar esos módulos deberán integrarse sus guardas abiertas.
+- No se liberaron ni reinterpretaron borradas previas con ubicación, no se
+  permitió restauración ni reactivación de DE_BAJA. El cambio aplica al nuevo
+  recorrido confirmado, no a una migración masiva de inventario.
+
+Pruebas preparadas, no ejecutadas:
+
+- BicicletaServiceTest: 33 casos en fuente. Eliminación directa y de una baja
+  previa, confirmación, versión, motivos, Taller, bloqueos por proceso/contrato,
+  rechazo anterior a mutaciones, catálogo faltante, trazabilidad y listados.
+- BicicletaControllerTest: 15 casos en fuente. Contrato HTTP y validaciones
+  heredadas del DTO, confirmación, default del filtro y conflicto 409.
+- WebAuthorizationTest: 21 casos en fuente. Incluye ADMIN y rechazos anónimo/
+  CLIENTE/TECNICO para eliminación y consulta de eliminadas. No se modificó
+  WebAuthorization ni se ampliaron permisos.
+- Nuevo src/test/js/InventarioBicicletas.test.cjs: 15 casos preparados con Node
+  Test Runner, DOM y Axios simulados sobre el admin.js real. No requiere
+  servidor, navegador, DB, credenciales o dependencias descargadas.
+- Documento 39: comandos filtrados, preparación, 18 escenarios manuales y
+  SELECT delimitados para registrar evidencia sin secretos. La suite Java
+  indicada contiene 121 casos en fuente, no 121 ejecuciones acreditadas.
+
+El asistente solo inspeccionó fuentes/referencias/diff y comprobó whitespace
+con git diff --check (sin errores; avisos LF/CRLF ya conocidos). No ejecutó
+Gradle, Node, javac, pruebas, SQL, navegador, reinicios o cambios Git.
+El usuario debe guardar y ejecutar las suites antes del reinicio controlado.
+El backend encendido sigue siendo el anterior; no usar Eliminar en ese proceso.
+create-drop eliminará los datos QA al reiniciar, por lo que las comprobaciones
+de interfaz del nuevo bloque se harán después de recrear el entorno de prueba.
+
+### Etapa 129 Pruebas automáticas de RN-INV-02 aprobadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario ejecutó los ocho filtros Java: BUILD SUCCESSFUL en 11 segundos,
+  cuatro tareas ejecutadas. Se leyeron los ocho XML actuales de test-results.
+- Resultado verificado: CargaCatalogosRefactorTest 6, TipoBicicletaTest 6,
+  BicicletaControllerTest 15, BicicletaServiceTest 33, AlquilerServiceTest 8,
+  WebAuthorizationTest 21, EstacionControllerTest 22 y EstacionServiceTest 10.
+  Total 121; cero fallos, errores u omisiones. Timestamps UTC entre
+  2026-11-08T15:24:30.547Z y 15:24:34.830Z (12:24, Argentina).
+- El usuario aportó la ejecución Node de InventarioBicicletas.test.cjs:
+  15 pruebas, 15 aprobadas, cero fallos/cancelaciones/omisiones/todo.
+  La comprobación --check de admin.js terminó sin errores. No se afirma
+  un reporte XML independiente para Node: la evidencia es la salida aportada.
+- El bloque suma 136 pruebas automáticas correctas. No sustituye verificar
+  el movimiento, ocupación y persistencia reales bajo MySQL ni la interfaz
+  con el backend nuevo arrancado.
+- Se releyó application-refactor.properties: sigue create-drop. Próximo paso:
+  detener el proceso anterior, iniciar refactor en 8080, recrear cuenta/roles
+  y ubicaciones QA y seguir la matriz del documento 39. Se advierte nuevamente
+  que el reinicio elimina los datos de prueba. No hubo reinicios, SQL,
+  nuevas pruebas o cambios de código/configuración/Git por el asistente.
+
+### Etapa 130 Nuevo arranque y preparación de QA para RN-INV-02
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario reinició: Started TurismoSustentableApplication a las 12:34:48,
+  PID 17804, puerto 8080, en 3.289 segundos. El aviso open-in-view y el indicador
+  80% de bootRun no corresponden a fallos del arranque.
+- Después recreó la cuenta de prueba y agregó ADMIN mediante el procedimiento
+  SQL manual indicado. Se verificó por SELECT admin.bicicletas, id 1,
+  activo y con ADMIN/CLIENTE.
+- Se verificaron las dos estaciones creadas desde el panel: id 1 pública,
+  Calle de Prueba 100, capacidad 2, coordenadas -53.7865/-67.7045; id 2
+  Taller QA Central interno, Calle de Prueba 200, capacidad 5, coordenadas
+  -53.787/-67.705. Ambas sin borrado lógico y con version 0.
+- No hay bicicletas en la base recreada. Próximo paso: QA-01 MONTANA en la
+  pública (USD 10/h) y QA-02 PASEO en el Taller (USD 8/h), verificando los
+  cupos visibles del selector. Persistencia, eventos y ocupación de esas
+  unidades todavía pendientes; no se presume su alta por preparar los datos.
+- El asistente solo realizó consultas de lectura sin secretos y actualizó
+  este diario. No ejecutó escrituras SQL, reinicios, pruebas o cambios Git.
+
+### Etapa 131 Altas reales de QA-01 y QA-02 verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó y guardó ambas unidades en el nuevo proceso de prueba.
+  SELECT confirmó QA-01 id 1, MONTANA, tarifa de tipo USD 10.00, DISPONIBLE,
+  borrado false, estación pública id 1, fecha_alta 2026-11-08 y version 0.
+- QA-02 id 2: PASEO, tarifa de tipo USD 8.00, DISPONIBLE, borrado false,
+  Taller id 2, misma fecha de alta y version 0.
+- Ocupación comprobada contando todas las FK físicas: pública 1 presente/
+  1 espacio libre de capacidad 2; Taller 1 presente/4 espacios libres de 5.
+- Cada alta produjo un historial inicial con estado anterior nulo y nuevo
+  DISPONIBLE, actor_usuario_id 1, origen USUARIO y observación Alta de
+  inventario. Cada una produjo además auditoría CREAR, administrador_id 1,
+  valores anteriores nulos y nuevos con código/tipo/estado/ubicación/borrado.
+  Son eventos de la base real, no resultados de los mocks.
+- Próxima comprobación: traslado iniciado hacia el último lugar libre en una
+  pestaña A y ocupación de ese lugar mediante un alta distinta en B. El
+  guardado posterior de A deberá rechazarse por capacidad. Ese escenario,
+  las eliminaciones y sus efectos todavía no se consideran ejecutados.
+- El asistente solo consultó datos de inventario y trazabilidad y actualizó
+  este diario, sin escrituras SQL, pruebas automatizadas, reinicios o cambios Git.
+
+### Etapa 132 Último lugar público ocupado durante la prueba entre pestañas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó QA-03 creada en la estación pública desde B. SELECT
+  verificó id 3, estación id 1, DISPONIBLE, borrado false y version 0.
+- La pública contiene QA-01 y QA-03: 2 presentes, capacidad 2, espacios libres 0.
+  QA-02 continúa en Taller id 2, DISPONIBLE, borrado false y version 0;
+  el Taller mantiene 1 presente y 4 lugares libres.
+- Se indica volver al formulario de traslado pendiente en A, sin recargar,
+  y guardar. Se espera rechazo por capacidad desde backend. Ese guardado y la
+  ausencia de cambios/eventos tras el rechazo quedan pendientes de comprobar.
+- Solo se ejecutaron SELECT de inventario/capacidad y se actualizó este diario.
+  No se manipularon pestañas ni se enviaron escrituras o reinicios por el asistente.
+
+### Etapa 133 Traslado con disponibilidad desactualizada rechazado sin cambios
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario guardó en A el traslado pendiente de QA-02 después de que QA-03
+  ocupara en B el último lugar público. Reportó: No se pudo completar /
+  La estación de destino no tiene espacios libres. Corresponde a INV02-02/03.
+- SELECT posterior confirmó QA-02 id 2 sin cambios: PASEO USD 8.00,
+  DISPONIBLE, Taller id 2, borrado false y version 0.
+- QA-02 conserva exactamente su historial inicial y auditoría CREAR (id 2
+  en ambas tablas). No existe evento de traslado, transición o edición
+  resultante del intento rechazado.
+- La pública sigue en 2 de 2 lugares, libres 0. El Taller sigue con 1 de 5,
+  libres 4. No se aplicó una ubicación ni una ocupación parcial.
+- Este escenario verifica rechazo real de información antigua del formulario;
+  no se presenta como prueba de dos transacciones simultáneas al mismo instante.
+  Próximo paso: abrir un formulario nuevo y comprobar el destino lleno
+  deshabilitado, seguido de la excepción de conservar la ubicación actual.
+- El asistente solo hizo SELECT y actualizó la evidencia. No modificó datos,
+  fuentes, sesiones, procesos o Git.
+
+### Etapa 134 Destino lleno bloqueado y edición en ubicación actual aprobados
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó que, al reabrir QA-02, la pública con cero lugares
+  aparece deshabilitada y el Taller actual con cuatro queda seleccionado
+  y habilitado (INV02-04; evidencia informada por el usuario).
+- Después editó la unidad id 1 en su estación pública llena y guardó
+  únicamente el código. SELECT confirmó el valor real QA-01 EDIT (con espacio,
+  no el guion sugerido), version 1, MONTANA USD 10.00, DISPONIBLE,
+  borrado false, fecha_alta sin cambios y estacion_id 1.
+- La pública mantiene dos presentes/capacidad dos y cero libres; el Taller
+  mantiene una presente y cuatro libres. No se agregó ocupación por conservar
+  la ubicación actual. Corresponde a INV02-05.
+- Auditoría id 4 ACTUALIZAR del administrador 1 conserva código anterior
+  QA-01 y nuevo QA-01 EDIT con el resto de atributos iguales. Motivo vacío
+  válido para esta edición sin traslado. El historial de estados conserva
+  solamente su alta inicial; no se inventó una transición por editar el código.
+- Próximo paso: rechazo de eliminación desde ubicación pública (INV02-07),
+  antes de trasladar la unidad al Taller. Sigue pendiente de ejecutar.
+- Se realizaron solo SELECT y documentación, sin mutaciones de datos,
+  código, sesión, procesos o Git por el asistente.
+
+### Etapa 135 Eliminación desde ubicación pública rechazada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario intentó eliminar la unidad id 1 QA-01 EDIT desde la estación
+  pública y confirmó que la operación fue impedida (INV02-07).
+- SELECT posterior: DISPONIBLE, estacion_id 1, borrado false y version 1.
+  No se aplicó cambio de estado, ubicación o borrado.
+- La pública conserva dos presentes y cero libres; el Taller una presente
+  y cuatro libres. La auditoría de esa unidad mantiene únicamente CREAR id 1
+  y ACTUALIZAR id 4; su historial conserva solo el alta inicial id 1.
+  El rechazo no creó un evento de eliminación ni una salida ficticia.
+- Próximo paso: elegir el Taller desde la edición, comprobar que se exige
+  motivo y registrar el traslado con justificación. Sigue pendiente.
+- El asistente solo consultó datos y actualizó el diario; no realizó
+  escrituras SQL, cambios de fuentes, reinicios o cambios Git.
+
+### Etapa 136 Traslado justificado al Taller verificado
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario informó que el formulario impidió guardar sin motivo y permitió
+  hacerlo al completarlo. SELECT verificó QA-01 EDIT id 1 en Taller id 2,
+  DISPONIBLE, MONTANA USD 10.00, borrado false y version 2.
+- La pública ahora tiene una presente y un lugar libre; el Taller tiene dos
+  presentes y tres libres. Se liberó el origen y se ocupó el destino real.
+- Auditoría id 5 ACTUALIZAR, administrador 1: conserva ubicación anterior 1
+  y nueva 2, motivo Traslado al taller QA y el resto de datos sin cambios.
+  El historial de estado sigue con su alta inicial: trasladar no creó una
+  transición ficticia. Se acredita INV02-08 y el motivo obligatorio informado.
+- Próxima comprobación manual: inactivar/habilitar sin mover ni liberar lugar,
+  seguida de DE_BAJA y eliminación definitiva; esos recorridos siguen pendientes.
+- El asistente solo efectuó SELECT y documentación. No cambió datos,
+  fuentes, configuración, procesos o Git.
+
+### Etapa 137 Inactivación y habilitación conservan presencia física
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario completó ambas acciones en QA-01 EDIT id 1 y confirmó el resultado
+  visual. SELECT verificó DISPONIBLE, Taller id 2, borrado false y version 4.
+- Historial id 4: DISPONIBLE a INACTIVA, actor 1, origen USUARIO,
+  Pausa de prueba. Historial id 5: INACTIVA a DISPONIBLE, mismo actor/origen,
+  Fin de pausa de prueba. Auditorías id 6 y 7 CAMBIAR_ESTADO conservan
+  estados anteriores/nuevos y motivos sin alterar ubicación o borrado.
+- La pública mantiene una presente/un espacio libre; el Taller dos presentes/
+  tres libres. Se acredita INV02-09 sin movimiento ni liberación ficticia.
+- Próximo paso: Dar de baja la unidad en el Taller y comprobar DE_BAJA con
+  borrado false, presencia/ocupación conservadas; la eliminación va después.
+- El asistente solo realizó SELECT y documentación, sin modificar datos,
+  fuentes, configuración, procesos o Git.
+
+### Etapa 138 Baja definitiva sin salida física verificada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario dio de baja QA-01 EDIT id 1 y pidió comprobar su ocupación.
+  SELECT confirmó DE_BAJA, Taller id 2, borrado false y version 5.
+- El Taller conserva dos presentes/capacidad cinco y tres lugares libres;
+  la unidad dada de baja sigue ocupando exactamente su lugar. La pública
+  conserva una presente/un lugar libre. Se acredita INV02-10.
+- Historial id 6: DISPONIBLE a DE_BAJA, actor 1, origen USUARIO y motivo
+  Fin de vida útil de prueba. Auditoría id 8 CAMBIAR_ESTADO conserva la misma
+  ubicación y borrado false antes/después, con ADMIN real y justificación.
+- El borrado lógico y la salida física todavía no se ejecutaron. Próximo paso:
+  confirmar que cancelar Eliminar o dejar el motivo vacío no produce cambios,
+  antes de registrar la salida definitiva de prueba.
+- El asistente solo hizo SELECT y documentación, sin alterar datos,
+  fuentes, configuración, procesos o Git.
+
+### Etapa 139 Cancelación y motivo vacío no ejecutan la eliminación
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó ambas comprobaciones de INV02-11: Cancelar cierra sin
+  eliminar y la confirmación sin motivo exige completarlo.
+- SELECT posterior mantiene QA-01 EDIT id 1 DE_BAJA, Taller id 2, borrado false
+  y version 5. Hay cuatro eventos de estado, seis de auditoría administrativa
+  y ninguna acción ELIMINAR_SALIDA_DEFINITIVA para esa unidad.
+- La ocupación sigue igual: pública una presente/un lugar libre; Taller dos
+  presentes/tres libres. No hubo salida física ficticia ni cambios parciales.
+- Próximo paso: confirmar la eliminación con motivo Retirada definitiva de
+  prueba, sobre la unidad QA que ya está DE_BAJA. Se espera borrado true,
+  ubicación nula y un lugar liberado, sin nueva transición DE_BAJA a DE_BAJA.
+  La operación confirmada todavía no se considera ejecutada.
+- Solo se realizaron SELECT y documentación; el asistente no envió
+  escrituras, eliminaciones, reinicios ni cambios de código/Git.
+
+### Etapa 140 Eliminación de una DE_BAJA libera lugar y conserva historia
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó Eliminar sobre QA-01 EDIT con el motivo solicitado.
+  SELECT verificó que la fila id 1 sigue existiendo: MONTANA USD 10.00,
+  DE_BAJA, borrado true, estacion_id nulo, fecha_alta sin cambios y version 6.
+- El Taller pasó de dos presentes/tres libres a una presente/cuatro libres,
+  capacidad cinco. La pública conserva una presente/un lugar libre.
+  La consulta de no borradas devuelve solo QA-02 id 2 y QA-03 id 3.
+- Auditoría id 9 ELIMINAR_SALIDA_DEFINITIVA, administrador 1: ubicación anterior
+  2 y nueva nula, borrado anterior false y nuevo true, estado DE_BAJA conservado,
+  motivo Retirada definitiva de prueba y fecha registrada.
+- El historial mantiene cuatro eventos de esa bicicleta: alta, pausa,
+  habilitación y baja previa. No se generó una transición DE_BAJA a DE_BAJA.
+  Se acredita persistencia real de INV02-12/18 para una unidad ya dada de baja.
+- Pendiente: consulta visual de Mostrar eliminadas/Ver sin edición, seguida
+  del rechazo por versión al eliminar otra unidad y su eliminación directa
+  desde DISPONIBLE en Taller sin una baja previa.
+- El asistente solo verificó con SELECT y documentó; no ejecutó escrituras,
+  eliminaciones, pruebas automatizadas, reinicios o cambios Git.
+
+### Etapa 141 Excepción por pérdida definitiva aprobada y documentada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario aprobó EXTRAVIADA a DE_BAJA por pérdida definitiva confirmada,
+  decidida por ADMIN con motivo, incidencia de la misma unidad, detalle
+  cerrado y ausencia de operaciones incompatibles. No exige Taller y mantiene
+  ubicación nula, con historial de estado y auditoría de la decisión real.
+- La eliminación lógica posterior requiere esa baja respaldada, sin simular
+  recepción o salida física ni liberar espacio. Una DE_BAJA sin ubicación o
+  un texto del navegador no son prueba suficiente. No restaura ni reactiva.
+- Se conservan cierre excepcional y reglas económicas. No se introdujeron
+  plazos automáticos, responsabilidad o cargos automáticos por la pérdida.
+  Recuperación antes de la baja conserva MANTENIMIENTO y revisión; una
+  recuperación posterior a DE_BAJA no revierte decisiones automáticamente.
+- RN-INV-03 se incorporó al documento 26, sección 9, y se sincronizaron
+  referencias en diccionario de trabajo, estados de bicicleta, administración
+  e incidencias (08/13/20/21). Se actualizaron ambos Mermaid sin agregar
+  entidades, columnas, estados ni relaciones.
+- No se cambió el código: el recorrido físico sigue como se probó y la
+  excepción queda pendiente al conectar incidencias, evitando una transición
+  libre o un endpoint provisional sin comprobaciones reales.
+- Se ordenaron numéricamente las etapas 136 a 140 del diario, conservando
+  íntegramente sus contenidos y evidencias. No se reescribieron sus resultados.
+- Continúan pendientes las pruebas visuales Mostrar eliminadas/Ver, el
+  conflicto por versión al eliminar otra unidad y su eliminación directa
+  desde DISPONIBLE en Taller, ya preparadas en el documento 39.
+- Solo se editaron documentos Markdown y comentarios/descripción del DER;
+  no se ejecutaron Java, Node, SQL, pruebas, reinicios, navegador o cambios Git.
+
+### Etapa 142 Consulta de eliminadas y vista bloqueada comprobadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó INV02-13/14: Mostrar eliminadas presenta QA-01 EDIT
+  marcada Eliminada y Fuera del inventario, solo ofrece Ver y sus campos
+  están bloqueados; al desmarcar vuelve a ocultarse.
+- SELECT posterior confirma id 1 DE_BAJA, ubicación nula, borrado true y
+  version 6. Conserva cuatro eventos de estado y siete administrativos.
+  Consultar la unidad no generó modificaciones ni eventos administrativos nuevos.
+- QA-02 id 2 sigue DISPONIBLE, Taller id 2, borrado false y version 0.
+  La pública mantiene una presente/un lugar libre y el Taller una/cuatro.
+- Próximo escenario INV02-16: abrir confirmación de eliminación de QA-02 en A,
+  sin aceptarla; editar solo su código en B; confirmar luego en A para probar
+  rechazo de versión antigua. La preparación y el rechazo siguen pendientes.
+  Su eliminación directa desde DISPONIBLE se comprobará después.
+- El asistente solo consultó datos y actualizó este diario, sin escrituras
+  SQL, cambios de fuentes, pruebas automatizadas, reinicios o cambios Git.
+
+### Etapa 143 Edición concurrente de QA-02 guardada en B
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó el guardado en B con la confirmación de eliminación
+  preparada previamente en A. SELECT verificó id 2, nuevo código QA-02-EDIT,
+  DISPONIBLE, Taller id 2, borrado false y version 1 (antes 0).
+- Auditoría id 10 ACTUALIZAR, administrador 1, conserva únicamente el cambio
+  de código y mantiene tipo, estado, ubicación y borrado. Motivo vacío válido
+  para edición sin traslado.
+- Ocupación sin cambios: pública una presente/un lugar libre; Taller una
+  presente/cuatro libres. No se ha eliminado la unidad.
+- Se indica confirmar el diálogo original de A sin recargar ni reabrir.
+  Se espera conflicto por su versión anterior; el rechazo aún está pendiente.
+- El asistente solo realizó SELECT y documentación, sin alterar datos,
+  código, pestañas, procesos o Git.
+
+### Etapa 144 Eliminación con versión anterior rechazada sin cambios
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó el diálogo original de A después del cambio guardado
+  en B. Reportó La bicicleta fue modificada. Recargá los datos. Se acredita
+  el rechazo real de INV02-16 con un formulario de confirmación desactualizado.
+- SELECT conserva QA-02-EDIT id 2 PASEO USD 8.00, DISPONIBLE, Taller id 2,
+  borrado false y version 1. Se mantuvo la edición válida realizada en B.
+- La auditoría de esa unidad solo contiene CREAR id 2 y ACTUALIZAR id 10;
+  el historial de estado solo su alta id 2. No hay salida, eliminación ni
+  cambio de estado producido por la confirmación obsoleta.
+- La pública mantiene una presente/un lugar libre y el Taller una/cuatro.
+- Próximo paso: abrir una confirmación nueva y eliminar QA-02-EDIT
+  directamente desde DISPONIBLE en Taller, sin Dar de baja antes (INV02-15).
+  La ejecución exitosa y sus efectos siguen pendientes de verificar.
+- Solo se realizaron SELECT y documentación; el asistente no alteró datos,
+  fuentes, pestañas, sesiones, procesos o Git.
+
+### Etapa 145 Eliminación directa desde DISPONIBLE verificada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario abrió una confirmación nueva y eliminó QA-02-EDIT sin darla de baja
+  previamente (INV02-15). SELECT confirma la fila id 2 existente, PASEO USD 8.00,
+  DE_BAJA, estacion_id nulo, borrado true, fecha_alta conservada y version 2.
+- Historial id 7 registra exactamente una transición DISPONIBLE a DE_BAJA,
+  actor 1, origen USUARIO y motivo Retirada directa de prueba, además de su
+  alta inicial. No se perdió la edición anterior ni se duplicaron transiciones.
+- Auditoría id 11 ELIMINAR_SALIDA_DEFINITIVA, administrador 1, conserva estado
+  anterior DISPONIBLE/nuevo DE_BAJA, estación anterior 2/nueva nula y borrado
+  anterior false/nuevo true, con motivo y fecha registrados.
+- El Taller quedó vacío: cero presentes, cinco lugares libres. La pública
+  mantiene QA-03 id 3 DISPONIBLE, no borrada, version 0, y un lugar libre.
+  QA-01 EDIT id 1 conserva su eliminación previa (version 6).
+- Quedan verificados los recorridos manuales principales del bloque físico
+  RN-INV-02: capacidad obsoleta rechazada, destino lleno, ubicación actual,
+  traslado, pausa/habilitación, baja sin salida, eliminación con y sin baja
+  previa, consulta de eliminadas y conflicto de versión, con evidencia real.
+- No se presenta como ejecución manual integral de todos los casos: el retorno
+  del motivo al volver a la ubicación actual tiene prueba Node, y los permisos
+  del nuevo bloque tienen pruebas WebAuthorization, sin repetir aquí toda
+  la ronda manual multirrol. RN-INV-03 continúa pendiente del módulo de incidencias.
+- Se actualizaron índice y guía con los resultados; no se ejecutaron nuevas
+  pruebas, fuentes, SQL de escritura, reinicios o cambios Git por el asistente.
+  Siguiente paso propuesto: guardar el avance validado en la rama actual,
+  sin mezclar todavía un nuevo módulo.

@@ -1,266 +1,142 @@
 package DSII.TurismoSustentable.controllers;
 
-import DSII.TurismoSustentable.dto.BicicletaDTO;
-import DSII.TurismoSustentable.models.Bicicleta;
-import DSII.TurismoSustentable.models.Estacion;
-import DSII.TurismoSustentable.models.CodigoEstadoBicicleta;
-import DSII.TurismoSustentable.models.CodigoTipoBicicleta;
-import DSII.TurismoSustentable.repositories.BicicletaRepository;
-import DSII.TurismoSustentable.repositories.EstacionRepository;
+import DSII.TurismoSustentable.dto.*;
+import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
+import DSII.TurismoSustentable.services.BicicletaService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-
+import org.springframework.http.*;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
-import java.util.Optional;
-
+import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class BicicletaControllerTest {
-
-    private static final BigDecimal PRECIO_ORIGINAL =
-            new BigDecimal("9.00");
-
-    private static final BigDecimal PRECIO_NUEVO =
-            new BigDecimal("12.00");
-
-    @Mock
-    private BicicletaRepository bicicletaRepository;
-
-    @Mock
-    private EstacionRepository estacionRepository;
-
-    @InjectMocks
-    private BicicletaController controlador;
-
-    private Estacion origen;
-    private Estacion destino;
-    private Bicicleta bicicleta;
-    private Bicicleta solicitud;
-
-    @BeforeEach
-    void prepararDatos() {
-        origen = crearEstacion(1, "Plaza QA", 4, true);
-        destino = crearEstacion(2, "Depósito QA", 1, false);
-
-        bicicleta = new Bicicleta(
-                "QA-B01",
-                CodigoTipoBicicleta.MONTANA,
-                CodigoEstadoBicicleta.DISPONIBLE,
-                PRECIO_ORIGINAL,
-                origen
-        );
-        bicicleta.setId(1);
-
-        solicitud = new Bicicleta(
-                "QA-NUEVO",
-                CodigoTipoBicicleta.PASEO,
-                CodigoEstadoBicicleta.MANTENIMIENTO,
-                PRECIO_NUEVO,
-                destino
-        );
+    @Mock private BicicletaService service;
+    private MockMvc mvc;
+    @BeforeEach void preparar() {
+        mvc = MockMvcBuilders.standaloneSetup(new BicicletaController(service))
+                .setControllerAdvice(new GlobalExceptionHandler()).build();
     }
-
-    @Test
-    void rechazaEstadoAlquiladaSinCambiarDatos() {
-        prepararBicicletaEncontrada();
-        solicitud.setEstado(CodigoEstadoBicicleta.ALQUILADA);
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        comprobarRechazoSinCambios(respuesta, HttpStatus.CONFLICT);
-
-        verifyNoMoreInteractions(bicicletaRepository);
-        verifyNoInteractions(estacionRepository);
+    @Test void altaValidaEnviaSoloIdsAlServicio() throws Exception {
+        mvc.perform(post("/api/bicicletas").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigoBicicleta\":\" QA-01 \",\"tipoBicicletaId\":1,\"estacionId\":2}"))
+                .andExpect(status().isCreated());
+        ArgumentCaptor<CrearBicicletaDTO> captor = ArgumentCaptor.forClass(CrearBicicletaDTO.class);
+        verify(service).crear(captor.capture());
+        assertEquals("QA-01", captor.getValue().getCodigoBicicleta());
+        assertEquals(1, captor.getValue().getTipoBicicletaId());
+        assertEquals(2, captor.getValue().getEstacionId());
     }
-
-    @Test
-    void rechazaDestinoInvalidoSinCambiarDatos() {
-        prepararBicicletaEncontrada();
-        solicitud.setUbicacionActual(
-                crearEstacion(0, "Destino inválido", 1, false)
-        );
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        comprobarRechazoSinCambios(respuesta, HttpStatus.BAD_REQUEST);
-
-        verifyNoMoreInteractions(bicicletaRepository);
-        verifyNoInteractions(estacionRepository);
+    @Test void altaIncompletaMuestraListaDeErrores() throws Exception {
+        mvc.perform(post("/api/bicicletas").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors").isArray());
+        verifyNoInteractions(service);
     }
-
-    @Test
-    void rechazaDestinoInexistenteSinCambiarDatos() {
-        prepararBicicletaEncontrada();
-
-        when(estacionRepository.buscarActivaPorIdConBloqueo(2))
-                .thenReturn(Optional.empty());
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        comprobarRechazoSinCambios(respuesta, HttpStatus.BAD_REQUEST);
-
-        verify(estacionRepository).buscarActivaPorIdConBloqueo(2);
-        verifyNoMoreInteractions(
-                bicicletaRepository,
-                estacionRepository
-        );
+    @Test void rechazaEstadoOPrecioInyectadosEnAlta() throws Exception {
+        for (String extra : new String[]{"\"estado\":\"EN_USO\"", "\"precioPorHora\":1", "\"borradoBici\":true"}) {
+            mvc.perform(post("/api/bicicletas").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"codigoBicicleta\":\"QA-01\",\"tipoBicicletaId\":1,\"estacionId\":2," + extra + "}"))
+                    .andExpect(status().isBadRequest());
+        }
+        verifyNoInteractions(service);
     }
-
-    @Test
-    void rechazaDestinoLlenoContandoArchivadasSinCambiarDatos() {
-        prepararBicicletaEncontrada();
-
-        Bicicleta archivada = new Bicicleta(
-                "QA-ARCHIVADA",
-                CodigoTipoBicicleta.MONTANA,
-                CodigoEstadoBicicleta.INACTIVA,
-                PRECIO_ORIGINAL,
-                destino
-        );
-        archivada.setBorradoBici(true);
-        destino.getBicicletasEnEstacion().add(archivada);
-
-        when(estacionRepository.buscarActivaPorIdConBloqueo(2))
-                .thenReturn(Optional.of(destino));
-
-        when(bicicletaRepository.countByUbicacionActual(destino))
-                .thenReturn(1L);
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        comprobarRechazoSinCambios(respuesta, HttpStatus.CONFLICT);
-
-        verify(estacionRepository).buscarActivaPorIdConBloqueo(2);
-        verify(bicicletaRepository).countByUbicacionActual(destino);
-        verifyNoMoreInteractions(
-                bicicletaRepository,
-                estacionRepository
-        );
+    @Test void actualizarExigeVersionYDestinoPositivo() throws Exception {
+        mvc.perform(put("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigoBicicleta\":\"QA-01\",\"tipoBicicletaId\":1,\"estacionId\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors").isArray());
+        verifyNoInteractions(service);
     }
-
-    @Test
-    void aplicaCambiosCuandoElTrasladoEsValido() {
-        prepararBicicletaEncontrada();
-
-        when(estacionRepository.buscarActivaPorIdConBloqueo(2))
-                .thenReturn(Optional.of(destino));
-
-        when(bicicletaRepository.countByUbicacionActual(destino))
-                .thenReturn(0L);
-
-        when(bicicletaRepository.save(any(Bicicleta.class)))
-                .thenAnswer(invocacion -> invocacion.getArgument(0));
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        assertEquals("QA-NUEVO", bicicleta.getCodigoBicicleta());
-        assertEquals(CodigoEstadoBicicleta.MANTENIMIENTO, bicicleta.getEstado());
-        assertEquals(CodigoTipoBicicleta.PASEO, bicicleta.getTipo());
-        assertEquals(PRECIO_NUEVO, bicicleta.getPrecioPorHora());
-        assertSame(destino, bicicleta.getUbicacionActual());
-
-        BicicletaDTO dto = (BicicletaDTO) respuesta.getBody();
-        assertNotNull(dto);
-        assertEquals(1, dto.getId());
-        assertEquals("QA-NUEVO", dto.getCodigoBicicleta());
-        assertEquals("MANTENIMIENTO", dto.getEstado());
-        assertEquals("PASEO", dto.getTipo());
-        assertEquals("Depósito QA", dto.getUbicacion());
-        assertEquals(PRECIO_NUEVO, dto.getPrecio());
-
-        verify(bicicletaRepository).findById(1);
-        verify(estacionRepository).buscarActivaPorIdConBloqueo(2);
-        verify(bicicletaRepository).countByUbicacionActual(destino);
-        verify(bicicletaRepository).save(same(bicicleta));
-        verifyNoMoreInteractions(
-                bicicletaRepository,
-                estacionRepository
-        );
+    @Test void actualizarNoPermiteCambiarEstadoNiPrecio() throws Exception {
+        mvc.perform(put("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigoBicicleta\":\"QA-01\",\"tipoBicicletaId\":1,\"version\":0,\"estado\":\"DISPONIBLE\"}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
     }
-
-    @Test
-    void alquiladaConservaSusDatosYPermiteCambiarPrecio() {
-        bicicleta.setEstado(CodigoEstadoBicicleta.ALQUILADA);
-        bicicleta.setUbicacionActual(null);
-        prepararBicicletaEncontrada();
-
-        when(bicicletaRepository.save(any(Bicicleta.class)))
-                .thenAnswer(invocacion -> invocacion.getArgument(0));
-
-        ResponseEntity<Object> respuesta =
-                controlador.actualizarBicicleta(1, solicitud);
-
-        assertEquals(HttpStatus.OK, respuesta.getStatusCode());
-        assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(CodigoEstadoBicicleta.ALQUILADA, bicicleta.getEstado());
-        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
-        assertEquals(PRECIO_NUEVO, bicicleta.getPrecioPorHora());
-        assertNull(bicicleta.getUbicacionActual());
-        assertFalse(bicicleta.isBorradoBici());
-
-        BicicletaDTO dto = (BicicletaDTO) respuesta.getBody();
-        assertNotNull(dto);
-        assertEquals("QA-B01", dto.getCodigoBicicleta());
-        assertEquals("ALQUILADA", dto.getEstado());
-        assertEquals("MONTANA", dto.getTipo());
-        assertEquals("Sin Asignar", dto.getUbicacion());
-        assertEquals(PRECIO_NUEVO, dto.getPrecio());
-
-        verify(bicicletaRepository).findById(1);
-        verify(bicicletaRepository).save(same(bicicleta));
-        verifyNoMoreInteractions(bicicletaRepository);
-        verifyNoInteractions(estacionRepository);
+    @Test void versionObsoletaDevuelveConflictoConMensaje() throws Exception {
+        when(service.actualizar(eq(1), any())).thenThrow(new ResponseStatusException(
+                HttpStatus.CONFLICT, "La bicicleta fue modificada. Recargá los datos."));
+        mvc.perform(put("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"codigoBicicleta\":\"QA-01\",\"tipoBicicletaId\":1,\"version\":0}"))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("La bicicleta fue modificada. Recargá los datos."));
     }
-
-    private Estacion crearEstacion(
-            int id,
-            String nombre,
-            int capacidad,
-            boolean esPublica
-    ) {
-        Estacion estacion = new Estacion(
-                nombre, "Calle QA", capacidad, 0.0, 0.0
-        );
-        estacion.setEsPublica(esPublica);
-        ReflectionTestUtils.setField(estacion, "id", id);
-        ReflectionTestUtils.setField(estacion, "version", 0);
-        return estacion;
+    @Test void eliminarExigeMotivo() throws Exception {
+        mvc.perform(delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"motivo\":\"  \",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
     }
-
-    private void prepararBicicletaEncontrada() {
-        when(bicicletaRepository.findById(1))
-                .thenReturn(Optional.of(bicicleta));
+    @Test void eliminarDelegaConfirmacionVersionYMotivoYDevuelveSinContenido() throws Exception {
+        mvc.perform(delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"motivo\":\"Fin de vida útil\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isNoContent());
+        ArgumentCaptor<EliminarBicicletaDTO> captor = ArgumentCaptor.forClass(EliminarBicicletaDTO.class);
+        verify(service).eliminarLogico(eq(1), captor.capture());
+        assertEquals(0, captor.getValue().getVersion());
+        assertEquals("Fin de vida útil", captor.getValue().getMotivo());
+        assertEquals(Boolean.TRUE, captor.getValue().getSalidaFisicaConfirmada());
     }
-
-    private void comprobarRechazoSinCambios(
-            ResponseEntity<Object> respuesta,
-            HttpStatus esperado
-    ) {
-        assertEquals(esperado, respuesta.getStatusCode());
-        assertEquals(1, bicicleta.getId());
-        assertEquals("QA-B01", bicicleta.getCodigoBicicleta());
-        assertEquals(CodigoEstadoBicicleta.DISPONIBLE, bicicleta.getEstado());
-        assertEquals(CodigoTipoBicicleta.MONTANA, bicicleta.getTipo());
-        assertEquals(PRECIO_ORIGINAL, bicicleta.getPrecioPorHora());
-        assertSame(origen, bicicleta.getUbicacionActual());
-        assertFalse(bicicleta.isBorradoBici());
-
-        verify(bicicletaRepository).findById(1);
-        verify(bicicletaRepository, never()).save(any(Bicicleta.class));
+    @Test void eliminarSinConfirmacionOConConfirmacionNegativaNoLlegaAlServicio() throws Exception {
+        for (String confirmacion : new String[]{"", ",\"salidaFisicaConfirmada\":false"}) {
+            mvc.perform(delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"motivo\":\"Retiro definitivo\"" + confirmacion + "}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.validationErrors").isArray());
+        }
+        verifyNoInteractions(service);
+    }
+    @Test void eliminarExigeLaVersionHeredadaDelDtoDeOperacion() throws Exception {
+        mvc.perform(delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"motivo\":\"Retiro definitivo\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.validationErrors").isArray());
+        verifyNoInteractions(service);
+    }
+    @Test void eliminarObsoletoDevuelveConflictoSinExponerUnErrorInterno() throws Exception {
+        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "La bicicleta fue modificada. Recargá los datos."))
+                .when(service).eliminarLogico(eq(1), any(EliminarBicicletaDTO.class));
+        mvc.perform(delete("/api/bicicletas/1").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"motivo\":\"Retiro definitivo\",\"salidaFisicaConfirmada\":true}"))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("La bicicleta fue modificada. Recargá los datos."));
+    }
+    @Test void listadoHabitualNoIncluyeEliminadasPorDefecto() throws Exception {
+        when(service.listar(false)).thenReturn(List.of());
+        mvc.perform(get("/api/bicicletas"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        verify(service).listar(false);
+    }
+    @Test void consultaExplicitaPermiteIncluirEliminadas() throws Exception {
+        when(service.listar(true)).thenReturn(List.of());
+        mvc.perform(get("/api/bicicletas").param("incluirEliminadas", "true"))
+                .andExpect(status().isOk()).andExpect(content().json("[]"));
+        verify(service).listar(true);
+    }
+    @Test void tarifaRechazaRedondearTresDecimales() throws Exception {
+        mvc.perform(put("/api/admin/tipos-bicicleta/1/tarifa").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"precioPorHoraUsd\":10.125,\"precioAnterior\":10.00}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(service);
+    }
+    @Test void tarifaValidaVaAlTipoNoALaBicicleta() throws Exception {
+        mvc.perform(put("/api/admin/tipos-bicicleta/1/tarifa").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"precioPorHoraUsd\":12.50,\"precioAnterior\":10.00}"))
+                .andExpect(status().isOk());
+        ArgumentCaptor<ActualizarTarifaTipoDTO> captor = ArgumentCaptor.forClass(ActualizarTarifaTipoDTO.class);
+        verify(service).actualizarTarifa(eq(1), captor.capture());
+        assertEquals(0, new BigDecimal("12.50").compareTo(captor.getValue().getPrecioPorHoraUsd()));
     }
 }

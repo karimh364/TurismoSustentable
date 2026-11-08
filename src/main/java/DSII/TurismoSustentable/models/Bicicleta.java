@@ -3,7 +3,9 @@ package DSII.TurismoSustentable.models;
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
+import javax.validation.constraints.Size;
 import java.util.Set;
 
 @Entity
@@ -14,41 +16,47 @@ public class Bicicleta {
     private int id;
 
     @NotBlank(message = "El código es obligatorio.")
-    @Column(unique = true)
+    @Size(max = 255)
+    @Column(nullable = false, unique = true, length = 255)
     private String codigoBicicleta;
 
     @NotNull(message = "El tipo de bicicleta es obligatorio.")
-    @Enumerated(EnumType.STRING)
-    private CodigoTipoBicicleta tipo;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "tipo_bicicleta_id", nullable = false)
+    private TipoBicicleta tipo;
 
     @NotNull(message = "El estado es obligatorio.")
-    @Enumerated(EnumType.STRING)
-    private CodigoEstadoBicicleta estado;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "estado_bicicleta_id", nullable = false)
+    private EstadoBicicleta estado;
 
-    // --- CAMPOS ADICIONALES REQUERIDOS ---
+    @NotNull
+    @Column(name = "fecha_alta", nullable = false, updatable = false)
+    private LocalDate fechaAlta;
 
-    @NotNull(message = "El precio por hora es obligatorio.")
-    private BigDecimal precioPorHora; // Para calcular el costo del alquiler
+    @Version
+    @Column(nullable = false)
+    private Integer version;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "estacion_id", nullable = true)
     private Estacion ubicacionActual;
 
-    private boolean borradoBici = false; // Para el borrado lógico
+    @Column(nullable = false)
+    private boolean borradoBici = false; // Independiente del estado y de la presencia física
     // ------------------------------------
 
     @OneToMany(mappedBy = "bicicleta", fetch = FetchType.LAZY)
-    private Set<Alquiler> alquileres;
+    private Set<Alquiler> alquileres = new HashSet<>();
 
     // CONSTRUCTORES
     public Bicicleta() {
     }
 
-    public Bicicleta(String codigoBicicleta, CodigoTipoBicicleta tipo, CodigoEstadoBicicleta estado, BigDecimal precioPorHora, Estacion ubicacionActual) {
-        this.codigoBicicleta = codigoBicicleta;
+    public Bicicleta(String codigoBicicleta, TipoBicicleta tipo, EstadoBicicleta estado, Estacion ubicacionActual) {
+        setCodigoBicicleta(codigoBicicleta);
         this.tipo = tipo;
         this.estado = estado;
-        this.precioPorHora = precioPorHora;
         this.ubicacionActual = ubicacionActual;
         this.borradoBici = false;
     }
@@ -68,34 +76,30 @@ public class Bicicleta {
     }
 
     public void setCodigoBicicleta(String codigoBicicleta) {
-        this.codigoBicicleta = codigoBicicleta;
+        this.codigoBicicleta = codigoBicicleta == null ? null : codigoBicicleta.trim();
     }
 
-    public CodigoTipoBicicleta getTipo() {
+    public TipoBicicleta getTipo() {
         return tipo;
     }
 
-    public void setTipo(CodigoTipoBicicleta tipo) {
+    public void setTipo(TipoBicicleta tipo) {
         this.tipo = tipo;
     }
 
-    public CodigoEstadoBicicleta getEstado() {
+    public EstadoBicicleta getEstado() {
         return estado;
     }
 
-    public void setEstado(CodigoEstadoBicicleta estado) {
+    public void setEstado(EstadoBicicleta estado) {
         this.estado = estado;
     }
 
     // Getters y Setters de los campos adicionales
 
-    public BigDecimal getPrecioPorHora() {
-        return precioPorHora;
-    }
-
-    public void setPrecioPorHora(BigDecimal precioPorHora) {
-        this.precioPorHora = precioPorHora;
-    }
+    public LocalDate getFechaAlta() { return fechaAlta; }
+    public void setFechaAlta(LocalDate fechaAlta) { this.fechaAlta = fechaAlta; }
+    public Integer getVersion() { return version; }
 
     public Estacion getUbicacionActual() {
         return ubicacionActual;
@@ -126,18 +130,17 @@ public class Bicicleta {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (!(o instanceof Bicicleta)) return false;
 
         Bicicleta bicicleta = (Bicicleta) o;
 
-        // Comparamos usando el identificador único de negocio
-        return codigoBicicleta != null ? codigoBicicleta.equals(bicicleta.codigoBicicleta) : bicicleta.codigoBicicleta == null;
+        return getId() != 0 && getId() == bicicleta.getId();
     }
 
     @Override
     public int hashCode() {
-        // Usamos el mismo campo para el hashCode
-        return codigoBicicleta != null ? codigoBicicleta.hashCode() : 0;
+        // El código es editable: no debe cambiar el hash de un elemento del Set.
+        return Bicicleta.class.hashCode();
     }
 
 }
