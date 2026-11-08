@@ -1,5 +1,12 @@
 # Propuesta unificada de estados y transiciones
 
+Ampliación aprobada el 8 de noviembre de 2026: RN-INV-04 (documento 26,
+sección 10) permite Eliminar con retirada física definitiva desde la ubicación
+pública o interna activa registrada, manteniendo los controles de RN-INV-02.
+Dar de baja sin eliminar continúa exigiendo Taller. No se agregan estados;
+código en etapa 146, pruebas automáticas/manuales en etapas 147 a 152. No habilita la excepción por
+pérdida RN-INV-03, que sigue pendiente de incidencias.
+
 Actualización vigente del 8 de noviembre de 2026: RN-INV-03 (documento 26,
 sección 9) añade la excepción administrativa por pérdida definitiva. Desde
 EXTRAVIADA se podrá pasar a DE_BAJA, con incidencia confirmada, detalle cerrado,

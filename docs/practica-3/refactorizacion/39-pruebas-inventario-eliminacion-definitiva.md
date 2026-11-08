@@ -10,6 +10,13 @@ recorridos manuales realizados están detallados al final, con referencia al
 diario. La matriz sigue siendo una especificación, no se marca íntegramente
 aprobada sin distinguir el tipo de evidencia.
 
+Ampliación RN-INV-04 (etapa 146): Eliminar admite estación pública o interna
+activa como origen físico registrado. Las nuevas pruebas automáticas pasaron
+(etapa 147, detalle en sección 9); su prueba manual sigue pendiente.
+Los resultados de la sección 8 pertenecen a la
+versión anterior, incluida la antigua restricción de Taller. Ver sección 9
+para comprobar puntualmente el cambio sin repetir toda la ronda.
+
 Los resultados ejecutados se registran en el documento 37, no se infieren de
 esta matriz. RN-INV-03, aprobada el 8 de noviembre, añade baja/eliminación por
 pérdida definitiva sin Taller y con incidencia/decisión respaldadas. Sigue
@@ -46,13 +53,14 @@ UP-TO-DATE conserva resultados; no equivale a una nueva ejecución.
 Cobertura preparada:
 
 - Borrado con motivo, versión y salidaFisicaConfirmada=true; rechazo si falta
-  cualquier dato, la confirmación es false, el origen es público/inexistente/
+  cualquier dato, la confirmación es false, el origen es inexistente/
   inhabilitado, la versión cambió o hay alquiler/estado incompatible.
 - Transición a DE_BAJA y ubicación nula sin borrar físicamente la fila, junto
   con auditoría de ubicación anterior/nueva y actor real.
 - Unidad que ya estaba DE_BAJA: eliminar sin duplicar transición de estado.
-- Eliminar directamente una DISPONIBLE/INACTIVA válida en Taller, sin pulsar
-  Dar de baja previamente. Dar de baja solo conserva ubicación y ocupación.
+- Eliminar directamente una DISPONIBLE/INACTIVA válida desde pública o Taller,
+  sin pulsar Dar de baja previamente. Dar de baja por separado sigue exigiendo
+  Taller y conserva ubicación y ocupación.
 - Estado de catálogo faltante: rechazo anterior a cualquier mutación.
 - Listado habitual excluye eliminadas; incluirEliminadas=true las permite
   consultar. GET por ID sigue siendo administrativo, sin restauración/edición.
@@ -112,7 +120,7 @@ peticiones. No sustituyen comprobar colores/foco y controles nativos en navegado
 | INV02-04 | Abrir otro alta/traslado | La pública llena aparece deshabilitada; el Taller con lugar sigue permitido |
 | INV02-05 | Editar QA-01, que ya está en la pública llena, y cambiar solo su código | La estación actual permanece habilitada y se guarda allí sin consumir otro lugar ni exigir motivo de traslado |
 | INV02-06 | Elegir otro destino y después volver al actual | El motivo aparece al trasladar y se oculta/limpia al cancelar el cambio de ubicación |
-| INV02-07 | Intentar eliminar una unidad que sigue en la pública | Rechazo; no cambia estado, borrado, ubicación ni ocupación |
+| INV02-07 | Eliminar una unidad QA adicional desde la pública con motivo y confirmación de retirada real; no usar QA-01 que se necesita en los pasos siguientes | RN-INV-04: DE_BAJA, borrado true, ubicación nula; libera un lugar y conserva fila, historial y auditoría del origen público |
 | INV02-08 | Trasladar QA-01 al Taller, con motivo | La pública libera un lugar; el Taller consume uno; cambio administrativo trazado |
 | INV02-09 | Inactivar y habilitar esa unidad | Cambia estado con motivo e historial; no se mueve ni libera espacio |
 | INV02-10 | Dar de baja QA-01 en Taller | DE_BAJA, borrado false, mismo Taller y misma ocupación; continúa en el listado habitual |
@@ -196,8 +204,10 @@ existir la prueba. No incluir contraseñas, hashes, tokens o credenciales.
   QA-02 permanece en origen y no hay eventos parciales, etapas 132/133.
 - INV02-04/05: usuario confirmó destino lleno deshabilitado; edición del
   código en estación actual llena se verificó con versión/auditoría, etapa 134.
-- INV02-07/08: eliminación pública rechazada y traslado justificado al Taller
-  con ocupación correcta y sin falsa transición, etapas 135/136.
+- INV02-07/08: eliminación pública rechazada bajo la restricción anterior y
+  traslado justificado al Taller con ocupación correcta y sin falsa transición,
+  etapas 135/136. Resultado histórico: RN-INV-04 sustituye esa expectativa de
+  rechazo; la eliminación desde pública debe volver a probarse.
 - INV02-09/10/11: pausa/habilitación, baja con presencia conservada y
   cancelación/motivo vacío sin eliminación, etapas 137/138/139.
 - INV02-12/18: eliminación de una DE_BAJA con salida registrada y sin repetir
@@ -216,3 +226,71 @@ existir la prueba. No incluir contraseñas, hashes, tokens o credenciales.
   manual completa de cada rol en el proceso arrancado.
 - RN-INV-03 es una regla aprobada para el módulo futuro de incidencias; no se
   implementó ni se probó una baja por pérdida definitiva mediante este bloque.
+
+## 9. Comprobación puntual pendiente de RN-INV-04
+
+Resultado automático del 8 de noviembre (etapa 147): el usuario ejecutó ambos
+filtros Java con BUILD SUCCESSFUL y cuatro tareas ejecutadas. Los XML confirman
+BicicletaControllerTest: 15 y BicicletaServiceTest: 35, todos sin fallos,
+errores u omisiones; timestamps 17:25:25.347Z y 17:25:26.766Z. La salida Node
+aportada confirma 15 aprobadas, cero fallos/omisiones; --check no informó errores.
+El asistente corroboró los reportes sin volver a ejecutar las pruebas.
+No se acredita todavía reinicio, prueba manual ni persistencia real del cambio.
+
+Primero ejecutar, sin levantar ni reiniciar todavía la aplicación:
+
+```powershell
+.\gradlew.bat test --tests "BicicletaServiceTest" --tests "BicicletaControllerTest"
+$nodeQA = 'C:\Users\Karim\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe'
+& $nodeQA --check '.\src\main\resources\static\js\admin.js'
+& $nodeQA --test '.\src\test\js\InventarioBicicletas.test.cjs'
+```
+
+Se prepararon pruebas unitarias de eliminación desde pública con ubicación
+anterior/nueva auditadas y sin exigir cupo libre; rechazo de origen público
+inactivo/inexistente; Dar de baja desde pública todavía rechazado. Permanecen
+las de Taller, ubicación ausente, confirmación, motivo, versión, alquiler,
+estados incompatibles y permisos. Node comprueba el nuevo texto del diálogo.
+Estas pruebas unitarias no acreditan bloqueo/concurrencia real contra MySQL.
+
+Después de resultados correctos, acordar reinicio controlado: Java necesita
+reinicio para aplicar el servicio; create-drop descartará los datos QA. No
+usar el nuevo texto del frontend como evidencia de un backend ya actualizado.
+
+Preparar con ADMIN una pública y un Taller activos, y dos bicicletas QA nuevas
+DISPONIBLE en la pública; registrar su ocupación inicial y versiones.
+
+Preparación corroborada con SELECT (etapa 148): Plaza QA Retiro id 1 activa,
+pública, capacidad 2/dos presentes/cero libres; Taller QA Retiro id 2 activo,
+interno, capacidad 5/cero presentes/cinco libres. QA-RET-01 id 1 MONTANA y
+QA-RET-02 id 2 PASEO, ambas DISPONIBLE, borrado false, version 0 y estación 1.
+La cuenta admin.bicicletas tiene ADMIN y CLIENTE. INV04-01 ejecutado y
+corroborado con SELECT (etapa 149): rechazo sin cambios; QA-RET-01 conserva
+DISPONIBLE, estación 1, borrado false, version 0 y solo sus eventos de alta.
+Ocupación sin cambios. INV04-02 verificado en su variante cancelar (etapa 150):
+texto correcto informado por el usuario y SELECT sin cambios en QA-RET-01,
+ocupación o cantidad de eventos. No se afirma otra ejecución manual de motivo
+vacío. INV04-03 con persistencia verificada (etapa 151): QA-RET-01 conserva fila,
+DE_BAJA, borrado true, estación nula y version 1; historial id 3 y auditoría
+id 3 documentan transición y salida desde estación pública 1, con actor, fecha
+y motivo. La pública quedó con una presente/un lugar libre y Taller vacío.
+El usuario confirmó luego Mostrar eliminadas/Ver sin edición (etapa 152).
+INV04-04 verificado: QA-RET-02 trasladada a estación 2 y dada de baja sin
+eliminarse, version 2; auditoría id 4 de traslado, id 5 de baja e historial
+id 4 DISPONIBLE a DE_BAJA. La pública quedó vacía/dos libres; Taller una
+presente/cuatro libres. La baja conservó ubicación y ocupación física.
+Quedan comprobados los cuatro casos en el alcance indicado (INV04-02 en su
+variante cancelar), sin afirmar una nueva ejecución manual de motivo vacío
+ni una nueva prueba de concurrencia simultánea. No se ejecutaron otras suites.
+
+| Caso | Acción | Esperado |
+| --- | --- | --- |
+| INV04-01 | Intentar Dar de baja la primera unidad todavía en la pública | Rechazo por requerir Taller; sin cambios ni eventos de éxito |
+| INV04-02 | Abrir Eliminar sobre esa unidad y cancelar o dejar motivo vacío | Texto desde su ubicación registrada; no guarda ni libera espacio |
+| INV04-03 | Confirmar su retirada definitiva con motivo | Fila conservada, DE_BAJA, borrado true, estación nula; pública libera exactamente un lugar; auditoría del origen público y una transición real |
+| INV04-04 | Trasladar la segunda unidad al Taller con motivo y después Dar de baja | Traslado real auditado; DE_BAJA con borrado false y ubicación/ocupación conservadas; no se debilita la regla de Taller |
+
+Activar Mostrar eliminadas en INV04-03: solo Ver, ubicación Fuera del inventario.
+Registrar resultados y SELECT sin secretos en el diario; no marcar aprobado
+ningún caso antes de ejecutarlo. No forzar estaciones inactivas ni estados
+por SQL: los rechazos de origen inválido se cubren aquí con repositorios simulados.

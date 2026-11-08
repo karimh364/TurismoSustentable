@@ -25,8 +25,9 @@
 %% RN-INV-01 aprobada 2026-11-06: estado, borrado logico y presencia fisica son independientes.
 %% es_publica=true: estacion para clientes; false: Taller/deposito interno, sin alquiler ni devolucion de clientes.
 %% DE_BAJA presente en Taller conserva ocupacion; INACTIVA conserva su ubicacion.
-%% RN-INV-02 aprobada 2026-11-08: Eliminar confirma salida fisica desde Taller y deja
+%% RN-INV-02/RN-INV-04 aprobadas 2026-11-08: Eliminar confirma salida fisica desde ubicacion publica o interna activa y deja
 %% DE_BAJA, borrado_bici=true y estacion_id=null en una transaccion con trazabilidad.
+%% Dar de baja sin eliminar sigue exigiendo Taller activo; no libera ubicacion ni cupo.
 %% No exige Dar de baja antes ni un boton separado de salida. ADMIN puede consultar eliminadas.
 %% No se reinterpretan registros anteriores ni se borran filas o referencias historicas.
 %% RN-INV-03 aprobada 2026-11-08: perdida definitiva confirmada permite

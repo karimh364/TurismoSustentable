@@ -142,8 +142,45 @@ class BicicletaServiceTest {
         verify(bicicletas, never()).saveAndFlush(any());
         verifyNoInteractions(historial, auditoria);
     }
-    @Test void eliminarDesdePublicaNoCambiaEstadoNiUbicacion() {
-        rechazaSinCambios(HttpStatus.CONFLICT, () -> service.eliminarLogico(1, eliminacion()));
+    @Test void eliminarDesdePublicaRetiraUnidadConOrigenTrazadoSinExigirCupoLibre() {
+        EstadoBicicleta anterior = bici.getEstado();
+        when(estados.findByCodigo("DE_BAJA")).thenReturn(Optional.of(new EstadoBicicleta("DE_BAJA")));
+        service.eliminarLogico(1, eliminacion());
+        assertTrue(bici.isBorradoBici());
+        assertNull(bici.getUbicacionActual());
+        assertEquals("DE_BAJA", bici.getEstado().getCodigo());
+        assertEquals(1, bici.getId());
+        assertSame(tipo, bici.getTipo());
+        assertEquals(LocalDate.of(2026, 11, 7), bici.getFechaAlta());
+        verify(estaciones).buscarActivaPorIdConBloqueo(1);
+        verify(bicicletas, never()).countByUbicacionActual(any());
+        verify(bicicletas).saveAndFlush(bici);
+        verify(bicicletas, never()).delete(any(Bicicleta.class));
+        verify(bicicletas, never()).deleteById(anyInt());
+        ArgumentCaptor<HistorialEstadoBicicleta> evento = ArgumentCaptor.forClass(HistorialEstadoBicicleta.class);
+        verify(historial).save(evento.capture());
+        assertSame(anterior, evento.getValue().getEstadoAnterior());
+        assertEquals("DE_BAJA", evento.getValue().getEstadoNuevo().getCodigo());
+        assertSame(admin, evento.getValue().getActorUsuario());
+        ArgumentCaptor<AuditoriaSistema> registro = ArgumentCaptor.forClass(AuditoriaSistema.class);
+        verify(auditoria).save(registro.capture());
+        assertEquals("ELIMINAR_SALIDA_DEFINITIVA", registro.getValue().getAccion());
+        assertSame(admin, registro.getValue().getAdministrador());
+        assertEquals("Motivo QA", registro.getValue().getMotivo());
+        assertNotNull(registro.getValue().getFechaOperacion());
+        assertTrue(registro.getValue().getValoresAnteriores().contains("estacionId=1"));
+        assertTrue(registro.getValue().getValoresNuevos().contains("estacionId=null"));
+        assertTrue(registro.getValue().getValoresNuevos().contains("estado=DE_BAJA"));
+        assertTrue(registro.getValue().getValoresNuevos().contains("borrado=true"));
+    }
+    @Test void eliminarDesdePublicaInhabilitadaOInexistenteNoModificaDatos() {
+        when(estaciones.buscarActivaPorIdConBloqueo(1)).thenReturn(Optional.empty());
+        rechazaSinCambios(HttpStatus.BAD_REQUEST, () -> service.eliminarLogico(1, eliminacion()));
+        verify(estaciones).buscarActivaPorIdConBloqueo(1);
+    }
+    @Test void darDeBajaSinEliminarDesdePublicaSigueRechazado() {
+        rechazaSinCambios(HttpStatus.CONFLICT, () -> service.cambiarEstado(1, "DE_BAJA", operacion()));
+        verify(estaciones).buscarActivaPorIdConBloqueo(1);
     }
     @Test void eliminarDesdeTallerRetiraUnidadYConservaTrazabilidadSinBorrarFilas() {
         bici.setUbicacionActual(taller);

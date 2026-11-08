@@ -202,6 +202,8 @@ test('cancelar eliminación no envía escrituras y la confirmación explica la r
     const aviso = e.avisos[0][0];
     assert.equal(aviso.confirmButtonText, 'Confirmar retiro y eliminar');
     assert.ok(aviso.text.includes('retirada físicamente'));
+    assert.ok(aviso.text.includes('desde su ubicación registrada'));
+    assert.equal(aviso.text.includes('desde el taller'), false);
     assert.ok(aviso.text.includes('DE_BAJA'));
     assert.ok(aviso.inputValidator(' '));
     assert.equal(aviso.inputValidator('Retirada definitiva'), undefined);

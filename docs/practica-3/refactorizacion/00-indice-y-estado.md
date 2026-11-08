@@ -2,7 +2,22 @@
 
 Actualizado: 8 de noviembre de 2026.
 
-Estado más reciente: etapa 145 del documento 37. RN-INV-02 está implementada:
+Estado más reciente: etapa 152 del documento 37. RN-INV-04 está implementada:
+50 pruebas Java sin fallos/errores/omisiones corroboradas por XML y 15 Node
+correctas según salida aportada por el usuario. Retirada de QA-RET-01 desde
+pública verificada: fila conservada, DE_BAJA, borrado true, ubicación nula,
+una transición y auditoría del origen real. QA-RET-02 fue trasladada al Taller
+y dada de baja sin eliminarse, con ubicación/ocupación e historia conservadas.
+La pública quedó vacía/dos libres; Taller una presente/cuatro libres, según SELECT.
+INV04-01 verificado: Dar de baja desde pública rechazado, sin cambios ni
+eventos de éxito. INV04-02 verificado en su variante cancelar: texto correcto
+y sin cambios/eventos nuevos. INV04-03 e INV04-04 verificados, incluida la
+consulta visual de eliminadas informada por el usuario. Cambio puntual validado;
+pendiente guardar el avance mediante commit/push, sin dar por completo el DER.
+Eliminar con retirada física confirmada admite
+origen público o interno activo; Dar de baja sin eliminar sigue exigiendo
+Taller. No cambia permisos, estados ni estructura del DER. La etapa 145 y
+los resultados siguientes corresponden a la versión previa de RN-INV-02:
 121 pruebas Java verificadas por XML y 15 Node informadas correctas. Se reinició
 el entorno QA y se comprobaron altas, capacidad, traslado, pausa/habilitación,
 baja y eliminación física con persistencia/trazabilidad, consulta visual de
@@ -21,7 +36,7 @@ conectará con incidencias. No cambian las 29 entidades/55 relaciones.
 
 El estado actual del código y sus verificaciones se consulta en [37-implementacion-entidades.md](37-implementacion-entidades.md). Los documentos de diseño conservan sus antecedentes y aprobaciones históricas; sus frases originales sobre implementación no reemplazan ese registro. Las mejoras surgidas de la comparación de copias están en [38-mejoras-futuras-desde-version-companero.md](38-mejoras-futuras-desde-version-companero.md) y siguen pendientes de confirmación.
 
-La corrección de inventario aprobada el 6 de noviembre, [RN-INV-01, sección 7 del documento 26](26-revision-estaciones-tipos-y-bicicletas.md), conserva BICICLETA.borrado_bici separado de DE_BAJA e incorpora ESTACION.es_publica para Taller interno. Baja definitiva y borrado se registran solo desde Taller; INACTIVA no exige traslado y la presencia física conserva su ocupación. El 7 de noviembre se confirmó que, por el momento, Uso se fija al crear y no se reclasifica en la edición común. Los artefactos Mermaid y TXT siguen representando 29 entidades y 55 FK/relaciones. La separación pública/interna de estaciones y el conteo físico ya tienen implementación y comprobaciones; la migración de estados de bicicleta y el recorrido completo de baja/archivo desde Taller siguen pendientes. La antigua propuesta de eliminar el flag queda corregida.
+La corrección de inventario aprobada el 6 de noviembre, [RN-INV-01, sección 7 del documento 26](26-revision-estaciones-tipos-y-bicicletas.md), conserva BICICLETA.borrado_bici separado de DE_BAJA e incorpora ESTACION.es_publica para Taller interno. La exigencia inicial de Taller para ambas acciones es un antecedente: bajo RN-INV-02/RN-INV-04, Eliminar con retirada física puede hacerse desde pública o interna activa; Dar de baja sin eliminar sigue exigiendo Taller y conserva ocupación. INACTIVA no exige traslado. El 7 de noviembre se confirmó que, por el momento, Uso se fija al crear y no se reclasifica en la edición común. Los artefactos Mermaid y TXT siguen representando 29 entidades y 55 FK/relaciones. El estado de implementación y pruebas vigente es el de la cabecera y el diario 37; no implica completar los demás módulos del DER. La antigua propuesta de eliminar el flag queda corregida.
 
 Bloques verificados el 7 de noviembre: las etapas 81 a 95 del documento 37 registran la corrección de sesión y la ronda manual de estaciones. Las etapas 97 a 115 documentan la preparación de TipoBicicleta/EstadoBicicleta como entidades, repositorios, precarga y valores QA expresamente aprobados; los últimos cuatro filtros suman 22 pruebas sin fallos, verificadas mediante XML. Las comprobaciones de catálogos son en memoria, no acreditan DDL/UNIQUE/persistencia real ni su uso por Bicicleta. El siguiente bloque es adaptar las relaciones de Bicicleta y sus consumidores, sin sustituir silenciosamente los estados/precios de operaciones existentes. No equivale a completar todo el DERv5 ni a haber probado la expiración real de sesión por tiempo.
 

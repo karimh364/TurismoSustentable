@@ -481,7 +481,7 @@ async function operarBicicleta(id, estado = null) {
         const resultado = await Swal.fire({
             titleText: estado ? b.codigoBicicleta + ' → ' + estado : 'Eliminar ' + b.codigoBicicleta,
             text: !estado
-                ? 'Confirmá que la bicicleta ya fue retirada físicamente del inventario desde el taller. '
+                ? 'Confirmá que la bicicleta ya fue retirada físicamente del inventario desde su ubicación registrada. '
                     + 'Quedará DE_BAJA y eliminada del listado habitual; se liberará su espacio '
                     + 'y se conservará el registro histórico. Esta acción no permite restaurarla.'
                 : estado === 'DE_BAJA'

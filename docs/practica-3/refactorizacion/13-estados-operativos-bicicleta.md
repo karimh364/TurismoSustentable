@@ -1,5 +1,12 @@
 # RN-BIC-01: estados operativos de la bicicleta
 
+Ampliación vigente del 8 de noviembre de 2026: RN-INV-04 (documento 26,
+sección 10) admite Eliminar con retirada física desde estación pública o
+interna activa. Sustituye la exigencia de Taller solo para esa eliminación;
+Dar de baja sin eliminar conserva esa exigencia y la ocupación. Código en
+etapa 146, pruebas automáticas/manuales en etapas 147 a 152; no habilita
+EXTRAVIADA ni agrega estados.
+
 Regla vigente adicional aprobada el 8 de noviembre de 2026: RN-INV-03
 (documento 26, sección 9) permite a ADMIN la baja EXTRAVIADA a DE_BAJA por
 pérdida definitiva confirmada y trazada, con detalle cerrado y sin procesos

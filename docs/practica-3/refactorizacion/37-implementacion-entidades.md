@@ -7926,3 +7926,170 @@ Fecha: 8 de noviembre de 2026.
   pruebas, fuentes, SQL de escritura, reinicios o cambios Git por el asistente.
   Siguiente paso propuesto: guardar el avance validado en la rama actual,
   sin mezclar todavía un nuevo módulo.
+
+### Etapa 146 Retirada definitiva desde pública o interna implementada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario autorizó expresamente implementar el cambio puntual tras informar
+  push y árbol limpio. Se verificó git status sin cambios antes de editar;
+  no se ejecutaron add, commit, push ni otras escrituras Git.
+- RN-INV-04 amplía solamente el origen de Eliminar con retirada física real.
+  BicicletaService.eliminarLogico sustituye exigirTaller por el nuevo helper
+  exigirUbicacionParaSalida: rechaza ubicación nula y reutiliza la búsqueda
+  activa con bloqueo de estación, tanto pública como interna. No exige cupo
+  libre para retirar una unidad ya presente. No se alteró exigirTaller ni
+  su uso en Dar de baja, que conserva ubicación y ocupación.
+- Se mantienen ADMIN activo, versión, motivo y salidaFisicaConfirmada=true,
+  comprobación de alquiler y estados permitidos. Se conserva la transacción
+  que deja DE_BAJA/borrado true/ubicación nula, auditoría con origen real e
+  historial únicamente si cambia el estado. No se borran filas físicamente.
+- admin.js cambia únicamente la confirmación desde el taller por desde su
+  ubicación registrada. No cambian payload, endpoint, acciones ni permisos.
+- BicicletaServiceTest sustituye el rechazo antiguo desde pública por éxito
+  con trazabilidad; agrega rechazo de origen público inactivo/inexistente y
+  regresión de Dar de baja desde pública. Conserva las pruebas de Taller y
+  demás restricciones. El test Node comprueba el texto independiente del Taller.
+- Se actualizan documento 26, índice, referencias 08/13/20, guía 39 y comentarios
+  de ambos Mermaid. Continúan 29 entidades y 55 relaciones, mismas columnas,
+  PK y FK. No se modifican originales PDF/Word/DERv4 ni otros módulos.
+- La etapa 135 conserva su resultado histórico bajo la restricción anterior;
+  no acredita el nuevo comportamiento. Se prepararon pruebas puntuales en la
+  sección 9 del documento 39. Su ejecución automática y manual queda pendiente
+  del usuario; los resultados anteriores no se atribuyen al código modificado.
+- RN-INV-03 por pérdida definitiva sigue pendiente de incidencias. No se
+  habilitan EXTRAVIADA ni bajas sin ubicación mediante este recorrido físico.
+- El asistente no ejecutó pruebas, compilación, reinicios, SQL ni navegador.
+  Solo se realizaron edición y verificaciones estáticas de alcance/coherencia.
+
+### Etapa 147 Pruebas automáticas de RN-INV-04 comprobadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario ejecutó BicicletaServiceTest y BicicletaControllerTest con
+  BUILD SUCCESSFUL y cuatro tareas ejecutadas. El asistente leyó los XML:
+  35 y 15 pruebas respectivamente, cero fallos, errores u omisiones;
+  timestamps 17:25:26.766Z y 17:25:25.347Z.
+- La salida aportada confirma 15 pruebas Node aprobadas, cero fallos u
+  omisiones, incluido el texto de retirada desde su ubicación registrada.
+  El comando --check de admin.js no informó errores.
+- Los resultados cubren el cambio desde pública y las regresiones preparadas;
+  no prueban por sí solos persistencia o bloqueo real de MySQL. Se mantiene
+  pendiente la comprobación manual INV04-01 a INV04-04 de la guía 39.
+- Próximo paso: reinicio controlado del perfil refactor por el usuario, sabiendo
+  que create-drop descarta los registros QA, y preparación de cuenta ADMIN,
+  estaciones y unidades para la ronda puntual. No se ha efectuado ese reinicio
+  ni se ha comprobado un nuevo arranque en esta etapa.
+- Solo se consultaron reportes/archivos y se actualizaron índice, guía y diario.
+  El asistente no ejecutó pruebas, compilación, SQL, navegador, reinicios o
+  escrituras Git. Los cambios de la etapa 146 siguen pendientes de commit.
+
+### Etapa 148 Preparación de la ronda manual RN-INV-04 verificada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario informó el nuevo arranque: PID 14340, puerto 8080, Started a las
+  14:27:20.683; luego registró la cuenta y preparó los datos desde la interfaz.
+  No es un reinicio ejecutado por el asistente.
+- SELECT inicial confirmó admin.bicicletas id 1 activo con CLIENTE. Se entregó
+  al usuario el INSERT idempotente para agregar ADMIN y este informó su acceso
+  al panel. SELECT posterior confirma ambos roles, sin quitar CLIENTE.
+- SELECT verifica Plaza QA Retiro id 1 pública activa, capacidad 2, dos
+  bicicletas presentes y cero lugares libres. Taller QA Retiro id 2 interno
+  activo, capacidad 5, cero presentes y cinco lugares libres.
+- QA-RET-01 id 1 MONTANA y QA-RET-02 id 2 PASEO están DISPONIBLE, borrado false,
+  version 0, ambas ubicadas en la pública id 1. No se probó todavía su baja
+  o eliminación; no se atribuyen a esta ronda resultados históricos anteriores.
+- Próximo caso INV04-01: intentar Dar de baja QA-RET-01 desde la pública con
+  motivo. Debe rechazar por exigir Taller y mantener estado, ubicación,
+  borrado, versión y ocupación. La eliminación definitiva se probará después.
+- Se actualizan índice, guía y diario. El asistente solo efectuó SELECT y
+  lectura/edición documental, sin escrituras SQL, pruebas, navegador,
+  reinicios, cambios de código o escrituras Git.
+
+### Etapa 149 Baja desde pública rechazada sin cambios (INV04-01)
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario informó el rechazo de Dar de baja QA-RET-01 desde la estación
+  pública. SELECT confirma id 1 DISPONIBLE, estación 1, borrado false y version 0.
+- El historial solo tiene su alta inicial id 1, sin transición a DE_BAJA;
+  auditoría solo CREAR id 1. No se registraron eventos de una baja exitosa.
+- Plaza QA Retiro conserva dos presentes/cero libres; Taller QA Retiro cero
+  presentes/cinco libres. Se acredita INV04-01 y que RN-INV-04 no debilitó
+  la exigencia de Taller para Dar de baja por separado.
+- Siguiente caso INV04-02: abrir Eliminar para esa unidad y cancelar, comprobar
+  el nuevo texto y la ausencia de cambios. La eliminación confirmada desde
+  pública todavía está pendiente y no se da por probada con este rechazo.
+- El asistente solo realizó SELECT y actualizó documentación, sin modificar
+  datos, código, procesos, navegador ni Git.
+
+### Etapa 150 Cancelación de eliminación desde pública sin cambios (INV04-02)
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó el texto desde su ubicación registrada y canceló el
+  diálogo Eliminar QA-RET-01. Se acredita la variante cancelar de INV04-02;
+  no se presenta como otra prueba manual de motivo vacío.
+- SELECT conserva QA-RET-01 id 1 DISPONIBLE, estación 1, borrado false y version
+  0. Sigue teniendo un único evento de estado y uno administrativo, los de
+  alta ya verificados en la etapa anterior. No se registró una eliminación.
+- Plaza QA Retiro continúa con dos presentes/cero libres y Taller QA Retiro
+  con cero presentes/cinco libres. Cancelar no liberó un espacio.
+- Próximo caso INV04-03: abrir un diálogo nuevo y confirmar la retirada
+  definitiva QA desde la pública con motivo. Su resultado y trazabilidad
+  siguen pendientes de comprobar; no se ejecutó esa escritura por el asistente.
+- Solo se realizaron SELECT y edición documental, sin cambios en datos,
+  código, procesos, navegador o Git.
+
+### Etapa 151 Eliminación desde pública con persistencia y trazabilidad verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó Eliminar QA-RET-01 desde la pública con motivo de
+  retirada definitiva (INV04-03). SELECT confirma la fila id 1 conservada,
+  MONTANA, DE_BAJA, borrado true, estación nula, fecha_alta 2026-11-08 y version 1.
+- Historial id 3 conserva una sola transición DISPONIBLE a DE_BAJA además
+  del alta id 1, actor 1, origen USUARIO y motivo registrado. Auditoría id 3
+  ELIMINAR_SALIDA_DEFINITIVA identifica administrador 1, origen público
+  estacionId=1 y destino null, estado/borrado anterior y nuevo, fecha y motivo.
+  No se inventó un paso por Taller ni se borró físicamente la bicicleta.
+- Plaza QA Retiro pasó de dos presentes/cero libres a una presente/un libre.
+  Taller QA Retiro conserva cero presentes/cinco libres. QA-RET-02 id 2 sigue
+  PASEO, DISPONIBLE, estación 1, borrado false y version 0.
+- Se acredita persistencia y trazabilidad de la retirada desde pública incluso
+  con origen inicialmente lleno. Pendiente confirmar visualmente Mostrar
+  eliminadas/Ver para esta unidad y ejecutar INV04-04 con la segunda bicicleta.
+- Solo SELECT y documentación por el asistente, sin escrituras SQL, cambios
+  en fuentes, pruebas automáticas, navegador, reinicios o escrituras Git.
+
+### Etapa 152 Consulta de eliminada y traslado/baja en Taller comprobados
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario confirmó la presentación de QA-RET-01 al mostrar eliminadas:
+  marcada Eliminada, ubicación Fuera del inventario y solo Ver sin edición.
+  Se completa la comprobación visual asociada a INV04-03; SELECT conserva
+  id 1 DE_BAJA, borrado true, ubicación nula, version 1 y sus eventos previos.
+- El usuario trasladó QA-RET-02 al Taller y después la dio de baja (INV04-04).
+  SELECT confirma id 2 PASEO, DE_BAJA, borrado false, estación 2 Taller QA Retiro,
+  fecha_alta 2026-11-08 conservada y version 2.
+- Auditoría id 4 ACTUALIZAR registra estación 1 a 2, estado DISPONIBLE y borrado
+  false conservados, administrador 1 y motivo Traslado de prueba al taller.
+  No hay transición de estado ficticia producida por el traslado.
+- Auditoría id 5 CAMBIAR_ESTADO e historial id 4 registran DISPONIBLE a DE_BAJA,
+  ubicación 2 y borrado false conservados, actor/administrador 1, fecha y motivo
+  Fin de vida útil de prueba. Se distingue baja operativa de eliminación.
+- Plaza QA Retiro quedó vacía con dos espacios libres; Taller QA Retiro tiene
+  una unidad presente y cuatro libres. La baja no liberó su lugar físico.
+- Los casos puntuales INV04-01, INV04-02 (variante cancelar), INV04-03 e INV04-04
+  quedan comprobados, con reporte del usuario y evidencia SELECT cuando aplica.
+  Se mantienen las 50 pruebas Java y 15 Node registradas en etapa 147; no se
+  ejecutó una nueva suite ni se afirma una nueva prueba simultánea de bloqueos.
+  La validación de motivo vacío sigue cubierta automáticamente y por la ronda
+  anterior, no se presenta como otra ejecución manual en esta ronda.
+- RN-INV-04 queda verificada en este alcance. RN-INV-03 por pérdida y los demás
+  módulos pendientes del DER no se dan por implementados. Próximo paso propuesto:
+  guardar el cambio y la evidencia en la rama actual mediante commit/push.
+- El asistente solo realizó SELECT y actualización documental; no alteró datos,
+  código, procesos, navegador, pruebas o Git.

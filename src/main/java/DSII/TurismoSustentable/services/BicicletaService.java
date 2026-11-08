@@ -145,7 +145,7 @@ public class BicicletaService {
                     "Debe confirmar la salida física definitiva de la bicicleta.");
         }
         exigirMotivo(dto.getMotivo());
-        exigirTaller(bicicleta);
+        exigirUbicacionParaSalida(bicicleta);
         EstadoBicicleta anteriorEstado = bicicleta.getEstado();
         boolean cambiaEstado = !"DE_BAJA".equals(anteriorEstado.getCodigo());
         // Resolver el catálogo antes de mutar; no inventar estados si falta configuración.
@@ -223,6 +223,15 @@ public class BicicletaService {
         if (bicicletas.countByUbicacionActual(estacion) >= estacion.getCapacidad()) {
             throw error(HttpStatus.CONFLICT, "La estación de destino no tiene espacios libres.");
         }
+    }
+    private void exigirUbicacionParaSalida(Bicicleta bicicleta) {
+        Estacion ubicacion = bicicleta.getUbicacionActual();
+        if (ubicacion == null) {
+            throw error(HttpStatus.CONFLICT, "La bicicleta no tiene una ubicación física registrada.");
+        }
+        // Bloquear y validar el origen de la salida, sea público o interno.
+        // No exige cupo libre: se retira una unidad que ya ocupaba ese lugar.
+        destino(ubicacion.getId());
     }
     private void exigirTaller(Bicicleta bicicleta) {
         Estacion ubicacion = bicicleta.getUbicacionActual();

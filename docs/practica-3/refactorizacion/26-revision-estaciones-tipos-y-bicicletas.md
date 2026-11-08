@@ -169,8 +169,12 @@ Estos escenarios se especifican, no se ejecutaron:
 ## 8. RN-INV-02 Eliminación con salida definitiva y presentación del inventario
 
 Fecha: 8 de noviembre de 2026. Recorrido físico implementado en la etapa 128;
-pruebas automáticas verificadas en la 129 y comprobaciones manuales en curso
-en el documento 37. La pérdida definitiva de la sección 9 sigue pendiente de código.
+pruebas automáticas verificadas en la 129 y comprobaciones manuales en las
+etapas 130 a 145 del documento 37. RN-INV-04, sección 10, amplía el origen
+de la retirada física: pública o interna activa. Esta ampliación está
+implementada en la etapa 146, con pruebas automáticas en la 147 y comprobaciones
+manuales en las etapas 148 a 152. La pérdida
+definitiva de la sección 9 sigue pendiente de código.
 
 Se mantienen las siete categorías de estado y las columnas existentes.
 DE_BAJA y borrado_bici siguen siendo datos diferentes, pero el nuevo recorrido
@@ -193,7 +197,8 @@ en lo referente al borrado. No modifica los originales PDF/Word/DERv4.
   unidad siga en Taller y no activa borrado_bici automáticamente.
 - Eliminar exige ADMIN activo, versión, motivo y confirmación de que la unidad
   ya fue retirada físicamente del inventario. Requiere una ubicación previa
-  registrada en Taller habilitado y ausencia de procesos incompatibles.
+  registrada en una estación pública o interna habilitada y ausencia de
+  procesos incompatibles (ampliación RN-INV-04).
   Esta es la causa de retirada física; RN-INV-03, sección 9, define la
   excepción aprobada por pérdida definitiva sin recepción.
 - En una sola transacción deja estado DE_BAJA, borrado_bici true y estacion_id
@@ -203,7 +208,7 @@ en lo referente al borrado. No modifica los originales PDF/Word/DERv4.
   agregar historial de estado solo si realmente cambia a DE_BAJA. Si ya estaba
   DE_BAJA, no duplicar una transición ficticia.
 - No cerrar viajes, reservas, órdenes o incidencias para permitir la eliminación.
-  EXTRAVIADA sin recuperación no satisface presencia previa en Taller y no usa
+  EXTRAVIADA sin recuperación no satisface presencia física previa y no usa
   esta retirada física: requiere el recorrido específico de la sección 9.
 - No se agrega un botón obligatorio de salida ni el endpoint separado propuesto
   anteriormente. La excepción propuesta para eliminar una unidad ya sin ubicación
@@ -295,3 +300,33 @@ La eventual revisión excepcional no pertenece al recorrido normal aprobado.
 - Se sustituyen las prohibiciones absolutas anteriores de baja sin recuperación,
   no los controles de recepción/capacidad del recorrido físico RN-INV-02.
   No se reinterpretan pérdidas ni bajas históricas automáticamente.
+
+## 10. RN-INV-04 Retirada definitiva desde la ubicación registrada
+
+Fecha de aprobación e implementación: 8 de noviembre de 2026, etapa 146 del
+documento 37. Verificación: 50 pruebas Java y 15 Node en etapa 147; casos
+manuales puntuales y persistencia en etapas 148 a 152. Alcance y evidencia
+en sección 9 del documento 39, sin extender resultados a módulos pendientes.
+
+- Eliminar con retirada física confirmada admite como origen la estación
+  pública o interna activa donde ya está registrada la bicicleta. No obliga
+  a simular un traslado al Taller antes de retirarla definitivamente.
+- Se valida y bloquea la estación de origen dentro de la misma transacción.
+  La falta de ubicación o un origen inexistente/inactivo impiden la operación.
+  No se exige espacio libre para sacar una unidad ya presente.
+- Se mantienen ADMIN activo, versión vigente, motivo, confirmación explícita,
+  ausencia de alquiler activo y estados permitidos DISPONIBLE, INACTIVA o
+  DE_BAJA. No se habilitan EN_USO, RESERVADA, MANTENIMIENTO ni EXTRAVIADA.
+- El resultado conserva RN-INV-02: DE_BAJA, borrado_bici true y ubicación nula,
+  fila e historia conservadas; auditoría con origen real, actor, fecha y motivo.
+  Historial de estado solo si hay transición. No hay borrado físico de datos.
+- Dar de baja sin eliminar sigue exigiendo Taller activo y no libera lugar.
+  Una recogida para reparación es traslado, no eliminación definitiva.
+- Se sustituye la restricción de Taller únicamente para Eliminar del recorrido
+  físico, incluidos CP-INV-11 y la antigua expectativa INV02-07. Los rechazos
+  anteriores se conservan como evidencia histórica, no como resultado vigente.
+  RN-INV-03 por pérdida sigue pendiente de incidencias, sin atajos ni falsas
+  confirmaciones físicas. Los módulos futuros deberán conectar sus controles
+  de reservas, órdenes e incidencias; no se declaran integrados por este cambio.
+
+No cambian entidades, columnas, PK, FK, relaciones, endpoints ni permisos.

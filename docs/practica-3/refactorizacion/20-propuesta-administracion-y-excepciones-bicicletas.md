@@ -1,5 +1,13 @@
 # RN-BIC-02 Administración de bicicletas y límites de incidencias
 
+Ampliación vigente del 8 de noviembre de 2026: RN-INV-04 (documento 26,
+sección 10) permite la eliminación con retirada física desde la ubicación
+pública o interna activa registrada, sin traslado ficticio al Taller. Dar de
+baja sin eliminar sigue requiriendo Taller. Se conservan autorización, versión,
+motivo, confirmación física, protección de procesos y trazabilidad. Código en
+etapa 146, pruebas automáticas/manuales en etapas 147 a 152; no implementa
+la excepción por pérdida.
+
 Excepción adicional aprobada el 8 de noviembre de 2026: RN-INV-03 (documento
 26, sección 9) habilita baja por pérdida definitiva desde EXTRAVIADA sin Taller,
 respaldada por incidencia confirmada, detalle cerrado, decisión administrativa
@@ -12,7 +20,8 @@ Actualización aprobada el 8 de noviembre de 2026: el recorrido Eliminar de
 RN-INV-02 (documento 26, sección 8) sustituye el borrado que conservaba estado
 y presencia física descrito como antecedente en este documento. Con confirmación
 de retirada real, ADMIN registra en una transacción DE_BAJA, borrado_bici true
-y estacion_id nulo, bajo los controles previos del Taller y procesos pendientes.
+y estacion_id nulo, bajo los controles de ubicación activa y procesos pendientes
+(origen ampliado por RN-INV-04).
 Se conserva historia y auditoría. Dar de baja por sí solo no libera lugar.
 No se agrega otra operación obligatoria de salida ni nuevas tablas.
 
