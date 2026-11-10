@@ -7,6 +7,8 @@ import org.springframework.data.repository.query.Param;
 import DSII.TurismoSustentable.models.Usuario;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.Lock;
+import javax.persistence.LockModeType;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
 
@@ -62,6 +64,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     })
     @Query("select distinct u from Usuario u where u.email = :email")
     Optional<Usuario> buscarPorEmailConDatosYRoles(
+            @Param("email") String email
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u " +
+            "where u.email = :email and u.activo = true")
+    Optional<Usuario> buscarActivoPorEmailConBloqueo(
             @Param("email") String email
     );
 

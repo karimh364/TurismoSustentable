@@ -4,6 +4,13 @@ Fecha: 28 de octubre de 2026.
 
 Estado: unicidad alquiler/bicicleta, FK al tipo contratado, RN-ALQ-10 y RN-ALQ-11 aprobadas e incorporadas. El 2 de noviembre RN-TRZ-01 incorpora además incidencia_corte_id opcional FK/UK de la incidencia determinante del mismo detalle. El modelo completo queda en 29 entidades y 55 FK/relaciones por las cuatro mejoras de trazabilidad. Se conservan cobro real, origen único en cabecera, máximo inicial de diez configurable y selección fija. Java y la base siguen sin cambios; los casos de negocio no se ejecutaron.
 
+Avance del 8 de noviembre de 2026 (etapa 175 del documento 37): catálogos de
+estado de cabecera/detalle y modelos de mantenimiento preparados; duración
+estimada común aprobada. CrearAlquilerDTO y su test creados/revisados, ocho
+pruebas unitarias/JSON verificadas. El endpoint aún usa AlquilerRequestDTO y
+el modelo anterior; cabecera/detalles, referencias de incidencia y reglas del
+nuevo circuito no se consideran implementados por probar la entrada.
+
 ## 1. Fuentes y situación actual
 
 Se contrastaron el [DER v4 original](<D:/Karim/Downloads/Desarrollo de Software/3er Año/Prácticas 3/TP1 TURI/DER/DERv4.txt>), los apartados de visión y requerimientos del [PDF](<D:/Karim/Downloads/Desarrollo de Software/3er Año/Prácticas 3/TP1 TURI/TP1/TP1 Prácticas III - Karim Homsi.pdf>), el [diccionario original](<D:/Karim/Downloads/Desarrollo de Software/3er Año/Prácticas 3/TP1 TURI/Diccionario de Estados.docx>) y las aprobaciones posteriores de esta carpeta. Las multas, el cierre forzoso a las 24 horas y FINALIZADO dependiente del pago del Word no se reintroducen: quedaron sustituidos por reglas aprobadas.
@@ -56,7 +63,7 @@ Los totales de cabecera y los subtotales se mantienen por operaciones del backen
 | orden_mantenimiento_id | Enlace operativo de la atención del reporte; su reasignación debe conservarse en auditoría conforme a D07 |
 | incidencia_corte_id | FK opcional y UK a INCIDENCIA.id; identifica la decisión validada que fundamenta el corte y debe pertenecer al mismo detalle; no se acepta libremente del cliente |
 | precio_por_hora_aplicado_usd | Tarifa del tipo copiada al confirmar; permanece fija aunque el catálogo cambie |
-| duracion_estimada_segundos | Duración contratada de referencia, positiva; no es mínimo de uso. RN-ALQ-10 define segundos completos y redondeos monetarios por detalle, sin bloques |
+| duracion_estimada_segundos | Duración contratada de referencia, positiva; estimación común elegida para la contratación y copiada a cada detalle, aprobada el 8 de noviembre en RN-ALQ-11. No es mínimo de uso. RN-ALQ-10 define segundos completos y redondeos monetarios por detalle, sin bloques |
 | fecha_hora_retiro | Opcional antes del retiro real; exige autorización, reserva vigente y anticipo requerido confirmado |
 | fecha_hora_devolucion_estimada | Se determina desde el retiro real de esa unidad y su duración estimada, no desde la creación o retiro de otra bicicleta |
 | fecha_hora_devolucion_real | Recepción física normal validada; se conserva aunque una incidencia autorice luego un corte económico anterior |

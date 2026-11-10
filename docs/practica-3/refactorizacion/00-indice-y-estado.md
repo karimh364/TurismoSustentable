@@ -1,12 +1,82 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 8 de noviembre de 2026.
+Actualizado: 10 de noviembre de 2026.
 
-Estado más reciente: etapa 170 del documento 37. Tests de orden e historial
+Estado más reciente: etapa 217 del documento 37. Bloqueo por usuario activo
+y máximo configurable de diez revisados sin correcciones; setenta y una pruebas
+verificadas por XML sin fallos/errores/omisiones. Solicitado checkpoint manual
+antes de creación transaccional; último commit observado 94306f0 y múltiples
+avances aún pendientes de commit. Persistencia/integración pendientes, enum
+y flujo anterior todavía no sustituidos.
+
+Etapa 198: AlquilerImportesTest creado
+y revisado sin correcciones; cuarenta y ocho pruebas conjuntas verificadas
+por XML sin fallos/errores/omisiones. Cálculo, persistencia y nuevo circuito
+de cabecera/detalles siguen pendientes; no se sustituye el servicio anterior.
+
+Etapa 195: Cinco fechas de cabecera de
+Alquiler y sus getters/setters revisados sin correcciones; constructores anteriores
+intactos. Cuarenta y cinco pruebas de regresión verificadas por XML sin fallos/
+errores/omisiones. Asignación de fechas, cronología y reserva funcional pendientes
+del nuevo servicio; sin reinicios o cambios a datos.
+
+Etapa 193: AlquilerCotizacionTest creado
+y revisado sin correcciones; cuarenta y cinco pruebas conjuntas verificadas
+por XML sin fallos/errores/omisiones, incluidas seis específicas de cotización.
+Persistencia y uso del snapshot en el nuevo servicio siguen pendientes.
+
+Etapa 191: Cuatro campos del snapshot
+de cotización de Alquiler y sus getters/setters revisados sin correcciones.
+Treinta y nueve pruebas de regresión verificadas por XML sin fallos/errores/
+omisiones; todavía sin pruebas específicas del snapshot o persistencia.
+No se considera congelamiento funcional implementado: el servicio anterior
+no los escribe/consume todavía. Campos opcionales durante la transición.
+
+Etapa 186: HistorialEstadoDetalleTest
+creado y revisado sin correcciones; ejecución conjunta verificada por XML:
+veintitrés pruebas (siete del historial, ocho de incidencia y ocho de detalle),
+sin fallos/errores/omisiones. Persistencia y flujo de servicio pendientes.
+
+Etapa 184: HistorialEstadoDetalle y su
+repositorio creados manualmente y revisados completos sin correcciones; compileJava
+correcto según salida del usuario. Pruebas unitarias y persistencia pendientes;
+todavía no se generan eventos desde servicios. Sin cambios al circuito de legado.
+
+Etapa 182: IncidenciaTest revisado sin
+correcciones; dieciséis pruebas conjuntas de incidencia/detalle verificadas por
+XML sin fallos/errores/omisiones. Preparadas instrucciones de sus dos repositorios
+JpaRepository, aún sin creación/compilación verificada. Reglas de servicio y
+persistencia real pendientes.
+
+Etapa 180: AlquilerDetalleTest creado
+manualmente y revisado sin correcciones; ocho pruebas verificadas por XML,
+sin fallos/errores/omisiones. Solo validación individual, no persistencia o
+reglas de servicio. IncidenciaTest queda para el siguiente bloque.
+
+Etapa 178: AlquilerDetalle e Incidencia
+revisadas completas tras generar métodos: getters/setters correctos, sin
+setters de id/version ni de fechaHoraRegistro en Incidencia. No requieren
+correcciones Java; compilación correcta informada por el usuario. Persistencia
+y reglas de servicio pendientes. El alquiler de legado y sus endpoints
+permanecen sin modificar; el nuevo circuito todavía no es operativo.
+
+Etapa 175: CrearAlquilerDTO creado
+manualmente y revisado sin correcciones, compileJava correcto según salida
+del usuario. Test creado manualmente y revisado, ocho pruebas unitarias/JSON
+verificadas por XML sin fallos/errores/omisiones. Sin conexión todavía al nuevo
+circuito; endpoint/servicio legado sin modificar. El máximo
+de diez queda previsto como configuración de servicio, no límite rígido del DTO.
+Checkpoint 94306f0 confirmado
+con árbol limpio inicial y sin commits divergentes frente a la referencia remota.
+Duración estimada común aprobada para todas las bicicletas del mismo alquiler:
+se conserva en cada detalle, con retiros/devoluciones y costos reales individuales.
+Se actualizan RN-ALQ-11 y comentarios de ambos Mermaid, sin cambios estructurales
+o Java. Mínimos/máximos de estimación y límites acumulados siguen sin fijar.
+Tests de orden e historial
 creados manualmente y revisados; ocho pruebas de historial, seis de orden y
 doce del cargador verificadas por XML (veintiséis sin fallos/errores/omisiones).
-Se indica checkpoint Git del modelo de soporte antes de continuar cabecera/
-detalles e incidencia; aún pendiente que el usuario lo ejecute.
+Checkpoint del modelo de soporte guardado; continúa pendiente la implementación
+coordinada de cabecera/detalles e incidencia.
 OrdenMantenimiento y repositorio
 creados manualmente, revisados sin correcciones y compilados según salida del
 usuario; sin servicio o flujo técnico todavía. HistorialOrdenMantenimiento y

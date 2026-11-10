@@ -31,6 +31,15 @@ public class GlobalExceptionHandler {
                 "Intentá nuevamente más tarde.";
     }
 
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    @ExceptionHandler(CotizacionNoDisponibleException.class)
+    public String handleCotizacionNoDisponible(
+            CotizacionNoDisponibleException ex
+    ) {
+        LOGGER.warn("No se pudo obtener la cotización para contratar.", ex);
+        return ex.getMessage();
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     // Cambiamos el tipo de retorno para incluir más información del error

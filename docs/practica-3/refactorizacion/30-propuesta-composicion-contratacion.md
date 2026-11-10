@@ -4,13 +4,18 @@ Fecha: 28 de octubre de 2026.
 
 Estado: RN-ALQ-11 aprobada el 28 de octubre de 2026 e incorporada al DER lógico. El usuario confirmó origen común, traslado de la FK de retiro a la cabecera y selección fija; indicó un máximo acordado con su compañero de diez bicicletas, que sustituye la propuesta inicial de cinco. Se mantiene configurable. Java y la base de datos no se modificaron y los criterios de negocio todavía no se ejecutaron.
 
+Ampliación aprobada el 8 de noviembre de 2026: duración estimada común para
+todas las bicicletas de una contratación, conservada como snapshot en cada
+detalle. No se modifican campos, claves o relaciones del DER vigente de
+29 entidades/55 relaciones. La regla todavía no se implementó ni probó.
+
 El DER lógico de trabajo tiene 28 entidades y 52 FK/relaciones. Su estructura principal está definida, pero todavía hay decisiones capaces de cambiar campos o relaciones. RN-PAG-05 ya excluyó los medios de pago guardados locales de esta versión; las asociaciones históricas y correlaciones de integración pendientes todavía requieren revisión antes de considerar definitivo el modelo.
 
 ## 1. Qué falta cerrar
 
 | Bloque | Decisiones pendientes | Efecto sobre el modelo |
 | --- | --- | --- |
-| Composición del alquiler | Origen único, entre una y diez bicicletas y selección fija ya aprobados; faltan validaciones de duración estimada y no se fijó un límite acumulado por usuario | FK de estación trasladada a ALQUILER; máximo configurable sin tabla nueva; no confundir estos cierres con implementación |
+| Composición del alquiler | Origen único, entre una y diez bicicletas, duración estimada común y selección fija aprobados; faltan límites de duración y no se fijó un límite acumulado por usuario | FK de estación trasladada a ALQUILER; estimación común copiada a los detalles; máximo configurable sin tabla nueva; no confundir estos cierres con implementación |
 | Dinero e integración | RN-PAG-03 y Checkout Pro externo de RN-PAG-05 ya aprobados; quedan API, correlaciones, confirmaciones y pruebas | No se incorporan entidades de medios guardados; la correspondencia entre checkout, orden y pagos debe comprobarse antes de cerrar el diseño físico |
 | Revisión final de trazabilidad e incidencias | Asociaciones entre reportes, incidencias y órdenes; conservación de cambios sin transición de estado; identificación visible histórica | Comprobar si bastan las FK y la auditoría propuestas o hace falta una relación explícita adicional, sin reabrir los estados y reglas de incidencia aprobados |
 | Diseño físico y transición | Tipos SQL, longitudes, escalas, nulabilidad, unicidad, índices, normalización de identificadores, bajas lógicas y tratamiento de datos antiguos | Convertir el dibujo lógico en un esquema implementable y preparar una migración reproducible, sin inventar datos históricos |
@@ -49,6 +54,30 @@ La selección debe contener al menos una unidad y no repetir la misma bicicleta.
 
 Un cambio posterior del límite se aplica a nuevas confirmaciones y no invalida contratos aceptados. Tampoco autoriza a omitir la exclusividad entre contrataciones. Un límite por alquiler no sustituye una política de límites acumulados por usuario, si después se requiere.
 
+### Duración estimada común
+
+Aprobada el 8 de noviembre de 2026. El cliente elige una sola duración estimada
+para todas las bicicletas del mismo alquiler. El backend recibe ese valor
+común y lo conserva en duracion_estimada_segundos de cada detalle; no acepta
+estimaciones diferentes por unidad dentro de esa contratación. No se agrega
+otra columna en la cabecera ni se altera el DER para esta elección de formulario.
+
+Cada detalle conserva su tarifa por tipo, sus importes, retiro, devolución y
+corte de uso propios. Una estimación común no implica igual precio por bicicleta,
+retiro simultáneo, devolución conjunta o una misma fecha de devolución estimada:
+esta última se calcula desde el retiro real de cada unidad más la duración común.
+Las cancelaciones y vencimientos sin retiro siguen teniendo costo de uso cero.
+
+El anticipo se estima con esa duración y las tarifas/cotización contratadas.
+El ajuste final continúa basado en el uso real individual: menos uso genera
+el ajuste que corresponda y más uso el adicional aprobado, sin multas ni cierre
+automático por agotar la estimación. No cambia la reserva original de 15 minutos,
+la selección fija, el snapshot económico o las revisiones por incidencia.
+
+La duración queda fija al confirmar. Se preservan las reglas de reembolso,
+deuda y cierre/liquidación ya aprobadas. Esta aprobación no fija mínimos,
+máximos o unidades del formulario, ni un límite acumulado por usuario.
+
 ### Selección fija después de confirmar
 
 Antes de confirmar se pueden agregar o quitar unidades y modificar la estimación. Confirmado el alquiler y congelados sus datos económicos, no se agregan ni sustituyen bicicletas, no se cambia la estación contratada y no se modifica la duración estimada aceptada de sus detalles.
@@ -80,6 +109,8 @@ Estos casos son especificaciones pendientes de implementación y ejecución, no 
 | CP-ALQ-11-09 | Se confirman diez unidades distintas, aptas y disponibles en un mismo origen, con máximo diez | Selección válida si satisface los demás controles; se crea una cabecera con diez detalles, no diez contratos |
 | CP-ALQ-11-10 | Se intenta confirmar once bicicletas con máximo diez | Rechazo sin reservar parcialmente ni generar un cobro |
 | CP-ALQ-11-11 | El origen solo tiene siete bicicletas aptas disponibles | No se habilitan diez por el mero valor del máximo; una selección de siete puede confirmarse si satisface los demás controles |
+| CP-ALQ-11-12 | Confirmar varias bicicletas con una duración estimada común | El backend conserva la misma duración en todos los detalles, con sus tarifas por tipo e importes propios; no acepta duraciones distintas por unidad |
+| CP-ALQ-11-13 | Dos unidades con la misma estimación se retiran y devuelven en momentos distintos | Cada devolución estimada parte de su propio retiro y cada costo real usa su intervalo individual; no se exige volver juntas ni se impone la estimación como mínimo de cobro |
 
 ## 6. Justificación y alternativa de varios orígenes
 
@@ -93,6 +124,9 @@ Guardar la estación en la cabecera es adecuado bajo el origen único aprobado. 
 
 El usuario aprobó las reglas, incluido trasladar la estación a la cabecera, y señaló que el máximo acordado con su compañero es diez. Se incorporaron la FK y la relación al Mermaid, manteniendo 28 entidades y 52 FK/relaciones. El valor máximo queda documentado como configuración inicial del servicio, no como una columna duplicada o una tabla nueva. Los originales, Java y la base permanecen sin cambios.
 
-No se fijan aquí mínimos o máximos de duración estimada ni si el formulario ofrecerá una estimación común o por unidad. El cálculo temporal individual ya aprobado se mantiene; la validación antigua de una a 24 horas no se adopta silenciosamente como nueva regla.
+El 8 de noviembre se aprobó estimación común, según la sección 3. Continúan
+sin fijarse mínimos o máximos de duración estimada y unidades del formulario.
+El cálculo temporal individual ya aprobado se mantiene; la validación antigua
+de una a 24 horas no se adopta silenciosamente como nueva regla.
 
 La revisión de PAGO/REEMBOLSO registra RN-PAG-03 aprobada y RN-PAG-05 con checkout externo, sin medios guardados locales. Sigue revisar asociaciones de trazabilidad y concretar el esquema físico, manteniendo los puntos técnicos de integración pendientes. No hace falta esperar credenciales de la pasarela para comenzar módulos independientes ya definidos, pero tampoco se presenta una simulación como integración real.

@@ -8567,3 +8567,1021 @@ Fecha: 8 de noviembre de 2026.
   alteró Java, consultó SQL, arrancó/reinició procesos o usó navegador.
 - Se actualizaron índice, diario y estado parcial del documento 27; las
   comprobaciones de integración y operaciones siguen pendientes.
+
+### Etapa 171 Checkpoint confirmado y precisión de duración solicitada
+
+Fecha: 8 de noviembre de 2026.
+
+- Se verificó árbol limpio inicial, rama codex/refactorizacion-practicas-iii,
+  commit 94306f0 Agregar modelos de mantenimiento e historial con precarga y
+  pruebas y cero commits divergentes frente a su referencia remota. No se
+  ejecutaron fetch, add, commit o push por el asistente.
+- Al retomar el bloque de contratación se revisaron DER v5, modelo actual,
+  DTO legado y RN-ALQ-11. El documento 30, sección de pendientes, declara
+  expresamente sin definir estimación común o por unidad y mínimos/máximos;
+  no corresponde adoptar silenciosamente el rango antiguo de una a 24 horas.
+- Antes de fijar el DTO nuevo se solicita confirmar una duración estimada
+  común para todas las bicicletas del contrato, como propuesta de interfaz
+  sencilla. Se copiaría a duracion_estimada_segundos de cada detalle sin
+  nueva columna de cabecera; cada retiro y uso real seguirían siendo
+  independientes, sin mínimo de cobro ni cierre por superar la estimación.
+- Esta opción no se da por aprobada. Tampoco se fijan mínimo/máximo, unidades
+  de formulario o límites acumulados. No se crearon DTO, tablas o entidades
+  nuevas ni se alteraron servicios/flujo actual al solicitar la decisión.
+- Solo lectura de fuentes/estado Git y edición documental por el asistente;
+  sin cambios Java, compilación/pruebas, SQL, reinicios o navegador.
+
+### Etapa 172 Duración estimada común aprobada y documentada
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario aprobó expresamente duración estimada común para todas las
+  bicicletas del mismo alquiler. Se documenta en RN-ALQ-11: un solo valor de
+  entrada copiado al snapshot de duración en cada detalle, fijo al confirmar.
+- La elección simplifica la contratación del grupo sin ligar los retiros o
+  devoluciones: fecha estimada individual desde su retiro, precio por tipo,
+  intervalo de uso real y ajuste económico independientes por unidad. Se
+  mantienen la liquidación conjunta y las revisiones pendientes por incidencia.
+- No exige regresar juntas, mismo importe, mínimo de uso, multa, cierre por
+  superar lo estimado ni nuevo plazo de reserva. No fija mínimo/máximo de
+  estimación, unidades del formulario o límites acumulados no aprobados.
+- Se actualizan documento 30 (regla, pendientes y dos criterios de aceptación),
+  descripción del campo en documento 28, índice y comentario del atributo en
+  ambos Mermaid sincronizados. No cambian las 29 entidades/55 relaciones,
+  campos, PK/FK o restricciones de unicidad del modelo.
+- Regla aprobada para implementar, no código o prueba superada. El nuevo DTO
+  y el circuito de contratación siguen pendientes. No se modifican Java,
+  servicios o datos; no se ejecutan pruebas/compilación, SQL, reinicios,
+  navegador o escrituras Git. Los originales PDF/Word/DERv4 se conservan.
+
+### Etapa 173 DTO de solicitud de contratación preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisaron los DTO/controlador actuales y RN-ALQ-11. Se entregan
+  instrucciones manuales de CrearAlquilerDTO, sin sustituir todavía el
+  AlquilerRequestDTO consumido por el endpoint y servicio de legado.
+- Entrada prevista: estacionRetiroId positivo obligatorio; bicicletaIds como
+  lista no vacía de Integer no nulos/positivos y sin repetidos; duración
+  común positiva duracionEstimadaSegundos. Segundos es la representación
+  interna ya prevista por el DER, no una nueva unidad obligatoria del formulario,
+  un mínimo de facturación o el límite anterior de una a 24 horas.
+- Se utiliza UniqueElements de Hibernate Validator, comprobado como clase
+  presente en el JAR 6.2.5.Final instalado. No se agregan dependencias o un
+  validador propio. La lista no se convierte a Set ni se eliminan errores
+  silenciosamente. El máximo inicial de diez se comprobará en el servicio
+  con configuración, no como un límite literal rígido del DTO.
+- Se sigue el patrón JsonAnySetter del DTO de bicicletas para rechazar campos
+  ajenos. No se reciben usuario/rol, precios, cotización, estados, vencimiento,
+  subtotales o datos de pago; se resolverán en el backend. La estructura no
+  comprueba por sí sola existencia, estación común, disponibilidad o deuda.
+- No se creó el archivo por el asistente ni se cambió el endpoint, servicio,
+  frontend, modelo o configuración. El usuario debe crearlo y compilar; las
+  pruebas y conexión al nuevo flujo siguen pendientes. El DTO no crea tablas.
+- Solo lectura de fuentes/metadatos de biblioteca y edición documental,
+  sin compilación/pruebas, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 174 DTO de contratación revisado y pruebas preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó CrearAlquilerDTO y aportó compileJava BUILD SUCCESSFUL,
+  una tarea ejecutada. Se leyó completo: tres atributos, NotNull/Positive de
+  origen/duración, NotEmpty/UniqueElements y restricciones de elementos de
+  lista, getters/setters y JsonAnySetter coincidentes con las instrucciones.
+  La sangría distinta de Integer en el genérico no cambia el tipo o validación.
+  No se detectaron correcciones Java necesarias en ese bloque.
+- Se contrastaron endpoints reales de AlquilerController para explicar método
+  HTTP más ruta y el papel del controlador como entrada al backend. POST
+  /api/alquileres todavía recibe AlquilerRequestDTO; no se conectó CrearAlquilerDTO
+  o el nuevo circuito por crear esta clase. No se cambiaron rutas o permisos.
+- Se entregan instrucciones de CrearAlquilerDTOTest con ocho casos: solicitud
+  válida; origen ausente/cero/negativo; lista nula/vacía; IDs nulos/no positivos;
+  repetidos conservados para rechazo, no deduplicados; duración ausente/no
+  positiva; JSON válido; JSON con campos ajenos rechazado. JUnit 5, Bean
+  Validation y Jackson sin Spring o MySQL. Archivo todavía no creado o ejecutado.
+- No se prueban máximo configurable, existencia, estado/ubicación común, deuda,
+  cotización o reserva; corresponden al servicio/HTTP pendientes. No se afirma
+  validación estricta de toda coerción numérica de Jackson por estos casos.
+- Solo lectura de fuentes y edición documental por el asistente; sin edición
+  Java, pruebas/compilación, SQL, reinicios, navegador o escrituras Git.
+
+### Etapa 175 Ocho pruebas del DTO verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó CrearAlquilerDTOTest y ejecutó su filtro con BUILD SUCCESSFUL,
+  dos tareas ejecutadas y dos actualizadas. Se leyó el archivo completo:
+  paquete/ruta, ocho métodos y helper correctos, sin correcciones necesarias.
+- XML timestamp 2026-11-08T21:07:12.603Z: ocho pruebas, cero fallos, errores
+  u omisiones. Se verifican campos obligatorios/positivos, lista y elementos,
+  repetidos sin deduplicación silenciosa, duración y JSON permitido/ajeno.
+  No se reejecutaron estas pruebas o las suites previas por el asistente.
+- La solicitud nueva queda preparada en su alcance unitario, sin uso en
+  controladores/servicios. POST /api/alquileres continúa con el DTO anterior.
+  No se consideran probadas disponibilidad, máximo configurable, permisos,
+  cotización, deuda, reservas o creación real del modelo de cabecera/detalles.
+- La siguiente implementación deberá completar las entidades de cabecera/
+  detalle y su relación con incidencia, conservando el modelo aprobado y
+  coordinando la sustitución de los consumidores del alquiler anterior.
+  No se cambian esos consumidores o se introducen FK provisionales por este avance.
+- Solo lectura de fuentes/reportes y actualización de documentación por el
+  asistente, sin edición Java, pruebas/compilación, SQL, reinicios, navegador
+  o escrituras Git.
+
+### Etapa 176 Mapeo de detalle e incidencia preparado para implementación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- Se contrastaron los atributos y relaciones del Mermaid vigente, RN-INC-01,
+  RN-TRZ-01 y los modelos Alquiler, TipoBicicleta y OrdenMantenimiento.
+  Se entregan instrucciones para crear AlquilerDetalle e Incidencia juntos:
+  existe referencia Java mutua, no una dependencia que se resuelva con IDs
+  ficticios, tablas duplicadas o una clase vacía provisional.
+- AlquilerDetalle referencia la PK real del Alquiler existente. No se sustituye
+  todavía su estructura de legado de una bicicleta ni se conecta el nuevo DTO
+  al endpoint. Crear estas entidades no implementa la contratación múltiple.
+- Se conserva la unicidad compuesta alquiler_id/bicicleta_id; la bicicleta no
+  es globalmente única. Tipo contratado, tarifa y duración se almacenan en el
+  detalle. Devolución, orden, reportante e incidencia de corte son opcionales
+  según la fase, sin estación o fechas ficticias.
+- Incidencia tiene FK obligatoria al detalle y a su registrador real, sin UK
+  sobre el detalle. La FK opcional/única incidencia_corte_id es distinta de la
+  relación de todos los reportes. Se persiste primero el detalle sin corte,
+  luego el reporte; solo una decisión validada puede vincularlo como corte.
+  La pertenencia al mismo detalle debe comprobarse en el servicio futuro.
+- Diseño físico propuesto en este bloque: tarifa DECIMAL(10,2), consistente
+  con TipoBicicleta; subtotales DECIMAL(20,2), con BigDecimal y validaciones
+  alineadas de signo/escala. Es capacidad de almacenamiento, no un nuevo tope
+  comercial. No se aplica redondeo silencioso en setters ni se decide todavía
+  la precisión de la cotización pendiente de la cabecera.
+- Se prevén los códigos de incidencia/revisión del DER como String restringidos,
+  no nuevos enums o catálogos; los estados del detalle referencian su entidad
+  de catálogo existente. Versionado optimista en ambas entidades, relaciones
+  LAZY y sin cascadas de eliminación. Se indican getters y setters generados
+  desde IntelliJ, sin setters de id/version ni de la fecha de registro del
+  servidor. No se agregan repositorios o métodos sin consumidor en este paso.
+- Se prepara solo el mapeo y validación individual: faltan cabecera nueva,
+  historiales, servicios transaccionales, permisos, cronología, reglas
+  condicionales, cálculo económico y conexión HTTP. No se consideran esas
+  reglas implementadas por las anotaciones de las entidades.
+- El asistente no creó ni modificó Java y no compiló, ejecutó pruebas o DDL,
+  reinició la aplicación, operó navegador o escribió Git. La implementación
+  y compileJava quedan a cargo del usuario; la persistencia real está pendiente.
+
+### Etapa 177 Entidades revisadas; generación de métodos pendiente
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó AlquilerDetalle e Incidencia y aportó compileJava con
+  BUILD SUCCESSFUL, una tarea ejecutada. Se leyeron ambos archivos completos.
+  Paquetes, nombres de tabla, atributos, restricciones, FK, unicidad compuesta,
+  referencia opcional/única del corte y Version coinciden con el bloque indicado.
+- Ambos archivos terminan inmediatamente después del constructor sin argumentos:
+  todavía no contienen getters ni setters. La compilación puede pasar porque
+  aún no existen consumidores que invoquen esos métodos; JPA utiliza acceso
+  por campo. No se considera completado el paso de generación de métodos.
+- Se reiteran instrucciones manuales: getters de todos los atributos en ambas
+  clases; setters sin id/version, y además sin fechaHoraRegistro en Incidencia.
+  No generar toString/equals/hashCode sobre las relaciones.
+- Sin cambios Java por el asistente, sin reejecución de compilación/pruebas,
+  SQL, reinicios o escrituras Git. DDL, reglas de servicio y sustitución del
+  alquiler anterior siguen pendientes, sin validación de funcionamiento real.
+
+### Etapa 178 Métodos de detalle e incidencia revisados
+
+Fecha: 8 de noviembre de 2026.
+
+- Se releen completos AlquilerDetalle e Incidencia tras la generación manual
+  de métodos. Todos los atributos tienen getter correcto, incluidos los
+  booleanos mediante isFallaReportada e isRequiereRevisionEconomica.
+- Setters presentes para los atributos indicados, con asignación al campo
+  correspondiente. No hay setters de id/version en ninguna clase ni de
+  fechaHoraRegistro en Incidencia. No se generaron toString/equals/hashCode.
+  Constructores y mapeos se conservan, sin correcciones Java necesarias.
+- El usuario informa compilación correcta; el asistente no la reejecuta.
+  Esto cierra la revisión de código de ambas entidades, no las pruebas de
+  persistencia, relaciones SQL, reglas de negocio o el circuito nuevo.
+- Solo lectura Java y actualización documental por el asistente, sin edición
+  Java, ejecución de pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 179 Pruebas de AlquilerDetalle preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisó el patrón de OrdenMantenimientoTest y se entregan instrucciones
+  manuales para AlquilerDetalleTest: ocho casos de datos iniciales, relaciones
+  obligatorias, campos numéricos obligatorios, tarifa inválida, duración no
+  positiva, subtotales inválidos, subtotales cero y códigos de origen del cierre.
+- Se usan JUnit 5 y Bean Validation sin Spring, base de datos o aplicación.
+  Las referencias de los fixtures son objetos no persistidos: no acreditan
+  existencia de FK, disponibilidad o pertenencia de una incidencia al detalle.
+  Tampoco se prueban unicidad SQL, Version, inmutabilidad persistida, cronología,
+  cálculos o permisos. La prueba de Incidencia queda para el bloque siguiente.
+- Archivo todavía no creado ni ejecutado por el asistente. Solo lectura y
+  documentación; sin cambios Java, compilación/pruebas, SQL, reinicios o Git.
+
+### Etapa 180 Ocho pruebas de AlquilerDetalle verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- El usuario creó AlquilerDetalleTest y ejecutó su filtro con BUILD SUCCESSFUL.
+  Se leyó completo el archivo y coincide con las instrucciones, sin correcciones
+  necesarias en paquete, ocho casos, preparación/cierre de ValidatorFactory
+  o helper de detección de errores por campo.
+- Reporte XML timestamp 2026-11-08T21:24:09.699Z: ocho pruebas, cero fallos,
+  errores u omisiones. Se comprueban las validaciones individuales previstas;
+  no SQL, cálculo de importes, transiciones ni permisos. El siguiente bloque
+  previsto es IncidenciaTest, todavía no creado/verificado en esta revisión.
+- Solo lectura de código/reporte y documentación. Sin edición Java, ejecución
+  adicional de pruebas/compilación, SQL, reinicios o escrituras Git.
+
+### Etapa 181 Pruebas de Incidencia preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se releyó Incidencia completa y se entregan instrucciones manuales de
+  IncidenciaTest: ocho casos de valores iniciales, referencias obligatorias,
+  códigos válidos/inválidos de tipo y revisión, descripción vacía y fecha del
+  hecho ausente. Se usan JUnit 5 y Bean Validation, sin Spring o MySQL.
+- La aceptación de códigos de revisión se comprueba mediante validateProperty:
+  no afirma que baste establecer VALIDADA/DESCARTADA para resolver un caso.
+  Motivo, responsable, cronología, permisos y efecto económico siguen siendo
+  reglas condicionales del servicio pendiente. Los fixtures usan referencias
+  sin persistir, no acreditan existencia de FK o pertenencia del corte.
+- No se creó ni ejecutó el test por el asistente. Solo lectura y documentación,
+  sin modificación Java, SQL, reinicios o escrituras Git.
+
+### Etapa 182 Pruebas de incidencia verificadas y repositorios preparados
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó IncidenciaTest completo: coincide con el bloque indicado, ocho casos
+  y helper correctos, sin cambios necesarios. XML 2026-11-08T21:26:06.138Z:
+  ocho pruebas sin fallos/errores/omisiones. AlquilerDetalleTest, XML de la
+  misma ejecución a las 21:26:06.023Z, otras ocho sin incidencias: dieciséis
+  pruebas unitarias en conjunto, sin acreditar persistencia o reglas de servicio.
+- Se comprobó que aún no existen AlquilerDetalleRepository ni IncidenciaRepository.
+  Se entregan instrucciones manuales para ambas interfaces JpaRepository con
+  identificador Integer, siguiendo el patrón de OrdenMantenimientoRepository.
+  No se agregan consultas anticipadas ni endpoints CRUD de entidades; servicios
+  y trazabilidad aún deben controlar las operaciones permitidas.
+- Creación y compileJava de interfaces quedan pendientes del usuario. Solo
+  lectura y documentación por el asistente; sin edición Java, ejecución de
+  pruebas/compilación, SQL, reinicios o escrituras Git.
+
+### Etapa 183 Repositorios revisados e historial de detalle preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyeron AlquilerDetalleRepository e IncidenciaRepository: interfaces en
+  el paquete correcto, entidad y PK Integer coincidentes, sin métodos extra
+  ni errores detectados. Usuario informa compileJava BUILD SUCCESSFUL.
+- Siguiente bloque manual: HistorialEstadoDetalle y repositorio, conforme a
+  los ocho atributos del DER. FK obligatorias a detalle/estado nuevo; estado
+  anterior opcional al crear. Actor humano obligatorio con origen USUARIO,
+  nulo con SISTEMA; constructor rechaza origen inválido y estados de igual
+  código en una supuesta transición. Se conserva fecha del backend.
+- Sin setters, columnas no actualizables y sin cascadas de eliminación; no
+  implica protección absoluta en SQL o ante delete del repositorio. Servicios
+  pendientes deberán asegurar evento inicial único, estado anterior real,
+  transición autorizada y escritura atómica con el detalle, sin exponer edición
+  o borrado de historia. No se agrega Version al evento append-only.
+- Clases de historial todavía no creadas/verificadas. Solo instrucciones y
+  documentación; sin edición Java, ejecución de compilación/pruebas, SQL,
+  reinicios o escrituras Git por el asistente.
+
+### Etapa 184 Historial de detalle y repositorio revisados
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyeron completos HistorialEstadoDetalle y su repositorio. Paquetes,
+  ocho atributos/getters, mapeos, constructor protegido JPA y constructor
+  público coinciden con las instrucciones. Sin setters o cascadas de borrado.
+- Se verificó por lectura la exigencia de detalle/estado nuevo, normalización
+  del origen, coherencia actor/origen, rechazo de transición de igual código,
+  asignación de fecha del backend y recorte de observaciones. La sangría del
+  Objects.equals no afecta al comportamiento. Repositorio con PK Integer
+  correcto, sin consultas adicionales. No se necesitan correcciones Java.
+- El usuario aportó compileJava BUILD SUCCESSFUL, una tarea ejecutada. No es
+  una ejecución de pruebas ni acredita DDL/FK, permisos, transiciones válidas,
+  unicidad del evento inicial o escritura automática de historia.
+- Solo revisión y actualización documental; sin edición Java, compilación o
+  pruebas por el asistente, SQL, reinicios o escrituras Git. Siguiente paso
+  previsto: pruebas unitarias del historial de detalle.
+
+### Etapa 185 Pruebas del constructor del historial preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se releyeron historial y catálogo del detalle. Se entregan instrucciones
+  manuales de HistorialEstadoDetalleTest con siete casos JUnit 5: creación
+  humana, transición con referencias conservadas, evento automático sin actor,
+  origen inválido, incoherencia actor/origen, referencias obligatorias ausentes
+  y transición al mismo código usando tanto el mismo objeto como otro distinto.
+- Pruebas centradas en constructor/getters, sin Spring, Bean Validation o DB.
+  No verifican persistencia, catálogo real, secuencia autorizada, roles, evento
+  inicial único ni escritura atómica. Las excepciones esperadas coinciden con
+  Objects.requireNonNull e IllegalArgumentException del código existente.
+- Archivo y ejecución pendientes del usuario. Solo lectura e instrucciones y
+  actualización documental, sin edición Java, ejecución de compilación/pruebas,
+  SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 186 Veintitrés pruebas de detalle, incidencia e historial verificadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó HistorialEstadoDetalleTest completo: paquete y siete casos coinciden
+  con las instrucciones, sin correcciones necesarias. Usuario informa ejecución
+  conjunta con BUILD SUCCESSFUL, dos tareas ejecutadas y dos actualizadas.
+- XML del 2026-11-08: HistorialEstadoDetalleTest a las 21:35:57.543Z, siete
+  pruebas; IncidenciaTest a las 21:35:57.564Z, ocho; AlquilerDetalleTest a las
+  21:35:57.206Z, ocho. Total veintitrés, cero fallos/errores/omisiones.
+- Resultado limitado a validaciones individuales y constructor/getters del
+  historial, no persistencia SQL, permisos, cálculos, secuencias de negocio
+  ni escritura transaccional. El circuito anterior no se sustituye todavía.
+- Solo lectura de fuentes/reportes y documentación, sin edición Java,
+  reejecución de pruebas/compilación, SQL, reinicios o escrituras Git.
+
+### Etapa 187 Historial de incidencia preparado para creación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- Se contrastaron RN-TRZ-01, los once campos del DER y el patrón existente de
+  HistorialOrdenMantenimiento. Se entregan instrucciones manuales para
+  HistorialIncidencia y su repositorio JpaRepository con PK Integer.
+- FK obligatoria y no única a Incidencia; códigos de revisión como String
+  restringidos a PENDIENTE/VALIDADA/DESCARTADA, opcionales según evento.
+  Constructor normaliza códigos, comprueba coherencia actor/origen y rechaza
+  estado anterior sin nuevo o transición al mismo estado. Ambos estados
+  nulos permiten eventos exclusivamente de datos, no transiciones ficticias.
+- Accion con NotBlank/Size(50); estados con Pattern; evento sin setters,
+  columnas no actualizables y fecha del backend. Valores anteriores/nuevos
+  se conservan sin alteración. Servicios pendientes deberán definir acciones
+  permitidas, JSON seguro/estructurado, cambios efectivos, obligatoriedad de
+  motivo, único evento inicial, autorizaciones y escritura atómica.
+- No se crea otra tabla de atención ni se usa auditoría ADMIN para acciones
+  técnicas o del cliente. Crear el mapeo no genera historia automáticamente.
+  Creación/compilación/pruebas pendientes del usuario; solo lectura y
+  documentación por el asistente, sin edición Java, SQL, reinicios o Git.
+
+### Etapa 188 Historial de incidencia revisado y pruebas preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyeron completos HistorialIncidencia y su repositorio: once atributos y
+  getters, mapeos, normalización y comprobaciones del constructor coinciden
+  con las instrucciones, sin setters ni cascadas y con PK Integer correcta.
+  No se detectaron correcciones necesarias. Usuario informa compileJava
+  BUILD SUCCESSFUL, una tarea ejecutada; no se reejecuta por el asistente.
+- Se entregan instrucciones manuales de HistorialIncidenciaTest con ocho
+  casos JUnit 5/Bean Validation: evento inicial, transición humana, evento
+  de datos con origen SISTEMA y snapshots sin alterar, actor/origen inválidos,
+  incidencia ausente, estados incoherentes, códigos de estado inválidos y
+  acción ausente/vacía/demasiado larga. Límite de acción no es whitelist.
+- No se acreditan permisos ADMIN, proceso de decisión, JSON seguro, cambios
+  efectivos, primer evento único o persistencia. Los estados nulos en eventos
+  de datos y origen SISTEMA no autorizan acciones de negocio por sí solos.
+- Archivo de pruebas y ejecución pendientes del usuario. Solo lectura y
+  documentación por el asistente, sin edición Java, pruebas/compilación,
+  SQL, reinicios o escrituras Git.
+
+### Etapa 189 Treinta y una pruebas verificadas y versionado de cabecera preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó HistorialIncidenciaTest completo; coincide con las instrucciones,
+  sin correcciones. XML del 2026-11-08 a las 21:55:49: ocho pruebas de detalle,
+  siete de historial de detalle, ocho de historial de incidencia y ocho de
+  incidencia; total treinta y una, cero fallos/errores/omisiones.
+- Se releyó Alquiler completo: continúa con una bicicleta y estado enum de
+  legado, sin Version. Para comenzar la adaptación de la cabecera sin romper
+  consumidores se indican únicamente atributo Integer version con Version y
+  Column(nullable=false), y getter sin setter. No cambia estados, constructores,
+  precios, controladores o repositorios. Incorporación Java aún pendiente.
+- Version es control optimista del registro, no implementación completa de
+  concurrencia, bloqueo de reservas o validación de versión enviada por cliente.
+  No sustituye transacciones ni resuelve el cambio a cabecera/detalles. Faltan
+  estado por catálogo, fechas de reserva, snapshot de cotización, importes
+  y sustitución coordinada de los consumidores de legado.
+- Se deja compilación/regresión al usuario, sin reiniciar o modificar la base.
+  Solo lectura y documentación por el asistente, sin edición Java, ejecución
+  de pruebas, SQL o escrituras Git. No se acredita persistencia por estos XML.
+
+### Etapa 190 Versionado revisado y snapshot de cotización preparado
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó Alquiler completo: Integer version con Version/Column no nula y
+  getter, sin setter ni cambios en constructores. Ubicación correcta. Reportes
+  del 2026-11-08 a las 22:01:21: ocho de servicio anterior más treinta y una de
+  detalle/incidencia/historiales, total treinta y nueve sin fallos/errores/omisiones.
+  No prueban bloqueo optimista real o carreras en base de datos.
+- Siguiente bloque manual: cotizacionArsPorUsd, fuenteCotizacion,
+  fechaHoraAplicacionCotizacion y fechaHoraActualizacionFuente, los cuatro
+  atributos ya previstos por el DER. No se agrega una tabla o dato inventado.
+- Diseño físico indicado: DECIMAL(20,8), doce dígitos enteros y ocho decimales
+  para cotización positiva; fuente hasta 100 caracteres, no vacía si informada.
+  No se redondea automáticamente una entrada con exceso de precisión. Son
+  decisiones técnicas del mapeo, no elección de proveedor/tipo/frescura D02.
+- Se indica updatable=false para los cuatro atributos del snapshot. Durante
+  esta transición son nulos para el circuito anterior: no se atribuye una
+  cotización histórica inexistente ni se obliga a inventar datos para salvarlo.
+  El nuevo circuito deberá exigir valor/fuente/aplicación antes de persistir
+  y pagar; actualización de fuente seguirá opcional si no la informa proveedor.
+  Se deberán endurecer las restricciones de cabecera al sustituir el legado.
+- El servicio anterior aún no escribe/usa estos campos; ni el congelamiento
+  funcional ni el cálculo con cotización contratada quedan implementados por
+  agregarlos. Creación y compilación pendientes del usuario. Solo lectura y
+  documentación por el asistente, sin edición Java, pruebas, SQL, reinicios o Git.
+
+### Etapa 191 Snapshot de cotización revisado en Alquiler
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó Alquiler completo: cuatro atributos del snapshot, imports, precisión
+  DECIMAL(20,8), restricciones de cotización/fuente y updatable=false correctos.
+  Cuatro getters y cuatro setters asignan los campos correspondientes sin
+  redondear o inventar datos. Constructores y consumidores anteriores intactos;
+  Version mantiene solo getter. No se detectan correcciones Java necesarias.
+- Reportes XML del 2026-11-08 a las 22:07:44: ocho pruebas de AlquilerService,
+  ocho de AlquilerDetalle, siete de historial de detalle, ocho de incidencia
+  y ocho de su historial; treinta y nueve sin fallos/errores/omisiones.
+- Es regresión de esas suites, no prueba específica de las nuevas validaciones
+  de cotización/fuente o de inmutabilidad SQL. El snapshot todavía no se carga
+  o consume en el servicio anterior; no se afirma congelamiento funcional.
+- Solo lectura y documentación por el asistente; sin edición Java, ejecución
+  de pruebas/compilación, SQL, reinicios o escrituras Git.
+
+### Etapa 192 Pruebas específicas de cotización preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se contrastaron las anotaciones actuales y se comprobó que no existe aún
+  AlquilerCotizacionTest. Se entregan instrucciones manuales con seis casos:
+  cotizaciones válidas hasta límites físicos, cero/negativo/exceso de precisión
+  rechazados sin redondeo, fuente válida y límites, fuente vacía/excesiva,
+  conservación de los cuatro datos y compatibilidad del constructor anterior
+  sin inventar snapshot. JUnit 5 y Bean Validation, sin Spring o DB.
+- Validar propiedades de cotización/fuente no equivale a validar la nueva
+  contratación completa. La aceptación transitoria de null no modifica la
+  regla futura de snapshot obligatorio para nuevas contrataciones. No se
+  prueban cronología, proveedor/frescura, inmutabilidad SQL o cálculos.
+- Archivo y ejecución pendientes del usuario. Solo lectura y documentación,
+  sin edición Java, compilación/pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 193 Cuarenta y cinco pruebas verificadas, incluida cotización
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó completo AlquilerCotizacionTest: paquete, seis casos, preparación y
+  cierre del validador coinciden con las instrucciones, sin correcciones.
+- XML del 2026-11-08 a las 22:13:00: seis pruebas de cotización, ocho de
+  detalle, siete de su historial, ocho de historial de incidencia, ocho de
+  incidencia y ocho del servicio anterior. Total cuarenta y cinco, cero
+  fallos/errores/omisiones. El usuario informa BUILD SUCCESSFUL.
+- Se verifican restricciones individuales de cotización/fuente, getters/setters
+  y compatibilidad del constructor anterior. No se prueban persistencia,
+  congelamiento SQL, obligatoriedad del snapshot en el nuevo flujo, proveedor,
+  cronología, cálculo o concurrencia real. No se reejecutan por el asistente.
+- Solo lectura de fuentes/reportes y documentación, sin edición Java,
+  compilación/pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 194 Fechas de cabecera preparadas para implementación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- Se contrastan los cinco timestamps de ALQUILER del Mermaid y la sección de
+  cabecera del documento 28. Se entregan instrucciones para agregar creación,
+  vencimiento de reserva, cierre, cancelación y liquidación en Alquiler con
+  nombres SQL explícitos, cinco getters y cinco setters.
+- Creación/vencimiento se indican no actualizables tras INSERT; sin valores
+  automáticos en atributos o constructores de legado. El servicio nuevo deberá
+  fijarlos al confirmar, desde el mismo instante base y sumando quince minutos
+  originales, no al abrir carrito ni después de cada intento de pago.
+- Durante la transición se permite null para no romper o reinterpretar fechas
+  de contratos de legado. En el nuevo circuito creación/vencimiento serán
+  obligatorios. Cierre/cancelación/liquidación son opcionales según fase y se
+  asignarán por operaciones autorizadas, no campos libres del frontend.
+- No se eliminan fechaInicio/fechaFin aún usadas por consumidores anteriores;
+  no equivalen automáticamente a creación/cierre del nuevo grupo. Liquidación
+  fija costo conjunto; no significa que se haya cobrado o reembolsado el saldo.
+- No se proponen tests dedicados a repetir getters sin nuevas restricciones;
+  cronología/plazo/transiciones se probarán con el servicio. Se deja compilación
+  y regresión existente al usuario. Atributos todavía no agregados/verificados.
+  Solo lectura e instrucciones/documentación por el asistente, sin cambios Java,
+  pruebas/compilación, SQL, reinicios o escrituras Git.
+
+### Etapa 195 Cinco fechas de cabecera revisadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó Alquiler completo. Los cinco atributos de fechas se agregaron antes
+  de los constructores, con nombres SQL correctos; creación y vencimiento
+  conservan updatable=false. No tienen inicializaciones automáticas ni se
+  modificaron los constructores anteriores. Cinco getters y cinco setters
+  completos y con asignaciones correctas. Sin correcciones Java necesarias.
+- Version sigue sin setter y los campos de cotización se conservan. No se
+  eliminaron las fechas de legado todavía consumidas por el código anterior.
+- XML del 2026-11-08 a las 22:28:21: seis pruebas de cotización, ocho de
+  detalle, siete de su historial, ocho de historial de incidencia, ocho de
+  incidencia y ocho del servicio anterior: cuarenta y cinco sin fallos/errores/
+  omisiones. No prueban cronología, reserva o escritura de fechas del nuevo
+  circuito; solo regresión de las suites ejecutadas por el usuario.
+- Solo lectura y documentación, sin edición Java, reejecución de pruebas,
+  compilación, SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 196 Importes de cabecera preparados para creación manual
+
+Fecha: 8 de noviembre de 2026.
+
+- Se contrastó la cabecera del DER y el documento 28. Se indican cuatro
+  atributos BigDecimal: costoEstimadoUsd/Ars y costoFinalUsd/Ars, con columnas
+  explícitas del DER y cuatro pares getter/setter. No se modifican aún costoTotal
+  ni costoTotalArs usados por el servicio anterior; su sustitución se hará al
+  migrar consumidores, sin sincronizaciones ficticias o dobles cobros.
+- Importes no negativos, hasta dos decimales, DECIMAL(21,2)/Digits(19,2).
+  Una cifra entera adicional frente al subtotal DECIMAL(20,2) permite sumar
+  diez valores máximos de detalle sin desbordar ese total. Es capacidad física,
+  no precio comercial autorizado ni reemplazo de validaciones de cálculo.
+- Estimados con updatable=false: representan estimación inicial contratada.
+  Finales actualizables por el servicio al liquidar, inicialmente null. No
+  inicializar a cero ni agregarlos a constructores anteriores: desconocido
+  no equivale a gratuito. Los cuatro admiten null durante la transición;
+  el nuevo flujo deberá exigir estimados antes de confirmar y finales solo
+  al liquidar. Las sumas serán calculadas en backend desde los detalles.
+- Solo instrucciones y documentación por el asistente, sin edición Java,
+  compilación/pruebas, SQL, reinicios o escrituras Git. Creación, métodos y
+  comprobación pendientes del usuario; no se acredita cálculo económico.
+
+### Etapa 197 Importes revisados y pruebas específicas preparadas
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó Alquiler completo. Los cuatro campos de importe, import PositiveOrZero,
+  nombres SQL, DECIMAL(21,2), Digits(19,2) y cuatro pares getter/setter están
+  correctos. Estimados no actualizables, finales disponibles para completar al
+  liquidar; sin inicialización a cero ni cambios en constructores anteriores.
+  No se detectaron correcciones Java necesarias.
+- XML timestamp 2026-11-09T02:01:56Z (8 de noviembre local): seis de cotización,
+  ocho de detalle, siete de historial de detalle, ocho de historial de incidencia,
+  ocho de incidencia y ocho de AlquilerService, total cuarenta y cinco sin
+  fallos/errores/omisiones. No se reejecutan por el asistente.
+- Se entregan instrucciones manuales de AlquilerImportesTest, tres casos con
+  varias entradas y comprobación de las cuatro propiedades: válidos incluyendo
+  cero/límite, inválidos negativos/escala/capacidad sin redondeo, y null inicial
+  sin importes inventados. Esta última condición es transitoria para legado.
+  No se prueban sumas, cobros, redondeo del cálculo, persistencia o inmutabilidad.
+- Archivo y ejecución pendientes del usuario; solo lectura y documentación
+  por el asistente, sin edición Java, compilación/pruebas, SQL, reinicios o Git.
+
+### Etapa 198 Cuarenta y ocho pruebas verificadas, incluidos importes
+
+Fecha: 8 de noviembre de 2026.
+
+- Se leyó completo AlquilerImportesTest: paquete, tres casos, helpers y
+  preparación/cierre del validador correctos, sin modificaciones necesarias.
+- XML del 2026-11-09T02:04:37Z (8 de noviembre local): tres pruebas de
+  importes, seis de cotización, ocho de detalle, siete de historial de detalle,
+  ocho de historial de incidencia, ocho de incidencia y ocho del servicio
+  anterior. Total cuarenta y ocho, sin fallos/errores/omisiones.
+- Se comprueban restricciones individuales y conservación de valores, no
+  sumas, redondeo del cálculo, cobros, SQL o congelamiento funcional. El nuevo
+  flujo de cabecera/detalles todavía no sustituye al circuito anterior.
+- Solo lectura de fuentes/reportes y documentación por el asistente, sin
+  edición Java, reejecución de pruebas/compilación, SQL, reinicios o Git.
+
+### Etapa 199 Relación de cabecera con EstadoAlquiler preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisaron catálogo/repositorio de EstadoAlquiler, enum de legado,
+  AlquilerRepository, usos de estado en servicio/DTO y Alquiler. Hay consultas
+  JPQL a a.estado y comparaciones con INICIADO que impiden reemplazar el tipo
+  del atributo sin migrar consumidores. RECHAZADO no tiene equivalencia
+  automática aprobada en los cinco estados nuevos.
+- Se entregan instrucciones manuales para agregar estadoContratacion como
+  ManyToOne LAZY a EstadoAlquiler, columna estado_alquiler_id, con getter y
+  setter propios. Nombre Java distinto para no colisionar con estado enum;
+  no es otro catálogo o estado nuevo del DER. La FK admite null únicamente
+  durante compatibilidad con el circuito anterior. Nueva contratación deberá
+  obtener un catálogo persistido por código, no new EstadoAlquiler con ID falso.
+- Se conservan temporalmente estado/getEstado/setEstado y enum anteriores.
+  No se agregan sincronizaciones entre ambos ni conversiones automáticas
+  de contratos antiguos. La relación nueva todavía no es usada por servicio
+  o DTO. No se considera sustituido el enum o habilitado el nuevo flujo.
+- La migración debe retirar columna enum y sus consumidores, hacer obligatoria
+  la FK para el circuito nuevo y adaptar consultas por detalles/snapshots.
+  No se propone prueba de reflexión para un getter: regresión actual y
+  pruebas reales de persistencia/servicio en su etapa correspondiente.
+- Solo lectura y documentación por el asistente. Creación y comprobación
+  pendientes del usuario, sin edición Java, pruebas/compilación, SQL,
+  reinicios o escrituras Git por el asistente.
+
+### Etapa 200 Estado de cabecera revisado y calculadora preparada
+
+Fecha: 8 de noviembre de 2026.
+
+- Se revisaron atributo estadoContratacion, ManyToOne LAZY, JoinColumn
+  estado_alquiler_id y sus getter/setter: correctos, sin cambios necesarios.
+  Enum y consumidores de legado siguen separados, sin sincronización nueva.
+- XML del 2026-11-09T02:22:48/49Z (8 de noviembre local): cuarenta y ocho
+  pruebas en siete suites, cero fallos/errores/omisiones. Son regresión y
+  validaciones individuales; no acreditan FK o estado usado por el servicio.
+- Se releyó RN-ALQ-10 y se preparan instrucciones manuales de CalculadoraAlquiler
+  en services, componente sin DB, HTTP o efectos laterales. Métodos para
+  segundos completos del intervalo y subtotales USD/ARS independientes mediante
+  multiplicación exacta previa a división, escala dos y HALF_UP final.
+- Fechas no nulas y fin no anterior al retiro; no truncar ambas fechas antes
+  de restar. Duración cero da cero. Tarifa mínima 0.01 coherente con el catálogo,
+  cotización positiva; no consultar cotización actual ni usar reloj del cliente.
+  El componente recibe snapshots; existencia, precisión física de entradas,
+  permisos, corte validado e integración siguen a cargo del nuevo servicio.
+- No calcula todavía anticipos/saldos, no cobra, no suma varias líneas ni
+  modifica el servicio anterior. Fuente de tiempo/zona horaria de los datos
+  debe ser coherente en la integración; LocalDateTime no resuelve zonas por sí
+  solo. Creación/compilación/pruebas de calculadora pendientes del usuario.
+- Solo lectura y documentación por el asistente, sin edición Java,
+  compilación/pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 201 Calculadora revisada; ubicación física pendiente de corregir
+
+Fecha: 9 de noviembre de 2026.
+
+- La búsqueda de archivo esperado en services no lo encuentra. rg localiza
+  una única CalculadoraAlquiler.java dentro de models, pero su declaración
+  package es DSII.TurismoSustentable.services. Se leyó completa: código,
+  validaciones, fórmula, precisión final y componente coinciden con el bloque
+  indicado; no se necesitan cambios de lógica.
+- El usuario informa compileJava BUILD SUCCESSFUL. Esto no acredita la
+  coherencia de ubicación física/package: Gradle puede compilar un archivo
+  encontrado en el árbol de fuentes aunque esté en otra carpeta de paquete.
+- Se indica mover el archivo existente de models a services conservando el
+  package declarado y sin crear una copia. Pruebas numéricas quedan para
+  después de verificar ese traslado. No se modificó o movió Java por el asistente.
+- Solo lectura y documentación, sin compilación/pruebas, SQL, reinicios o
+  escrituras Git por el asistente. Reubicación y comprobación pendientes del usuario.
+
+### Etapa 202 Ubicación de calculadora corregida y verificada
+
+Fecha: 9 de noviembre de 2026.
+
+- rg localiza una única CalculadoraAlquiler.java dentro de services. Test-Path
+  confirma que ya no existe en models. Se releyó el archivo completo: package
+  services correcto y código conservado sin correcciones necesarias.
+- Queda resuelto el pendiente de ubicación, sin duplicados de fuente. El usuario
+  no aportó una nueva salida de compilación en este mensaje; no se afirma su
+  reejecución. Pruebas numéricas específicas todavía pendientes.
+- Solo lectura y documentación por el asistente, sin mover/editar Java,
+  compilación/pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 203 Pruebas numéricas de calculadora preparadas
+
+Fecha: 9 de noviembre de 2026.
+
+- Se relee CalculadoraAlquiler y se comprueba que aún no existe su test.
+  Se entregan instrucciones manuales de CalculadoraAlquilerTest en services
+  de test, diez casos JUnit 5 sin Spring, mocks o base de datos.
+- Casos: 45 minutos; tres horas sin multa; intervalo con nanos y cruce de
+  segundo (2723.999 segundos a tarifa 9, USD 6.81/ARS 6807.50); USD redondeado
+  cero pero ARS 0.28; HALF_UP por línea (ARS 1.01 + 2.01 = 3.02); cero uso;
+  fechas ausentes/invertidas; segundos negativos; tarifa inválida; cotización
+  inválida. Son las reglas de RN-ALQ-10, no nuevas reglas de cobro.
+- La suma de dos líneas se hace explícitamente en el test: no acredita un
+  método de totalización o liquidación de cabecera aún inexistente. Tampoco
+  se prueban snapshots recuperados de DB, fuente temporal/zona, incidencia
+  validada, permisos o pago. Componentes todavía sin conectar al servicio.
+- Archivo y ejecución pendientes del usuario; conjunto previsto de cincuenta
+  y ocho pruebas incluyendo las cuarenta y ocho anteriores. Solo lectura y
+  documentación por el asistente, sin edición Java, compilación/pruebas,
+  SQL, reinicios o escrituras Git.
+
+### Etapa 204 Fallo de compilación de test: clase compilada ausente
+
+Fecha: 9 de noviembre de 2026.
+
+- Usuario informa compileTestJava FAILED por símbolo CalculadoraAlquiler no
+  encontrado. Las pruebas no llegan a ejecutarse; no hay resultado de las
+  cincuenta y ocho previstas que pueda darse por aprobado.
+- Se verifican rutas y encabezados: calculadora en main/services y test en
+  test/services, ambos con package DSII.TurismoSustentable.services. Clase
+  principal pública, sin necesidad de import por compartir paquete. build.gradle
+  tiene source sets Java estándar, sin exclusiones personalizadas.
+- rg sobre build/classes no encuentra CalculadoraAlquiler.class; otras clases
+  main/services sí están presentes. Fuente presente y salida compilada ausente
+  son compatibles con resultados incrementales desfasados tras el traslado;
+  causa exacta pendiente de comprobar mediante reconstrucción, no se afirma
+  un defecto demostrado de Gradle o del código fuente.
+- Se indica al usuario clean test con los ocho filtros para reconstruir las
+  salidas generadas sin modificar Java/configuración o DB. El asistente no
+  ejecuta clean, compilación o pruebas ni borra archivos. Solo lectura y
+  documentación, sin SQL, reinicios o escrituras Git.
+
+### Etapa 205 Reconstrucción correcta y cincuenta y ocho pruebas verificadas
+
+Fecha: 9 de noviembre de 2026.
+
+- El usuario ejecutó clean test con ocho filtros: BUILD SUCCESSFUL, cinco
+  tareas ejecutadas. Se verifica existencia de la clase main compilada
+  CalculadoraAlquiler.class antes ausente. Resuelto el fallo de compilación
+  mediante reconstrucción sin modificar fuentes/configuración por el asistente.
+- Se leyó CalculadoraAlquilerTest completo: paquete, diez casos y helper
+  decimal correctos, sin correcciones necesarias. XML del 2026-11-09 a las
+  03:50:19Z: diez pruebas de calculadora más cuarenta y ocho de las siete
+  suites anteriores; cincuenta y ocho sin fallos/errores/omisiones.
+- Verificados casos numéricos preparados de RN-ALQ-10 en memoria. No se
+  acreditan cotización congelada recuperada de DB, totalización implementada
+  en cabecera, permisos, pagos, zona horaria o integración del nuevo flujo.
+- Solo lectura de fuentes/reportes y actualización documental por el asistente,
+  sin ejecutar pruebas/compilación, editar Java, SQL, reiniciar o escribir Git.
+
+### Etapa 206 Integración de contratación revisada; decisión D02 pendiente
+
+Fecha: 9 de noviembre de 2026.
+
+- Se revisaron creación actual de AlquilerService, consultas y bloqueos de
+  bicicleta/estación/usuario, CrearAlquilerDTO, perfil refactor y pendientes D02.
+  Crear el servicio nuevo requiere una cotización real definida para el snapshot;
+  no se entregan clases vacías ni se marca contratada una cabecera incompleta.
+- obtenerCotizacionDolar del servicio anterior consulta la URL DolarAPI
+  /v1/dolares/tarjeta, lee venta y devuelve 1400 si falla. Esto es observación
+  del código, no verificación del proveedor en línea o aprobación del tipo
+  de dólar como política del nuevo circuito.
+- Se solicita confirmar si se conserva esa fuente/tipo/valor de venta en el
+  circuito nuevo, eliminando su respaldo fijo: ante consulta inválida o fallo,
+  no confirmar ni persistir reserva parcial, informar indisponibilidad y permitir
+  reintentar sin modificar datos. Propuesta pendiente de aprobación, no implementada.
+  No se cambia todavía el método anterior o se inventa otra cotización.
+- Cotización/fuente/aplicación y actualización informada seguirán almacenadas
+  conforme al snapshot aprobado. D02 de antigüedad máxima/frescura y condiciones
+  operativas del proveedor no se considera cerrado por esta pregunta.
+- Solo lectura y documentación; sin edición Java, pruebas/compilación,
+  consultas externas, SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 207 Referencia de cotización aprobada y resultado interno preparado
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario confirma expresamente conservar la referencia de dólar y eliminar
+  respaldo fijo en el nuevo flujo. Quedan aprobados DolarAPI tarjeta/venta y
+  no confirmar ni dejar reservas parciales si la respuesta/consulta falla;
+  permitir reintento. El método anterior sigue sin modificar. No se interpreta
+  como aprobación de una antigüedad máxima o modificación de pagos.
+- Se consultó documentación primaria DolarAPI, no cotización en vivo:
+  https://dolarapi.com/docs/argentina/operations/get-dolar-tarjeta
+  Documenta GET /v1/dolares/tarjeta y campos venta, casa, moneda,
+  fechaActualizacion. No se verifican disponibilidad, dato de hoy o garantías.
+- Se preparan instrucciones manuales de CotizacionDolarDTO, resultado interno
+  inmutable de la consulta futura: BigDecimal cotizacionArsPorUsd, String fuente
+  y OffsetDateTime fechaActualizacionFuente opcional. No es entidad/tabla ni
+  cuerpo recibido del cliente o deserialización directa del JSON de DolarAPI.
+- Constructor comprueba valor positivo compatible con DECIMAL(20,8), sin
+  redondear, fuente no vacía de hasta 100 caracteres tras trim. OffsetDateTime
+  conserva el desplazamiento de la fecha informada; conversión al esquema
+  temporal de persistencia queda para la integración. No se inventa fecha de
+  actualización o aplicación; esta última la registra el servicio al confirmar.
+- DTO todavía no creado/compilado/probado. Servicio HTTP con timeouts, mapeo,
+  control de error, antigüedad y conexión transaccional pendientes. No se da
+  por implementado el rechazo atómico por aprobar la regla o preparar el DTO.
+- Solo lectura, consulta de documentación pública y edición Markdown por el
+  asistente, sin edición Java, pruebas/compilación, SQL, reinicios o Git.
+
+### Etapa 208 DTO revisado y cliente HTTP de cotización preparado
+
+Fecha: 10 de noviembre de 2026.
+
+- Se leyó CotizacionDolarDTO completo: tres atributos finales, constructor,
+  validación positiva/precisión/fuente y getters coinciden, sin cambios necesarios.
+  Usuario informa compileJava BUILD SUCCESSFUL; no se ejecuta por el asistente.
+- Se inspeccionaron GlobalExceptionHandler, dependencias y catches del controlador
+  anterior. Se entregan instrucciones de CotizacionNoDisponibleException,
+  CotizacionDolarService y handler específico 503, sin editar el controlador o
+  método de cotización antiguo. Su catch genérico deberá adaptarse al integrar
+  el nuevo circuito para no convertir esta indisponibilidad en 400.
+- Cliente por constructor con RestTemplateBuilder/ObjectMapper de Spring Boot:
+  conexión 3 s y lectura 5 s, sin retry automático, caché local ni respaldo fijo.
+  GET del endpoint aprobado, cuerpo String y árbol JSON con decimales BigDecimal
+  para evitar conversión intermedia a double. Se comprueban objeto, moneda USD,
+  casa tarjeta, venta numérica y DTO; fecha con offset opcional solo si ausente
+  o null. Si informada pero vacía, malformada o de tipo incorrecto se rechaza.
+- Se consultó respuesta pública del endpoint para contrastar campos y formato
+  de fecha con Z; no se afirma disponibilidad en vivo o frescura por ese resultado
+  del buscador. No se trasladan valores monetarios de la consulta al proyecto.
+  https://dolarapi.com/v1/dolares/tarjeta
+- Errores HTTP/transporte, JSON y datos inválidos se envuelven en excepción
+  específica; mensaje genérico al visitante y detalle solo en log del handler.
+  Servicio sin escrituras DB/transacción; no implementa por sí solo la ausencia
+  de reserva parcial, que debe asegurar el nuevo servicio transaccional.
+- Antigüedad máxima y uso de fechas al guardar siguen pendientes antes de activar
+  contratación. No se conecta el nuevo cliente al servicio/endpoint anterior.
+  Código y handler aún por crear/comprobar manualmente, sin pruebas o llamada
+  desde Java. Solo lectura, consulta pública y documentación por el asistente;
+  sin edición Java, compilación/pruebas, SQL, reinicios o escrituras Git.
+
+### Etapa 209 Cliente y manejo de error revisados; pruebas simuladas preparadas
+
+Fecha: 10 de noviembre de 2026.
+
+- Se leyeron completos CotizacionDolarService, CotizacionNoDisponibleException
+  y GlobalExceptionHandler. Constructor, timeouts, decimales, validación de
+  respuesta/fecha, excepción envuelta y handler 503 coinciden con el bloque,
+  sin correcciones necesarias. Métodos previos del handler conservados.
+  Usuario informa compileJava BUILD SUCCESSFUL; asistente no lo reejecuta.
+- Se entregan instrucciones manuales de CotizacionDolarServiceTest con diez
+  casos JUnit 5/Mockito: respuesta válida y offset conservado, actualización
+  ausente/null, cuerpo inválido/vacío, moneda/casa incorrectas, venta inválida,
+  fecha informada inválida, error HTTP, error de transporte, fallo después de
+  éxito sin reutilizar valor anterior, y configuración de timeouts.
+- RestTemplate/Builder simulados con ObjectMapper real. No se realizan
+  conexiones externas ni se mide espera real; verificar timeout prueba su
+  configuración, no su efectividad de red. No se prueban status HTTP del
+  controller, rollback, DB, antigüedad o estado de contratación.
+- Archivo y ejecución pendientes del usuario; total previsto sesenta y ocho
+  pruebas con las cincuenta y ocho previas. Solo lectura y documentación por
+  el asistente, sin edición Java, ejecución de compilación/pruebas, consultas
+  externas, SQL, reinicios o escrituras Git.
+
+### Etapa 210 Sesenta y ocho pruebas verificadas; propuesta de frescura pendiente
+
+Fecha: 10 de noviembre de 2026.
+
+- Se leyó CotizacionDolarServiceTest completo, coincidente con las instrucciones,
+  sin correcciones. XML del 2026-11-10T17:12:06/07Z: diez casos de cotización
+  más cincuenta y ocho anteriores, nueve suites, sesenta y ocho pruebas con
+  cero fallos/errores/omisiones. Usuario informa BUILD SUCCESSFUL.
+- Resultado limitado a mocks/validaciones/cálculos preparados: no acredita
+  disponibilidad actual de la API, tiempo de espera real, status del endpoint,
+  transacciones o bloqueo de reserva. No se reejecuta por el asistente.
+- Antes de activar contratación se solicita cerrar D02 de frescura. Propuesta
+  para aprobación, no implementada: consultar en cada confirmación sin reutilizar
+  valor anterior; si existe fecha, aceptar hasta siete días de antigüedad
+  configurable y tolerar como máximo cinco minutos futuros por desfase de reloj.
+  Fuera de esas condiciones, misma indisponibilidad sin reserva parcial.
+  Siete días se propone como política provisional del proyecto, no garantía
+  de corrección comercial ni frecuencia de actualización del proveedor.
+- Si actualización no es informada se mantiene null según criterio anterior;
+  no se inventa ni se afirma haber comprobado antigüedad. No se extiende el
+  límite al reloj de la reserva de quince minutos o a la duración del viaje.
+- Propuesta pendiente de confirmación del usuario. Solo lectura y documentación,
+  sin edición Java, ejecución de compilación/pruebas, consultas externas,
+  SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 211 Límites de frescura aprobados e instrucciones preparadas
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario aprueba los límites de la etapa 210: antigüedad máxima siete
+  días configurable, futuro hasta cinco minutos, consultar en cada contratación
+  sin reutilización; si no hay fecha se conserva null. D02 se actualiza como
+  decisión aprobada, no como integración funcional completada.
+- Se comprueba que no hay Clock bean o consumidores adicionales del constructor
+  salvo CotizacionDolarServiceTest. Se entregan instrucciones manuales de
+  TiempoConfig con Clock.systemUTC, inyección en CotizacionDolarService y
+  propiedad cotizacion.max-antiguedad-dias (default 7, configuración positiva).
+- Comparación por Instant usando una única lectura del reloj por validación:
+  antes de ahora menos duración máxima o después de ahora más cinco minutos
+  se rechaza. Exactamente siete días y cinco minutos futuros se aceptan.
+  Fechas nulas no se inventan; excepciones temporales de datos siguen el
+  envoltorio CotizacionNoDisponibleException existente.
+- Se indica adaptar el constructor del test para Clock.fixed con instante
+  2026-11-10T12:05:00Z y valor 7: pruebas independientes del día de ejecución.
+  Se conserva el resto de los diez casos; los casos específicos de límites
+  temporales se agregarán tras verificar este bloque.
+- TiempoConfig no cambia el reloj del sistema ni fechas de servicios anteriores.
+  Solo el consumidor nuevo usa ese reloj. No hay conexión a contratación o
+  reserva transaccional aún. Código/configuración/test pendientes del usuario;
+  solo lectura y documentación por el asistente, sin edición Java/properties,
+  compilación/pruebas, consultas externas, SQL, reinicios o escrituras Git.
+
+### Etapa 212 Implementación autorizada de reloj y límites de frescura
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario autoriza implementar únicamente el bloque de la etapa 211 y
+  reserva para sí el paso cinco de guardar/comprobar. Se preserva el árbol
+  previamente modificado y su staging; no hay cambios de Git por el asistente.
+- Creado TiempoConfig en configurations con bean relojAplicacion Clock.systemUTC.
+  CotizacionDolarService recibe Clock y parámetro positivo maxAntiguedadDias
+  con Value/default siete; conserva cliente HTTP, timeouts, parsing decimal,
+  mensaje/excepción y contrato de respuesta anteriores.
+- Agregada validación antes de construir el DTO: lectura única de Instant del
+  reloj, comparación con siete días configurables y cinco minutos futuros,
+  límites inclusivos. Fecha null mantiene el comportamiento aprobado. El
+  rechazo se envuelve por el catch existente como CotizacionNoDisponibleException.
+- application-refactor.properties incorpora cotizacion.max-antiguedad-dias=7
+  sin cambios de conexión, DDL o inicialización SQL. Test existente adaptado
+  al constructor de cuatro argumentos y Clock.fixed en 2026-11-10T12:05:00Z,
+  conservando sus diez casos sin agregar pruebas de límites en este bloque.
+- Se releyeron archivos y referencias del constructor; git diff --check
+  sobre los cuatro archivos no informa errores. Es revisión estática, no
+  compilación, arranque Spring o prueba del comportamiento temporal.
+- Paso cinco pendiente del usuario; se esperan las mismas sesenta y ocho
+  pruebas de regresión. Casos específicos de bordes/frescura pendientes del
+  siguiente bloque. Sin ejecución de Gradle, HTTP, SQL, reinicios o Git.
+  Documentación actualizada; servicios/controladores anteriores intactos.
+
+### Etapa 213 Regresión con reloj fijo y validación temporal verificada
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario ejecuta el paso cinco con BUILD SUCCESSFUL, cuatro tareas ejecutadas.
+  Reportes XML del 2026-11-10T17:41:23/24Z: nueve suites, sesenta y ocho
+  pruebas, cero fallos/errores/omisiones. Diez casos del cliente de cotización
+  pasan con su constructor actualizado y Clock.fixed.
+- Es regresión de los casos existentes; todavía no comprueba los valores
+  exactos de borde siete días/cinco minutos ni configuración diferente.
+  Persistencia, arranque/wiring Spring, API real y contratación pendientes.
+- Solo lectura de reportes y actualización documental por el asistente,
+  sin editar Java, reejecutar compilación/pruebas, HTTP, SQL, reinicios o Git.
+
+### Etapa 214 Tres pruebas temporales preparadas sin ampliar código productivo
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario pide continuar sin inflar código y consulta utilidad real. Se
+  precisa que la regla protege el nuevo servicio de cotización; el endpoint
+  anterior aún no lo utiliza y no se da por protegido por esta implementación.
+- Se entregan instrucciones manuales para agregar solo tres métodos al test
+  existente: aceptar ambos límites exactos, rechazar un nanosegundo fuera de
+  cada extremo y comprobar que con máximo configurable un día se rechaza
+  una fecha de dos días que el servicio configurado en siete sí acepta.
+- Se reutilizan AHORA, builder, mocks y helper respuesta existentes, sin nuevas
+  clases, dependencias, métodos de producción o consultas externas. No se
+  generan tests de getters o repeticiones de los diez casos previos.
+- Tres casos aún no creados/ejecutados; total previsto setenta y uno. Si pasan,
+  se cierra este bloque de frescura en su alcance unitario y se continúa con
+  contratación/integración, no se acredita funcionamiento extremo a extremo.
+- Solo lectura y documentación por el asistente, sin edición Java,
+  compilación/pruebas, HTTP, SQL, reinicios o escrituras Git.
+
+### Etapa 215 Setenta y una pruebas verificadas y compatibilidad de cabecera preparada
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisaron los tres métodos nuevos del test: límites inclusivos, rechazo
+  un nanosegundo fuera y cambio de configuración de siete a un día correctos.
+  XML del 2026-11-10T17:44:58/59Z: trece casos de cotización más cincuenta y
+  ocho anteriores, setenta y uno sin fallos/errores/omisiones. Se cierra este
+  bloque de frescura en su alcance unitario, sin acreditar integración real.
+- Se leyó inicio de Alquiler: bicicleta_id todavía nullable=false y fechaInicio
+  con NotNull. Ambas restricciones del modelo anterior impiden persistir una
+  cabecera de reserva sin unidad/retirada ficticias. Se entregan instrucciones
+  manuales para permitir null en esa FK de legado y retirar únicamente el
+  NotNull de fechaInicio; no eliminar atributos, constructores o consumidores.
+- Una cabecera nueva no almacena una bicicleta elegida arbitrariamente ni un
+  retiro anticipado; unidades y retiros reales están en sus detalles. El
+  servicio anterior sigue asignando bicicleta/fechaInicio por su código; el
+  nuevo servicio deberá asegurar composición, obligatorios y cronología.
+  No se da por validada una cabecera vacía por relajar estos dos atributos.
+- Son cambios transitorios del mapeo, no migración SQL aplicada. Tablas de una
+  aplicación ya arrancada pueden conservar restricciones anteriores; se
+  verificarán al integrar persistencia sin ejecutar drop/reinicio ahora.
+- Cambios Java/comprobación pendientes del usuario. Solo lectura y documentación
+  por el asistente, sin edición Java, compilación/pruebas, SQL, HTTP, reinicios o Git.
+
+### Etapa 216 Cabecera compatible revisada y preparación mínima de reserva
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisó Alquiler: bicicleta_id sin nullable=false, fechaInicio sin NotNull,
+  atributos conservados y NotNull de estación de retiro intacto. Coincide con
+  las instrucciones, sin correcciones. XML del 2026-11-10T17:52:41/42Z:
+  setenta y una pruebas, cero fallos/errores/omisiones; no se reejecutan.
+- Se revisaron UsuarioRepository y métodos de Usuario para preparar reserva.
+  Se indica agregar buscarActivoPorEmailConBloqueo con PESSIMISTIC_WRITE sobre
+  el usuario activo, parámetro email y Optional<Usuario>. Query/Param/Optional
+  ya importados; solo agregar Lock y LockModeType. No EntityGraph o clases extra.
+- El servicio nuevo deberá tomar email de autenticación, no del DTO del cliente,
+  y llamar la consulta dentro de transacción. El bloqueo permite serializar
+  operaciones del mismo usuario que sigan este protocolo; no implementa por
+  sí mismo deuda, límites acumulados o exclusión de otros dispositivos.
+- Se indica propiedad alquiler.max-bicicletas-por-contratacion=10 en refactor,
+  conforme al máximo inicial configurable aprobado, sin imponer límite rígido
+  al DTO o la antigua duración de 24 h. Servicio consumidor aún pendiente.
+- Código/configuración y comprobación pendientes del usuario. No se agregan
+  pruebas de getters/reflexión o clases provisionales; compilación/regresión
+  no acreditarán ejecución SQL del bloqueo. Sin edición Java/properties,
+  pruebas/compilación, SQL, HTTP, reinicios o Git por el asistente.
+
+### Etapa 217 Preparación de reserva revisada y checkpoint solicitado
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisó UsuarioRepository: imports Lock/LockModeType correctos y consulta
+  buscarActivoPorEmailConBloqueo con filtro de activo, parámetro y Optional
+  correctos. Propiedad alquiler.max-bicicletas-por-contratacion=10 presente una
+  vez en refactor, sin alterar conexión/DDL. Sin correcciones necesarias.
+- XML del 2026-11-10T18:43:44/45Z: nueve suites, setenta y una pruebas sin
+  fallos/errores/omisiones. No acredita SQL del nuevo bloqueo ni reservas reales.
+- Último commit observado 94306f0, rama codex/refactorizacion-practicas-iii;
+  múltiples avances de este módulo aún sin commit, varios AM y TiempoConfig
+  sin seguimiento. Se solicita checkpoint manual antes del bloque de creación
+  transaccional: add, revisión de stat, commit y push, sin cambiar de rama.
+  No se afirma igualdad actual con GitHub; solo referencia remota local observada.
+- El siguiente bloque funcional previsto es crear reserva de cabecera/detalles
+  usando cotización y calculadora ya existentes, conservando ubicación física
+  de bicicletas RESERVADA hasta retiro, con historia y atomicidad. No se crean
+  más auxiliares por este checkpoint ni se da por activado el nuevo endpoint.
+- Solo lectura y documentación por el asistente. Sin edición Java,
+  compilación/pruebas, SQL, HTTP, reinicios o escrituras Git. Checkpoint
+  pendiente del usuario, no ejecutado por el asistente.
