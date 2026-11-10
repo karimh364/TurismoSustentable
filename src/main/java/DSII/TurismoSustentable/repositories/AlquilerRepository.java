@@ -4,6 +4,9 @@ import DSII.TurismoSustentable.models.Alquiler;
 import DSII.TurismoSustentable.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.repository.query.Param;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -46,4 +49,20 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
     // MÉTODOS DE BÚSQUEDA PERSONALIZADOS
     List<Alquiler> findByBorradoAlquilerFalse();
     List<Alquiler> findByUsuarioAndBorradoAlquilerFalse(Usuario usuario);
+
+    @EntityGraph(attributePaths = {
+            "usuario",
+            "estadoContratacion",
+            "ubicacionRetiro"
+    })
+    @Query(
+            "select a from Alquiler a "
+                    + "where a.id = :id "
+                    + "and a.borradoAlquiler = false "
+                    + "and a.estadoContratacion is not null"
+    )
+    Optional<Alquiler> buscarAlquilerVisiblePorId(
+            @Param("id") Integer id
+    );
+
 }

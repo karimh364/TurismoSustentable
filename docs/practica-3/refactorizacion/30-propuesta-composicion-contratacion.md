@@ -9,6 +9,17 @@ todas las bicicletas de una contratación, conservada como snapshot en cada
 detalle. No se modifican campos, claves o relaciones del DER vigente de
 29 entidades/55 relaciones. La regla todavía no se implementó ni probó.
 
+Aclaración de permisos indicada por el usuario el 10 de noviembre de 2026:
+contratar exige cuenta activa con rol CLIENTE. ADMIN o TECNICO por sí solos
+no conceden ese permiso. En cuentas con varios roles, el permiso de contratar
+proviene de CLIENTE, no de ADMIN. La gestión administrativa de alquileres es
+una operación distinta. No requiere modificar entidades o relaciones del DER;
+debe aplicarse en autorización HTTP, método de servicio y rol persistido.
+Actualización de implementación, etapa 224 del documento 37: la creación del
+circuito anterior ya exige CLIENTE en HTTP/servicio y conserva 403; pruebas
+filtradas correctas. La nueva reserva y su integración todavía están pendientes,
+sin darse por implementadas por esta precisión documental.
+
 El DER lógico de trabajo tiene 28 entidades y 52 FK/relaciones. Su estructura principal está definida, pero todavía hay decisiones capaces de cambiar campos o relaciones. RN-PAG-05 ya excluyó los medios de pago guardados locales de esta versión; las asociaciones históricas y correlaciones de integración pendientes todavía requieren revisión antes de considerar definitivo el modelo.
 
 ## 1. Qué falta cerrar

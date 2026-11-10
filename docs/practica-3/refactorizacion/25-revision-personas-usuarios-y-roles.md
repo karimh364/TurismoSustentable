@@ -85,6 +85,34 @@ No se agrega un booleano de deuda o permiso de alquiler en USUARIO. La deuda y d
 
 Se conserva el catálogo del DER y los tres roles del diccionario; no se agrega otra columna rol en USUARIO. Sus permisos son los de las reglas aprobadas: el nombre del rol no concede excepciones adicionales. En particular, ADMIN no sustituye TECNICO ni la asignación a una orden para ejecutar trabajo técnico, según [RN-MAN-02](17-permisos-y-transiciones-mantenimiento.md).
 
+### 4.1. Consolidación de alcance por rol
+
+Revisión del 10 de noviembre de 2026, a raíz de la autorización incorrecta
+detectada en contratación. Resume reglas ya distribuidas en los documentos
+08, 17, 20, 21 y 30; no acredita su implementación ni concede privilegios nuevos.
+
+| Rol | Alcance aprobado | Límites |
+| --- | --- | --- |
+| CLIENTE | Contratar, pagar/reintentar por el circuito autorizado, retirar, devolver y consultar sus alquileres; cancelar unidades no retiradas cuando corresponde y reportar fallas/incidencias propias | Exige cuenta activa, propiedad del recurso y requisitos de cada operación; no administra inventario/usuarios, decide incidencias ni cambia precios, cotizaciones o estados libremente |
+| ADMIN | Gestión autorizada de usuarios/roles, estaciones, inventario/tarifas y consultas administrativas; cancelación operativa de reservas e intervención en incidencias con motivo; crear/asignar/cancelar órdenes y autorizar vuelta al servicio con conformidad técnica | No contrata por ser ADMIN ni hereda CLIENTE o TECNICO. No sustituye diagnóstico/trabajo técnico o asignación; no inventa pagos, recepciones o transiciones para eludir procesos |
+| TECNICO | Consultar y trabajar sobre órdenes asignadas: iniciar/reanudar, diagnosticar, registrar trabajo/costos, pausar con motivo y finalizar con resultado técnico; consultar ubicación pertinente incluso en Taller | Exige cuenta activa y asignación vigente; no administra usuarios/estaciones/tarifas, actúa sobre órdenes ajenas o habilita directamente la bicicleta para alquiler |
+
+Autenticación, cierre de sesión, recuperación de contraseña y consulta de datos
+propios no convierten un rol en otro. Registro público asigna CLIENTE. Las
+estaciones públicas y catálogos del registro tienen consultas públicas específicas.
+
+Los roles son acumulables por USUARIO_ROL: ADMIN+CLIENTE puede contratar por
+CLIENTE; ADMIN+TECNICO solo realiza trabajo técnico si también está asignado.
+Tener ADMIN no es una excepción general a los controles de los demás roles.
+
+Estado actualizado el 10 de noviembre de 2026 (etapa 224 del documento 37):
+POST /api/alquileres exige CLIENTE; crearAlquiler añade control de autoridad y
+rol persistido, y el controlador conserva la denegación 403. Treinta y seis
+pruebas filtradas correctas, incluidos rechazos HTTP y unitario de rol retirado;
+no es prueba de alquiler real o auditoría completa de permisos. El módulo
+operativo de mantenimiento y la nueva contratación siguen incompletos; sus
+permisos no se consideran implementados por existir catálogos o entidades.
+
 ## 5. USUARIO_ROL
 
 | Campo | Tipo y clave | Condiciones |

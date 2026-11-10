@@ -2,12 +2,17 @@
 
 Actualizado: 10 de noviembre de 2026.
 
-Estado más reciente: etapa 217 del documento 37. Bloqueo por usuario activo
-y máximo configurable de diez revisados sin correcciones; setenta y una pruebas
-verificadas por XML sin fallos/errores/omisiones. Solicitado checkpoint manual
-antes de creación transaccional; último commit observado 94306f0 y múltiples
-avances aún pendientes de commit. Persistencia/integración pendientes, enum
-y flujo anterior todavía no sustituidos.
+Estado más reciente: etapa 245 del documento 37. Alquiler NO cerrado al 100%:
+pendientes migración de listados/consumidores HTTP y retiro coordinado de legado,
+además de ciclo operativo y financiero. Checkpoint Git parcial propuesto al usuario.
+Tres pruebas de integración de etapa 244
+MySQL real aprobadas sin omisiones: guardado de reserva/historias, consulta de
+DTO y rollback tras escrituras. Reutilizada turismo_sustentable con create-drop
+por aceptación del usuario y aplicación detenida. Las 98 pruebas unitarias/MVC
+previas corresponden a otra ejecución. Cotización real, concurrencia y matriz
+negativa de seguridad sobre proxy siguen pendientes; alta nueva sin exponer HTTP.
+Retiro de dependencias del legado documentado, no completado. Sin activar reserva;
+deuda/pagos, controlador/frontend, devolución, vencimiento e integración SQL pendientes.
 
 Etapa 198: AlquilerImportesTest creado
 y revisado sin correcciones; cuarenta y ocho pruebas conjuntas verificadas

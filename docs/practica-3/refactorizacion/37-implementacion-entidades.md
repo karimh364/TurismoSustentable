@@ -9585,3 +9585,682 @@ Fecha: 10 de noviembre de 2026.
 - Solo lectura y documentación por el asistente. Sin edición Java,
   compilación/pruebas, SQL, HTTP, reinicios o escrituras Git. Checkpoint
   pendiente del usuario, no ejecutado por el asistente.
+
+### Etapa 218 Checkpoint verificado y creación interna de reserva preparada
+
+Fecha: 10 de noviembre de 2026.
+
+- Se verifica commit 19af126, rama codex/refactorizacion-practicas-iii con
+  árbol limpio inicial y sin diferencias de commits frente a su referencia
+  origin local. end ya no existe. No se consulta GitHub o se escribe Git.
+- Se revisan repositorios, servicio de inventario y trazabilidad. Se preparan
+  instrucciones manuales para ampliar AlquilerService con crearReserva y un
+  helper transaccional, reutilizando repositorios y componentes existentes.
+  No se agrega un servicio auxiliar vacío o un nuevo endpoint.
+- Entrada validada con Validator sobre CrearAlquilerDTO y máximo configurable;
+  la propuesta inicial reproducía ADMIN o CLIENTE de la autorización de legado,
+  corregida por la aclaración de etapa 219 para exigir CLIENTE. Se prevé
+  usuario activo y roles persistidos comprobados otra vez bajo bloqueo. Email
+  obtenido del contexto, no del DTO. Sin límite de duración de 24 h inventado.
+- Consulta de cotización fuera de transacción mediante NOT_SUPPORTED y luego
+  TransactionTemplate READ_COMMITTED. Bloqueos de usuario, bicicletas por ID
+  ordenado, estación y tipos por ID ordenado, sin FK/identificadores ficticios.
+  Se comprueban disponibilidad, origen público activo común y tarifas.
+- Se prepara cabecera RESERVADO con snapshot UTC, vencimiento creación más
+  quince minutos, estimados por suma de líneas y costos finales null. Detalles
+  RESERVADO con tipo/tarifa/duración común contratados, sin fechas de retiro
+  o devolución inventadas. Bicicletas RESERVADA conservan ubicación física.
+  Historial inicial de detalle y cambio de bicicleta con actor USUARIO real,
+  sin atribuir un viaje propio de ADMIN a auditoría de gestión administrativa.
+- Estimados calculados con CalculadoraAlquiler; validación de entidades antes
+  de insertar para no desbordar la capacidad física. Guardado de cabecera,
+  detalles e historiales dentro de la misma transacción con rollback ante error.
+  Estas son instrucciones pendientes, no atomicidad probada contra DB.
+- Método interno previsto devuelve ID, no entidad serializada. No conectar al
+  controller anterior: faltan pruebas nuevas de reserva/rollback, adaptación
+  de lectura/DTO/consultas de legado y controles financieros de deuda/pago
+  antes de activar el circuito. No se implementan anticipos, retiro, correo de
+  viaje o vencimiento automático por guardar una reserva.
+- Java todavía sin modificar por el asistente. El usuario debe completar todo
+  el bloque antes de compilar; regresión prevista de setenta y una pruebas
+  no invoca el nuevo método. Solo lectura/documentación, sin compilación/pruebas,
+  SQL, HTTP, reinicios o escrituras Git por el asistente.
+
+### Etapa 219 Corrección del permiso de contratar a CLIENTE exclusivamente
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario aclara que ADMIN no debe conceder permiso para alquilar; se exige
+  CLIENTE. La propuesta anterior autorizaba ADMIN o CLIENTE y se corrige, sin
+  atribuir al usuario la decisión anterior. Con varios roles el permiso deriva
+  de CLIENTE; no se introduce una prohibición adicional por tener otro rol.
+- Se comprueba por lectura que crearReserva aún no está pegado en AlquilerService.
+  Se indican correcciones al bloque pendiente: PreAuthorize hasAuthority CLIENTE
+  y comprobación de rol persistido solo CLIENTE, manteniendo usuario activo.
+- WebAuthorization actual sigue permitiendo ADMIN o CLIENTE en POST
+  /api/alquileres. Se indica cambiar únicamente esa regla a hasAuthority CLIENTE,
+  sin quitar permisos de gestión administrativa o devolución autorizada sobre
+  terceros de otras operaciones. No se confunde contratar con administrar.
+- Aclaración incorporada al documento 30, sin cambios al DER. Java y tests
+  aún sin modificar por el asistente; adaptación/pruebas pendientes del usuario.
+  No se afirma permiso ya corregido en el código ejecutable. Solo lectura y
+  documentación, sin compilación/pruebas, HTTP, SQL, reinicios o Git.
+
+### Etapa 220 Contraste de permisos documentados y error de revisión
+
+Fecha: 10 de noviembre de 2026.
+
+- Se responde la consulta sobre permisos previos contrastando diccionario 08,
+  roles 25 y permisos de mantenimiento 17, además de WebAuthorization,
+  AlquilerService, tests y commit 19af126. La fila de creación del diccionario
+  ya identifica al cliente autenticado/activo; el documento 25 no concede
+  excepciones adicionales por nombre de rol. No era correcto inferir que
+  conservar el legado justificaba trasladar ADMIN o CLIENTE al nuevo circuito.
+- POST /api/alquileres con ADMIN o CLIENTE existe en el checkpoint y en el
+  archivo actual. El servicio anterior comprueba autenticación/actividad,
+  pero no exige CLIENTE al crear. Por lectura, ADMIN solo puede alcanzar ese
+  recorrido. No se hizo una petición HTTP real o una reserva para comprobarlo.
+- Las páginas cliente y algunas consultas siguen con permisos amplios; deben
+  contrastarse según finalidad. No se elimina indiscriminadamente ADMIN de
+  devolución/gestión de terceros, que tiene recorridos administrativos aprobados.
+- El test de tarifa del servicio usa ADMIN+CLIENTE, caso permitido por CLIENTE;
+  no hay caso negativo de ADMIN solo creando en la seguridad examinada.
+  Las setenta y una pruebas anteriores no acreditan esa denegación. Error de
+  revisión: no detectar discrepancia de legado y reproducirla en la propuesta
+  de reserva, en vez de partir de la operación/rol aprobado.
+- Se consolida matriz de alcance y límites en documento 25, sección 4.1,
+  sin nuevas tablas o permisos. Se distingue catálogo/autenticación ya
+  implementados de mantenimiento y contratación aún pendientes de completar.
+- Se deja como corrección prioritaria exigir CLIENTE en POST y nuevo servicio,
+  con pruebas ADMIN solo denegado, TECNICO solo denegado, CLIENTE admitido y
+  ADMIN+CLIENTE admitido por CLIENTE. Sin implementación o aprobación ficticia
+  de esos casos. Solo lectura/documentación, sin edición Java, tests, HTTP,
+  SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 221 Corrección de autorización priorizada sobre circuito actual
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario confirma que aún no pegó la creación de reserva propuesta; se
+  corrobora ausencia de crearReserva. No hay ese código por deshacer ni se
+  necesita rehacer DER, cálculos, cotización o base de datos.
+- Corrección acotada prevista: WebAuthorization exige CLIENTE para POST de
+  contratación; crearAlquiler actual exige autoridad CLIENTE y usuario activo
+  con CLIENTE persistido; AlquilerController deja propagar AccessDeniedException
+  en vez de convertirla en 400 por su catch genérico. No restringir el helper
+  común de autenticación a CLIENTE porque lo usa también gestión autorizada.
+- Pruebas necesarias: ADMIN y TECNICO solos rechazados; anónimo sin sesión;
+  CLIENTE y ADMIN+CLIENTE admitidos si cumplen requisitos; autoridad de sesión
+  desactualizada no evita comprobación del rol persistido. Denegaciones antes
+  de reservar/guardar bicicletas o alquileres. Ajustar fixtures existentes.
+- Revisar después navegación/páginas de cliente con ADMIN sin CLIENTE;
+  ocultar botones no sustituye autorización del servidor. Mantener gestión
+  ADMIN autorizada, sin reemplazo global indiscriminado de roles.
+- Alcance confirmado por lectura: ADMIN sin CLIENTE tiene permiso de crear
+  su propio alquiler por circuito actual. No se ha probado creación anónima,
+  alquiler en nombre de otra persona o escalada a ADMIN a partir de este fallo.
+- Solo diagnóstico, plan y documentación. Sin cambios Java, compilación/tests,
+  HTTP, SQL, reinicios o escrituras Git; corrección aún pendiente.
+
+### Etapa 222 Corrección manual y pruebas de autorización preparadas
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisaron bloques exactos de los tres archivos actuales y fixtures de
+  AlquilerServiceTest, Rol/UsuarioRol y configuración de seguridad del test MVC.
+  Se entregan instrucciones manuales: POST solo CLIENTE; PreAuthorize CLIENTE
+  en crearAlquiler y comprobación de CLIENTE persistido tras autenticar usuario
+  activo; controlador repropaga AccessDeniedException junto a configuración.
+  No alterar helper común, finalizarAlquiler, GET/PATCH o código de reserva nuevo.
+- Fixture unitario tendrá asignaciones reales de modelo con IDs solo de test,
+  incluida cuenta ADMIN+CLIENTE del caso positivo existente. Se prepara un
+  caso negativo de sesión CLIENTE cuyo usuario persistido tiene solo ADMIN,
+  verificando denegación antes de tocar bicicletas/alquileres/correo/historia.
+- Se prepara AutorizacionAlquilerTest, slice MVC del controlador real con
+  WebAuthorization/SecurityConfig y servicio/repositorios simulados. Seis
+  casos: anónimo 401; ADMIN/TECNICO solos 403; CLIENTE y ADMIN+CLIENTE acceden
+  a creación; AccessDenied del servicio se conserva 403 en vez de 400.
+  Los casos admitidos solo prueban autorización/delegación con servicio mock,
+  no crean alquileres reales ni prueban persistencia o pagos.
+- Ajustes y pruebas aún no implementados por el asistente. Se deja ejecución
+  filtrada de AutorizacionAlquilerTest, AlquilerServiceTest y WebAuthorizationTest
+  al usuario, sin test global que pudiera iniciar la base real. No se afirma
+  fallo corregido hasta comprobar código y resultados.
+- Solo lectura/documentación, sin edición Java, compilación/tests, HTTP,
+  SQL, reinicios o escrituras Git por el asistente.
+
+### Etapa 223 Prueba negativa detecta regla HTTP aún sin modificar
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario ejecuta las tres suites: treinta y seis casos, uno fallido. XML
+  2026-11-10T19:44:57/59Z: AutorizacionAlquilerTest seis/uno fallido;
+  WebAuthorizationTest veintiuno correctos; AlquilerServiceTest nueve correctos.
+  Fallo exacto: ADMIN sin CLIENTE esperaba 403 pero recibió 201.
+- Se verifica archivo guardado WebAuthorization: POST /api/alquileres conserva
+  hasAnyAuthority ADMIN/CLIENTE. La prueba usa servicio simulado, por lo que
+  demuestra el permiso HTTP excesivo sin que el guard real del servicio lo
+  oculte. No creó alquiler real ni prueba que los nuevos guards del servicio
+  permitan esa creación en producción.
+- Se comprueba PreAuthorize CLIENTE y rol persistido en crearAlquiler, así
+  como repropagación AccessDenied en controlador, correctamente incorporados.
+  Se indica completar únicamente el cambio de regla POST a hasAuthority CLIENTE,
+  guardar y repetir las mismas tres suites; no modificar pruebas o expectativas.
+- Fallo no cerrado hasta nueva comprobación. Solo lectura de código/reportes
+  y documentación por el asistente, sin edición Java, compilación/pruebas,
+  HTTP, SQL, reinicios o escrituras Git.
+
+### Etapa 224 Regla POST corregida y treinta y seis pruebas verificadas
+
+Fecha: 10 de noviembre de 2026.
+
+- Tras autorización puntual del usuario, el asistente modificó exclusivamente
+  la línea de autorización POST /api/alquileres a hasAuthority CLIENTE.
+  Se verificó diff de una línea; no se tocaron otras reglas o pruebas.
+- El usuario reejecutó las tres suites: BUILD SUCCESSFUL. XML del 2026-11-10
+  a las 19:49:53/55Z: seis pruebas de AutorizacionAlquilerTest, veintiuna de
+  WebAuthorizationTest y nueve de AlquilerServiceTest; treinta y seis sin
+  fallos/errores/omisiones. Corregido el fallo esperado 403 frente a 201.
+- Casos HTTP verificados con servicio simulado: ADMIN/TECNICO solos 403,
+  anónimo 401, CLIENTE y ADMIN+CLIENTE acceden, denegación del servicio no se
+  transforma en 400. El caso unitario de rol persistido retirado también pasa,
+  sin cambiar bicicletas o guardar alquiler. No se acredita alquiler real o
+  evaluación AOP del servicio real mediante un slice con servicio mock.
+- La corrección acotada de creación queda verificada en este alcance. No se
+  considera auditada toda autorización del proyecto o navegación del frontend;
+  crearReserva nuevo sigue pendiente de implementar con CLIENTE exclusivamente.
+- En esta verificación solo lectura y documentación por el asistente, sin
+  ejecutar Gradle, HTTP real, SQL, reinicios o escrituras Git.
+
+### Etapa 225 Reserva interna retomada con CLIENTE exclusivamente
+
+Fecha: 10 de noviembre de 2026.
+
+- Se relee AlquilerService tras corrección de autorización: crearReserva,
+  dependencias de detalle/cotización/Clock/transacciones aún no pegadas. Se
+  preparan instrucciones completas corregidas, sustituyendo la propuesta de
+  etapa 218; no volver a copiar la condición ADMIN o CLIENTE de aquella.
+- Método público con PreAuthorize CLIENTE y NOT_SUPPORTED: valida DTO y máximo,
+  obtiene email de autenticación, copia selección/duración y consulta cotización
+  fuera de la transacción. Helper privado READ_COMMITTED mediante plantilla,
+  bloqueando usuario activo y comprobando CLIENTE persistido exclusivamente.
+- Se conservan selección común, estados, snapshots, cálculos, orden de bloqueos
+  y escritura de cabecera/detalles/historias de la propuesta anterior. No hay
+  nuevas clases o tablas. El método actual crearAlquiler conserva intactos sus
+  guards CLIENTE y comportamiento; no se cambia el controlador o frontend.
+- Esto prepara persistencia de reserva, no módulo completo: quedan pruebas
+  específicas/rollback SQL, validación de deuda con pagos reales del sistema,
+  lectura de cabecera/detalles, retiro, vencimiento y activación. No enviar
+  tickets de inicio de viaje al reservar sin retiro. No se publica el método
+  nuevo hasta completar requisitos y adaptar las lecturas de legado.
+- Se deja compilación/regresión de las tres suites de seguridad actuales
+  (treinta y seis casos) al usuario; no invocan el nuevo método. Instrucciones
+  pendientes de pegar/comprobar. Solo lectura y documentación por el asistente,
+  sin edición Java, ejecución de Gradle, HTTP, SQL, reinicios o escrituras Git.
+
+### Etapa 226 Revisión de AlquilerService tras incorporar crearReserva
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisó la clase completa, las entidades relacionadas, repositorios de
+  bloqueo, DTO de entrada, controlador, configuración de autorización y pruebas.
+  Los ocho errores previos provenían de getters incorrectos de las instrucciones
+  del asistente: getTipoBicicleta por getTipo (tres usos) y getPrecioPorHora por
+  getPrecioPorHoraUsd (cinco usos). El usuario corrigió los ocho usos.
+- crearReserva y guardarReserva quedaron dentro de la clase, con dependencias
+  presentes y sin reemplazar el flujo anterior. Validan DTO/máximo, usuario
+  activo y CLIENTE persistido, disponibilidad, estación común pública no
+  eliminada y tarifas; consultan cotización antes de la transacción de escritura,
+  calculan importes por detalle, fijan vencimiento a quince minutos, guardan
+  cabecera/detalles/historias y reservan sin retirar físicamente las bicicletas.
+- XML de la ejecución del usuario: AutorizacionAlquilerTest 6 casos,
+  WebAuthorizationTest 21 y AlquilerServiceTest 9, todos sin fallos, errores ni
+  omisiones; timestamps 2026-11-10T20:48:49/50Z. No se reejecutó Gradle.
+- Ninguno de esos casos invoca crearReserva. No acreditan persistencia SQL,
+  rollback real, bloqueos concurrentes ni seguridad AOP del nuevo servicio.
+  Siguiente paso: pruebas específicas de reserva con dependencias simuladas;
+  después integración transaccional/BD antes de publicar el flujo.
+- Pendientes de integración, no errores de pegado: crearAlquiler y
+  finalizarAlquiler siguen usando contrato de una bicicleta y enum anterior;
+  obtenerCotizacionDolar mantiene respaldo 1400 solo en legado. Nuevo flujo usa
+  CotizacionDolarService sin respaldo. Migrar consumidores antes de retirarlos.
+- Riesgo concreto antes de activar reservas: borrarAlquilerLogico solo excluye
+  enum INICIADO; una nueva cabecera RESERVADO tiene ese enum nulo, por lo que no
+  quedaría protegida contra borrado. Debe adaptarse al nuevo ciclo de vida, junto
+  con DTO/listados/estadísticas que aún esperan bicicleta y enum en cabecera.
+- Continúan pendientes deuda/pagos, retiro y vencimiento automático. No conectar
+  crearReserva al controlador hasta completar las validaciones y consumidores.
+  Esta revisión no declara el módulo completo ni una auditoría global de seguridad.
+- Solo lectura y esta actualización documental; sin cambios Java, SQL, HTTP,
+  reinicios o escrituras Git.
+
+### Etapa 227 Propuesta manual de CrearReservaServiceTest
+
+Fecha: 10 de noviembre de 2026.
+
+- Se preparan instrucciones para un archivo de pruebas nuevo en test/services,
+  sin modificar Java de producción ni sustituir AlquilerServiceTest del legado.
+- JUnit 5/Mockito: servicio y calculadora reales, Bean Validation real y Clock
+  fijo; repositorios, cotización, correo, trazabilidad y administrador de
+  transacciones simulados. No se accede a MySQL ni a DolarAPI.
+- Casos propuestos: reserva de dos tipos con duración común y sumas por detalle,
+  snapshot de tarifa/cambio/fechas, quince minutos y mantenimiento de ubicación;
+  CLIENTE y ADMIN+CLIENTE; DTO inválido, exceso de máximo, ausencia de sesión,
+  retirada de CLIENTE persistido, bicicleta no disponible o en otra estación,
+  estación interna, fallo de cotización y fallo al guardar historial.
+- Verificar orden de consulta externa antes de iniciar la plantilla y orden de
+  IDs de bicicletas. Ante fallo posterior a escrituras, comprobar solicitud de
+  rollback al administrador simulado, sin afirmar que Mockito revierta objetos
+  o demuestre atomicidad real en SQL. En éxito se comprueba solicitud de commit.
+- La llamada directa al servicio en esta suite no evalúa PreAuthorize mediante
+  proxy Spring. La verificación HTTP existente continúa separada y no sustituye
+  una futura prueba de autorización del nuevo método proxificado.
+- Archivo pendiente de crear y ejecutar por el usuario. No hay resultados
+  acreditados para estos casos todavía. Continúan los pendientes de etapa 226.
+
+### Etapa 228 Pruebas unitarias de reserva verificadas
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario creó CrearReservaServiceTest y ejecutó las cuatro suites indicadas.
+  XML de 2026-11-10T20:55:58/59Z: CrearReservaServiceTest 21,
+  AutorizacionAlquilerTest 6, AlquilerServiceTest 9 y WebAuthorizationTest 21;
+  total 57 casos sin fallos, errores ni omisiones.
+- Se acredita el alcance unitario de etapa 227, no rollback SQL real,
+  concurrencia de conexiones ni PreAuthorize sobre un proxy del nuevo método.
+  No se ejecutaron Gradle, aplicación, HTTP real o escrituras SQL por el asistente.
+- Próximo bloque: proteger borrado lógico frente a cabeceras nuevas activas,
+  conservando el comportamiento del legado y la distinción entre ocultación,
+  cancelación y liquidación. Las consultas financieras no pueden excluir deuda
+  por el indicador borrado_alquiler (documento 28). Aún no activar crearReserva
+  en el controlador.
+
+### Etapa 229 Protección manual del borrado de contrataciones
+
+Fecha: 10 de noviembre de 2026.
+
+- Instrucciones pendientes de aplicar por el usuario: sustituir solamente
+  borrarAlquilerLogico, con PreAuthorize ADMIN, transacción y búsqueda por ID
+  con bloqueo ya existente en AlquilerRepository. No nuevas tablas ni endpoint.
+- Mantener rechazo de INICIADO legado. Para cabeceras con estadoContratacion,
+  permitir ocultación exclusivamente en FINALIZADO/CANCELADO/VENCIDO; rechazar
+  RESERVADO/EN_PROGRESO u otro código sin cierre reconocido. Si ambos modelos
+  carecen de estado, rechazar como configuración inconsistente. Legado cerrado
+  conserva comportamiento previo (FINALIZADO/CANCELADO/RECHAZADO).
+- La operación cambia únicamente borradoAlquiler, no estados, fechas, importes,
+  pagos, detalles, inventario ni historias. Archivar no cancela ni liquida, ni
+  acredita deuda pagada. Las futuras consultas económicas deben ignorar ese
+  filtro de visibilidad para calcular obligaciones (documento 28).
+- Propuesto BorradoAlquilerServiceTest: 12 casos parametrizados/unitarios sobre
+  servicio real y repositorios simulados; control de estados, registros ausentes
+  o ya ocultos y conservación de datos. Sin probar bloqueo real o PreAuthorize
+  mediante proxy. Comprobación y ejecución a cargo del usuario; todavía sin
+  resultados de este bloque. No cambios Java por el asistente.
+
+### Etapa 230 Borrado protegido implementado y verificado
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisaron borrarAlquilerLogico completo y BorradoAlquilerServiceTest:
+  el método sustituido está correctamente ubicado, con autorización ADMIN,
+  transacción, búsqueda bloqueante y comprobaciones de etapa 229. No se detectan
+  omisiones de pegado en ese bloque ni en sus doce casos de prueba.
+- XML de 2026-11-10T21:03:05/07Z: BorradoAlquilerServiceTest 12,
+  CrearReservaServiceTest 21, AutorizacionAlquilerTest 6, AlquilerServiceTest 9
+  y WebAuthorizationTest 21; total 69 sin fallos, errores ni omisiones.
+- La evidencia confirma el alcance unitario, no bloqueo/rollback MySQL real
+  o evaluación de la anotación ADMIN del método mediante proxy Spring.
+- Solo revisión y documentación por el asistente, sin cambios Java ni ejecución
+  de pruebas, SQL, HTTP o Git. Próximo bloque: lectura de cabecera y detalles
+  mediante DTO, sin exponer entidades ni sustituir aún la devolución anterior.
+- Al integrar controlador, conservar tratamiento de ConfiguracionSistemaException
+  como 500: su catch genérico actual de borrado convertiría ese fallo en 404.
+  Tampoco traducir AccessDeniedException del servicio a registro inexistente.
+
+### Etapa 231 Preparación manual de DTO de contratación y detalle
+
+Fecha: 10 de noviembre de 2026.
+
+- AlquilerDTO actual accede al enum y bicicleta de cabecera sin admitir null;
+  no sirve para nuevas reservas. Se conserva mientras lo consumen pantallas,
+  controlador y respuestas de inicio/devolución del legado.
+- Propuesta manual de dos DTO de salida duraderos: AlquilerDetalleDTO para
+  identidad de unidad/tipo contratado, estado, versión, tarifa y duración
+  congeladas, fechas de uso/cierre, destino e importes; ContratacionDTO para
+  cabecera, propietario por ID, origen, fechas, cotización y fuente, estimados,
+  finales y lista de detalles. Sin entidades anidadas, credenciales o setters.
+- Los valores monetarios salen del contrato persistido, nunca de la tarifa o
+  cotización actuales. Se preservan null de fechas/importes todavía pendientes.
+  La lista de detalles del DTO es inmodificable y no reutiliza una colección JPA.
+- Mapeo futuro dentro de servicio transaccional readOnly con consulta de detalles
+  y autorización del propietario/ADMIN; estos DTO no otorgan permisos ni cargan
+  datos por sí solos. No depender de Open Session in View para su construcción.
+- Aún sin métodos de repositorio, servicio de lectura o endpoints nuevos.
+  Compilación de DTO a cargo del usuario; propuesta pendiente de pegar/verificar.
+  Solo actualización documental por el asistente, sin cambios Java.
+
+### Etapa 232 DTO revisados y retiro progresivo del legado identificado
+
+Fecha: 10 de noviembre de 2026.
+
+- Se leyeron completos ContratacionDTO y AlquilerDetalleDTO. Paquete, imports,
+  atributos, constructores y getters coinciden con etapa 231 y las entidades
+  vigentes. No se detectan errores de pegado. Tarifa y cotización provienen del
+  contrato, importes/fechas pendientes preservan null y detalles es una lista
+  de DTO inmodificable. No se modifican tablas, FK o asociaciones JPA.
+- Compilación exitosa comunicada por el usuario; no reejecutada por el asistente.
+  Compilar no acredita serialización JSON, autorización, consultas SQL o carga
+  LAZY. Los DTO nuevos aún no tienen consumidor en servicio/controlador; su
+  conexión es el siguiente paso, no una funcionalidad de consulta ya disponible.
+- Contrastados los apartados cabecera/detalle de documento 28 y referencias de
+  DER v5. La respuesta no pretende contener todas las columnas del DER; las
+  referencias operativas de incidencias/mantenimiento tendrán sus consultas
+  autorizadas al implementar esos bloques, sin alterar ahora el esquema.
+- Regla de trabajo: migrar consumidor, verificar contrato/pruebas, rastrear
+  referencias y retirar el elemento anterior cuando ya no tenga usos. No dejar
+  permanentemente dos circuitos equivalentes ni suprimir dependencias activas.
+- Inventario concreto de retiro pendiente:
+  * AlquilerDTO: AlquilerController (listado y respuestas de alta/devolución),
+    AdminController (listado), AlquilerService (alta/devolución) y referencias
+    de tipo en UsuarioDTO/BicicletaDTO. Estos últimos mantienen colecciones
+    antiguas sin llenado actual; revisar/remover tras comprobar consumidores,
+    no convertirlas en carga recursiva de contrataciones.
+  * AlquilerRequestDTO y crearAlquiler: aún consumidos por POST /api/alquileres
+    y alquiler.js; migrar confirmación a CrearAlquilerDTO/crearReserva antes
+    de retirarlos, junto con comprobantes de inicio ligados al retiro real.
+  * CodigoEstadoAlquiler y campos de cabecera de una bicicleta: aún usados por
+    AlquilerService, AlquilerDTO, AlquilerRepository y BicicletaService. Migrar
+    protecciones de inventario, estadísticas y devoluciones antes de retirarlos.
+  * obtenerCotizacionDolar y respaldo fijo 1400: aún consumidos por devolución
+    antigua y GET /api/cotizacion; migrar sus consumidores antes de eliminarlos.
+  * mis_alquileres.js/admin.js: todavía leen codigoBicicleta, fechaInicio/Fin y
+    costoTotal planos. Deben pasar a cabecera/detalles al cambiar respuestas.
+- Este inventario se limita al circuito de alquiler revisado; no se declara
+  limpia toda la aplicación. Se conservan pendientes de seguridad, persistencia
+  e integración ya identificados, sin editar Java ni borrar archivos ahora.
+
+### Etapa 233 Propuesta manual de consulta de contratación por ID
+
+Fecha: 10 de noviembre de 2026.
+
+- Agregar consulta de cabecera nueva visible por ID a AlquilerRepository,
+  filtrando borradoAlquiler=false y estadoContratacion no nulo; EntityGraph de
+  usuario, estadoContratacion y ubicacionRetiro. No sustituir consultas legado.
+- Agregar consulta ordenada de detalles por alquiler.id a AlquilerDetalleRepository
+  con EntityGraph de bicicleta, tipoBicicletaContratado, estado y estación de
+  devolución. No filtrar bicicleta o estación eliminadas: forman parte histórica
+  de contratos existentes. No reconstruir detalles desde bicicleta de cabecera.
+- obtenerContratacion en AlquilerService: CLIENTE/ADMIN en autoridad y roles
+  persistidos, cuenta activa, CLIENTE solo propietaria y ADMIN consulta de gestión.
+  Rechazar acceso ajeno antes de consultar detalles. TECNICO sin CLIENTE/ADMIN no
+  participa en esta consulta; sus consultas de mantenimiento tendrán alcance propio.
+- Construir ContratacionDTO dentro de transacción readOnly REPEATABLE_READ para
+  lectura coherente de cabecera/detalles y relaciones LAZY sin depender de OSIV.
+  Ausente, oculta o cabecera antigua sin estado nuevo: EntityNotFoundException;
+  cabecera nueva sin detalles: ConfiguracionSistemaException, no lista vacía.
+- Método y consultas pendientes de implementación manual/compilación del usuario.
+  Aún sin endpoint ni cambio de pantalla; permisos y traducción HTTP se probarán
+  al integrar. No cambios Java o ejecución de aplicación/SQL por el asistente.
+
+### Etapa 234 Consulta revisada y unificación de nombres pendiente
+
+Fecha: 10 de noviembre de 2026.
+
+- Se revisaron ambos repositorios y el método de lectura agregado: JPQL y
+  EntityGraph usan atributos existentes; se preservan consultas antiguas;
+  servicio valida roles vigentes/propiedad antes de cargar detalles y mapea
+  dentro de transacción readOnly REPEATABLE_READ. No errores de pegado detectados
+  en ese bloque. Compilación exitosa informada por el usuario, sin reejecución.
+- El usuario pidió denominar siempre alquiler a este concepto. Los mensajes
+  del método ya cambiaron; los identificadores nuevos aún son ContratacionDTO,
+  obtenerContratacion y buscarContratacionVisiblePorId. No existe todavía
+  AlquilerCabeceraDTO ni se detecta una segunda clase duplicada con ese nombre.
+- Instrucciones manuales: renombrar archivo/clase/constructor a AlquilerCabeceraDTO;
+  actualizar import, retorno y construcción del DTO en AlquilerService;
+  obtenerContratacion pasa a obtenerAlquiler y buscarContratacionVisiblePorId
+  pasa a buscarAlquilerVisiblePorId en repositorio y llamada. Ningún test utiliza
+  aún estos nombres; no requieren actualización por este renombrado a esta fecha.
+- No renombrar estadoContratacion, asociaciones o referencias del DER en este
+  bloque: son atributos persistentes existentes y usados por JPQL, EntityGraph
+  y pruebas. Sus nombres se revisarán coordinadamente, sin reemplazo global.
+- Siguiente paso tras unificación: pruebas del mapeo y lectura con propietario,
+  administrador, cliente ajeno, roles retirados y datos ausentes/inconsistentes.
+  SQL real, proxy de seguridad, endpoint y frontend continúan pendientes.
+- Solo documentación por el asistente; Java y renombrados a cargo del usuario.
+
+### Etapa 235 Renombrado puntual aplicado por el asistente
+
+Fecha: 10 de noviembre de 2026.
+
+- Por autorización expresa para este bloque, se renombró archivo, clase y
+  constructor ContratacionDTO a AlquilerCabeceraDTO. No queda una copia del
+  archivo anterior. Se conserva intacto el contenido funcional del DTO.
+- AlquilerService actualizado: import, retorno y construcción del nuevo nombre;
+  método obtenerAlquiler y llamada a buscarAlquilerVisiblePorId. En repositorio
+  se renombró únicamente ese método, sin modificar JPQL o EntityGraph.
+- Búsqueda en src/main/java y src/test/java sin referencias a los tres nombres
+  reemplazados. estadoContratacion, lógica, permisos, transacciones, consultas,
+  DTO anterior AlquilerDTO y resto del circuito permanecen sin cambios de este
+  bloque. No se cambiaron pruebas ni esquema.
+- No se ejecutaron Gradle, aplicación, SQL o Git de escritura. Guardar y compilar
+  (parte 4) queda expresamente a cargo del usuario; compilación aún pendiente.
+
+### Etapa 236 Compilación de nombres y propuesta de pruebas de consulta
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario comunicó BUILD SUCCESSFUL de compileJava tras etapa 235. No se
+  ejecutó Gradle por el asistente. Servicio vigente: obtenerAlquiler retorna
+  AlquilerCabeceraDTO y utiliza buscarAlquilerVisiblePorId.
+- Se preparan instrucciones manuales para ConsultaAlquilerServiceTest, con
+  servicio y DTO reales y repositorios/dependencias externas simuladas.
+  Diecisiete casos contando variantes: propietario, ADMIN y ADMIN+CLIENTE,
+  cliente ajeno, roles retirados/TECNICO, cuenta inactiva o inexistente, ausencia
+  de sesión, ID inválido, alquiler no disponible y falta de detalles.
+- Mapeo de cabecera/detalles conserva valores históricos sin recalcular con
+  tarifa actual ni consultar cotización. Verificar null pendientes, fechas y
+  destino de devolución, importes definitivos y copia inmodificable de detalles.
+  Comprobar que la lectura no invoque escrituras, correo o trazabilidad.
+- Las pruebas directas no evalúan PreAuthorize o REPEATABLE_READ por proxy ni
+  ejecutan JPQL/EntityGraph. La simulación de Optional.empty no demuestra los
+  filtros SQL de ocultación/modelo nuevo. Integración SQL y HTTP siguen pendientes.
+- Propuesta pendiente de crear y ejecutar por el usuario. No modificación Java,
+  cambios de endpoint, aplicación o SQL por el asistente.
+
+### Etapa 237 Pruebas de consulta verificadas
+
+Fecha: 10 de noviembre de 2026.
+
+- XML de 2026-11-10T22:11:14/16Z: ConsultaAlquilerServiceTest 17,
+  BorradoAlquilerServiceTest 12, CrearReservaServiceTest 21,
+  AutorizacionAlquilerTest 6, AlquilerServiceTest 9 y WebAuthorizationTest 21;
+  total 86 sin fallos, errores ni omisiones. Casos del nuevo archivo presentes
+  con nombres actuales de alquiler. No se reejecutaron pruebas por el asistente.
+- Confirmado alcance unitario de etapa 236: servicio/DTO, permisos persistidos,
+  acceso ajeno y mapeo histórico. No confirma SQL, EntityGraph, serialización
+  HTTP, proxy PreAuthorize o aislamiento real.
+- Próximo bloque propuesto: exponer solo consulta por ID mediante GET
+  /api/alquileres/{id}, con autorización de ruta CLIENTE/ADMIN y control de
+  propietario en servicio. Mapear inexistencia a 404, denegación a 403 y
+  configuración inconsistente a 500 sin catch genérico que los confunda.
+  Mantener GET de listado y POST anteriores hasta migrar sus consumidores.
+- Sigue sin habilitarse creación nueva desde HTTP. La integración SQL,
+  deuda/pagos, retiro, vencimiento y migración de frontend/legado continúan
+  pendientes. Solo documentación por el asistente en esta verificación.
+
+### Etapa 238 Propuesta manual de GET de alquiler por ID
+
+Fecha: 10 de noviembre de 2026.
+
+- Agregar únicamente GET /api/alquileres/{id} a AlquilerController, delegando
+  a obtenerAlquiler. EntityNotFoundException se convierte en 404 y
+  IllegalArgumentException en 400. No capturar Exception de forma genérica:
+  AccessDeniedException conserva tratamiento de seguridad 403 y
+  ConfiguracionSistemaException llega al advice existente 500 con mensaje seguro.
+- Agregar regla HttpMethod.GET /api/alquileres/* CLIENTE/ADMIN antes del GET
+  genérico /api/**. Comodín de un segmento, no apertura de subrutas con **.
+  Es autorización de consulta, no permiso de alta: POST sigue solo CLIENTE.
+  Propiedad y roles persistidos siguen verificándose dentro del servicio.
+- Mantener GET /api/alquileres, alta/devolución anteriores y frontend intactos.
+  El nuevo GET consulta solo cabeceras nuevas visibles; no adapta registros
+  antiguos ni habilita crearReserva desde HTTP.
+- Propuesta pendiente de aplicar/comprobar por el usuario. La regresión anterior
+  no cubre esta nueva ruta; siguiente paso, pruebas MVC de estados y JSON. SQL
+  real, proxy de servicio e integración con frontend siguen pendientes.
+- Solo actualización documental del asistente; sin cambios Java ni ejecución.
+
+### Etapa 239 GET por ID aplicado por autorización expresa
+
+Fecha: 10 de noviembre de 2026.
+
+- Se agregó únicamente import de EntityNotFoundException y método GET
+  /api/alquileres/{id} en AlquilerController, con delegación a obtenerAlquiler,
+  404 para inexistencia y 400 para argumento inválido. Configuración interna y
+  denegación de acceso no son atrapadas por un catch genérico de este método.
+- Se agregó regla GET /api/alquileres/* para CLIENTE/ADMIN inmediatamente antes
+  del POST existente, que conserva hasAuthority CLIENTE. Sin cambios al listado,
+  alta, devolución, servicio, DTO, esquema o frontend en este bloque.
+- Verificados ubicación del método, orden de reglas y git diff --check de los
+  dos archivos Java sin errores de espacios. No se ejecutó compilación ni tests.
+- Parte 3 de guardar/comprobar queda a cargo del usuario: seis suites previas,
+  86 casos de regresión. No prueban esta nueva ruta: después se agregan casos
+  MVC de permisos, errores y JSON. SQL y seguridad del servicio real siguen
+  pendientes; no se ha expuesto crearReserva por HTTP.
+
+### Etapa 240 Regresión posterior al GET por ID verificada
+
+Fecha: 10 de noviembre de 2026.
+
+- XML de 2026-11-10T22:24:36/37Z: ConsultaAlquilerServiceTest 17,
+  BorradoAlquilerServiceTest 12, CrearReservaServiceTest 21,
+  AutorizacionAlquilerTest 6, AlquilerServiceTest 9 y WebAuthorizationTest 21;
+  total 86 sin fallos, errores ni omisiones tras agregar el GET por ID.
+- Esta ejecución acredita compilación y regresión de las seis suites, no
+  comportamiento HTTP del nuevo GET. Próximo bloque: pruebas MVC de consulta,
+  serialización de cabecera/detalles y respuestas 401/403/404/400/500/200.
+- Siguen pendientes SQL/EntityGraph, seguridad sobre servicio proxificado,
+  integración del frontend y resto de funcionalidades del nuevo alquiler.
+  Solo lectura de informes y documentación por el asistente, sin cambios Java
+  ni ejecución adicional de Gradle, aplicación o SQL.
+
+### Etapa 241 Propuesta manual de pruebas HTTP de consulta
+
+Fecha: 10 de noviembre de 2026.
+
+- Preparado ConsultaAlquilerControllerTest con WebMvcTest, MockMvc, controlador,
+  WebAuthorization, SecurityConfig y GlobalExceptionHandler reales; servicio,
+  repositorios del controlador y UserDetailsService simulados. DTO reales para
+  comprobar JSON sin devolver entidades ni datos de autenticación.
+- Doce casos incluyendo variantes: anónimo 401, TECNICO 403, CLIENTE/ADMIN/
+  ADMIN+CLIENTE 200 con JSON cabecera/detalle; AccessDeniedException de servicio
+  403, inexistencia 404, ID no positivo 400, texto/overflow de Integer 400 antes
+  del servicio, y configuración interna 500 con mensaje seguro sin detalle técnico.
+- Casos positivos prueban autorización de ruta y delegación, no propiedad del
+  usuario real: esa comprobación sigue en ConsultaAlquilerServiceTest. Tampoco
+  prueban proxy del servicio, SQL, EntityGraph o aislamiento transaccional.
+- Propuesta pendiente de crear/ejecutar manualmente por usuario; nuevo archivo
+  solo en test/controllers. No cambios Java por el asistente. Con las seis
+  suites anteriores se esperan 98 casos, aún no acreditados.
+
+### Etapa 242 Pruebas HTTP de consulta revisadas y verificadas
+
+Fecha: 10 de noviembre de 2026.
+
+- Se leyó completo ConsultaAlquilerControllerTest: contexto MVC, seguridad y
+  advice reales, simulaciones y DTO coinciden con etapa 241; sin omisiones de
+  pegado detectadas. No se editaron archivos Java.
+- XML de 2026-11-10T22:31:36/38Z: ConsultaAlquilerControllerTest 12,
+  ConsultaAlquilerServiceTest 17, BorradoAlquilerServiceTest 12,
+  CrearReservaServiceTest 21, AutorizacionAlquilerTest 6, AlquilerServiceTest 9
+  y WebAuthorizationTest 21; total 98 sin fallos, errores ni omisiones.
+- Confirmados estados HTTP y JSON dentro del alcance MVC simulado. No equivale
+  a persistencia real, ejecución JPQL/EntityGraph, proxy del servicio ni prueba
+  concurrente entre conexiones. El asistente no reejecutó Gradle o aplicación.
+- Siguiente bloque propuesto: verificar persistencia y lectura del nuevo alquiler
+  en MySQL y rollback real, con servicio/repositories reales y cotización simulada.
+  Preparar base de prueba separada de turismo_sustentable y configuración de test
+  explícita; no reutilizar refactor/create-drop contra datos de trabajo ni habilitar
+  alta nueva desde HTTP para lograr esta comprobación. Aún sin ejecutar ni crear
+  base/configuración de integración. No confundir rollback con prueba de concurrencia.
+
+### Etapa 243 Integración MySQL propuesta sobre la base descartable actual
+
+Fecha: 10 de noviembre de 2026.
+
+- El usuario aclara y acepta reutilizar turismo_sustentable con create-drop,
+  en lugar de la base separada propuesta en etapa 242. Requisito obligatorio:
+  aplicación/bootRun/IntelliJ detenidos, MySQL activo y datos descartables; no
+  ejecutar contextos simultáneos contra esta base. No se reinicia nada por el asistente.
+- Propuesto AlquilerMysqlIntegrationTest con SpringBootTest MOCK, perfil refactor,
+  URL localhost/turismo_sustentable fijada en propiedades del test, create-drop y
+  open-in-view=false. DirtiesContext AFTER_CLASS cierra contexto y borra tablas.
+  Variable TURISMO_TEST_MYSQL=true habilita explícitamente este test destructivo;
+  sin ella, se omite para evitar activación accidental en una ejecución general.
+- Servicio proxificado y repositorios reales, catálogos reales de refactor,
+  datos mínimos persistidos mediante transacción de preparación y autenticación
+  CLIENTE de prueba. No transacción envolvente de test que oculte commits/rollback.
+  Cotización externa simulada y sin llamadas de correo en el flujo de reserva.
+- Tres escenarios propuestos: guardar cabecera/dos detalles/historias y conservar
+  ubicación; consultar DTO fuera de transacción de test con tarifas históricas;
+  forzar fallo tras guardar historia real y hacer flush, verificando rollback de
+  cabecera, detalles, historias y actualización de bicicleta desde otra transacción.
+  Para este último se espía solo el componente de trazabilidad, no se reemplazan
+  repositorios SQL. No se declara probada concurrencia de dos conexiones.
+- Archivo e instrucciones pendientes de implementación/ejecución manual del
+  usuario; sin cambios a Java de producción, perfil existente, esquema lógico
+  o endpoints por el asistente. Ningún resultado de integración acreditado aún.
+
+### Etapa 244 Integración MySQL ejecutada y verificada
+
+Fecha: 10 de noviembre de 2026.
+
+- Primer intento del usuario desde C:/WINDOWS/system32 no encontró gradlew.bat;
+  no llegó a ejecutar Gradle. Tras cambiar al proyecto, ejecutó con habilitación
+  explícita y comunicó BUILD SUCCESSFUL en 21 segundos.
+- XML AlquilerMysqlIntegrationTest de 2026-11-10T23:50:55.486Z: tres pruebas,
+  cero fallos, errores u omisiones. No quedaron deshabilitadas por la condición.
+  Verificados nombres de guardado, rollback tras escrituras y consulta histórica.
+- Servicio Spring y repositorios reales: guardado de cabecera/dos detalles y
+  ambas historias, reserva sin retirar físicamente bicicletas, consulta por
+  JPQL/EntityGraph con DTO fuera de la transacción del servicio y preservación
+  de tarifa/cotización. Fallo controlado después de historia real y flush revertido,
+  con recuentos y bicicletas comprobados desde transacción posterior.
+- Cotización simulada; espía de trazabilidad conserva escritura real antes de
+  provocar el fallo. No acredita API externa real, login HTTP completo, matriz
+  negativa de seguridad sobre proxy real o competencia entre conexiones.
+- Log muestra MySQL8Dialect, conexión completada, cierre de SessionFactory con
+  acción create-drop y cierre de Hikari. Sesenta WARN corresponden a DROP FK
+  sobre tablas ausentes durante limpieza inicial; no se detectan otros WARN/ERROR
+  en system-out. No confundir estos avisos con fallos de creación o de las pruebas.
+- Las 98 pruebas anteriores se acreditaron en otra ejecución; esta ejecutó solo
+  las tres de integración. No presentar 101 como una única ejecución conjunta.
+  Verificación del asistente limitada a fuentes/informes y documentación; sin
+  ejecución de Gradle, SQL, aplicación o cambios Java.
+
+### Etapa 245 Estado de migración, limpieza y checkpoint Git
+
+Fecha: 10 de noviembre de 2026.
+
+- Aclaración solicitada por el usuario: el bloque alquiler NO está cerrado al
+  100%. Lo verificado es reserva interna, consulta nueva por ID, protección de
+  borrado y sus pruebas unitarias/MVC/SQL de alcance documentado.
+- GET /api/alquileres/{id} usa cabecera/detalles y propietario CLIENTE o ADMIN.
+  GET /api/alquileres y GET /api/admin/estadisticas/alquileres-todos siguen
+  devolviendo AlquilerDTO antiguo. POST /api/alquileres es CLIENTE pero todavía llama
+  crearAlquiler antiguo. PATCH finalizar conserva devolución antigua; DELETE
+  tiene guard de nuevos estados, pero traducción de errores de su controlador
+  sigue pendiente. GET cotizacion todavía consume cliente externo legado.
+- Retiro del legado condicionado a migración de consumidores: listados cliente/
+  ADMIN, estadísticas, controles de BicicletaService, frontend, alta y devolución.
+  No borrar AlquilerDTO, AlquilerRequestDTO, enum o columnas anteriores mientras
+  estos usos sigan activos. No presentar conservación temporal como cierre final.
+- Antes de cambiar de frente, preparar migración de listados/permisos y plan de
+  retiro; ciclo completo exige pagos/deuda, retiro por detalle, cancelación,
+  vencimiento, devolución, incidencias y liquidación. No simular estos pasos para
+  declarar cerrado el módulo antes de contar con sus dependencias.
+- Estado Git inspeccionado: rama codex/refactorizacion-practicas-iii,
+  último commit local 19af126, con cambios staged/unstaged y DTO renombrado
+  pendiente de incorporar al índice. Proponer commit/push de avance parcial,
+  no afirmar que los últimos cambios están respaldados ni hacer escrituras Git
+  por una pregunta. git add actualizará eliminación del nombre anterior y alta
+  del nuevo. No se ejecutaron commit, push o fetch por el asistente.

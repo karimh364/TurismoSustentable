@@ -86,10 +86,16 @@ public class WebAuthorization {
                         "/api/bicicletas/disponibles"
                 ).hasAnyAuthority("ADMIN", "CLIENTE")
 
+                // Consulta de un alquiler: propiedad comprobada en el servicio.
+                .antMatchers(
+                        HttpMethod.GET,
+                        "/api/alquileres/*"
+                ).hasAnyAuthority("CLIENTE", "ADMIN")
+
                 .antMatchers(
                         HttpMethod.POST,
                         "/api/alquileres"
-                ).hasAnyAuthority("ADMIN", "CLIENTE")
+                ).hasAuthority("CLIENTE")
 
                 .antMatchers(
                         HttpMethod.PATCH,

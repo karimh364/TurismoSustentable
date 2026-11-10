@@ -24,6 +24,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
+import DSII.TurismoSustentable.models.Rol;
+import DSII.TurismoSustentable.models.UsuarioRol;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -89,6 +92,7 @@ class AlquilerServiceTest {
         usuario.setId(1);
         usuario.setEmail(EMAIL);
         usuario.setActivo(true);
+        asignarRolesUsuario("CLIENTE");
 
         origen = crearEstacion(1, "Plaza QA", true);
         destino = crearEstacion(2, "Destino QA", true);
@@ -199,6 +203,7 @@ class AlquilerServiceTest {
 
     @Test
     void inicioUsaTarifaDelTipoYLaCongelaEnElContrato() throws Exception {
+        asignarRolesUsuario("ADMIN", "CLIENTE");
         // Una cuenta con dos roles sigue actuando como cliente al contratar su propio viaje.
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(EMAIL, null, List.of(
@@ -225,6 +230,51 @@ class AlquilerServiceTest {
         verifyNoInteractions(estacionRepository);
         verify(trazabilidadInventario, never()).administracion(any(), anyString(), anyInt(),
                 anyString(), any(), any(), any());
+    }
+
+    @Test
+    void rechazaCrearSiClienteFueRetiradoAunqueLaSesionLoConserve() {
+        // La sesión del setup conserva CLIENTE, pero la cuenta ya solo tiene ADMIN.
+        asignarRolesUsuario("ADMIN");
+
+        AlquilerRequestDTO solicitud = new AlquilerRequestDTO();
+        solicitud.setBicicletaId(1);
+        solicitud.setDuracionEnHoras(1);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> alquilerService.crearAlquiler(solicitud)
+        );
+
+        assertEquals("DISPONIBLE", bicicleta.getEstado().getCodigo());
+        assertSame(origen, bicicleta.getUbicacionActual());
+
+        verifyNoInteractions(
+                bicicletaRepository,
+                alquilerRepository,
+                estacionRepository,
+                tipoBicicletaRepository,
+                estadoBicicletaRepository,
+                correoService,
+                trazabilidadInventario
+        );
+
+        verify(alquilerService, never()).obtenerCotizacionDolar();
+    }
+
+    private void asignarRolesUsuario(String... codigos) {
+        usuario.getUsuarioRoles().clear();
+
+        int idRol = 1;
+
+        for (String codigo : codigos) {
+            Rol rol = new Rol(codigo);
+            ReflectionTestUtils.setField(rol, "id", idRol++);
+
+            usuario.getUsuarioRoles().add(
+                    new UsuarioRol(usuario, rol)
+            );
+        }
     }
 
     @Test

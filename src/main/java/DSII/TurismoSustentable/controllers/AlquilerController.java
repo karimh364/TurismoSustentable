@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.AccessDeniedException;
 
+import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
@@ -41,6 +42,25 @@ public class AlquilerController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/alquileres/{id}")
+    public ResponseEntity<Object> obtenerAlquiler(
+            @PathVariable("id") Integer id
+    ) {
+        try {
+            return ResponseEntity.ok(
+                    alquilerService.obtenerAlquiler(id)
+            );
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(e.getMessage());
+        }
+    }
+
     /**
      * CREAR ALQUILER
      * Ahora solo llama al servicio y maneja la respuesta.
@@ -54,8 +74,8 @@ public class AlquilerController {
             // 3. Devuelve la respuesta OK
             return new ResponseEntity<>(alquilerGuardado, HttpStatus.CREATED);
 
-        } catch (ConfiguracionSistemaException e) {
-            throw e; // La configuración faltante se informa como 500 por el manejador global.
+        } catch (AccessDeniedException | ConfiguracionSistemaException e) {
+            throw e;
         } catch (Exception e) {
             // 4. Si el servicio lanzó un error, devuélvelo como 400 Bad Request
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);

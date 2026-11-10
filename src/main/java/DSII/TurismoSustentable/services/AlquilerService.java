@@ -19,12 +19,42 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+
+import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
+import DSII.TurismoSustentable.dto.CotizacionDolarDTO;
+import DSII.TurismoSustentable.repositories.AlquilerDetalleRepository;
+import DSII.TurismoSustentable.repositories.EstadoAlquilerRepository;
+import DSII.TurismoSustentable.repositories.EstadoAlquilerDetalleRepository;
+import DSII.TurismoSustentable.repositories.HistorialEstadoDetalleRepository;
+import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
+import javax.persistence.EntityNotFoundException;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Validator;
+
+import java.time.Clock;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 @Service
 public class AlquilerService {
@@ -50,6 +80,36 @@ public class AlquilerService {
     private EstadoBicicletaRepository estadoBicicletaRepository;
     @Autowired
     private TrazabilidadInventarioService trazabilidadInventario;
+
+    @Autowired
+    private EstadoAlquilerRepository estadoAlquilerRepository;
+
+    @Autowired
+    private EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
+
+    @Autowired
+    private AlquilerDetalleRepository alquilerDetalleRepository;
+
+    @Autowired
+    private HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
+
+    @Autowired
+    private CotizacionDolarService cotizacionDolarService;
+
+    @Autowired
+    private CalculadoraAlquiler calculadoraAlquiler;
+
+    @Autowired
+    private Validator validator;
+
+    @Autowired
+    private Clock reloj;
+
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    @Value("${alquiler.max-bicicletas-por-contratacion:10}")
+    private int maxBicicletasPorContratacion;
 
     private EstadoBicicleta estadoBicicleta(String codigo) {
         return estadoBicicletaRepository.findByCodigo(codigo).orElseThrow(() ->
@@ -94,7 +154,380 @@ public class AlquilerService {
                 );
     }
 
+    @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
+    @Transactional(
+            readOnly = true,
+            isolation = Isolation.REPEATABLE_READ
+    )
+    public AlquilerCabeceraDTO obtenerAlquiler(Integer id) {
+
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException(
+                    "Debe indicar un alquiler válido."
+            );
+        }
+
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        // Comprobar los roles vigentes, no solamente los de la sesión.
+        boolean esAdmin = usuario.getUsuarioRoles().stream()
+                .map(UsuarioRol::getRol)
+                .anyMatch(rol -> "ADMIN".equals(rol.getCodigo()));
+
+        boolean esCliente = usuario.getUsuarioRoles().stream()
+                .map(UsuarioRol::getRol)
+                .anyMatch(rol -> "CLIENTE".equals(rol.getCodigo()));
+
+        if (!esAdmin && !esCliente) {
+            throw new AccessDeniedException(
+                    "La cuenta no tiene permiso para consultar alquileres."
+            );
+        }
+
+        Alquiler alquiler = alquilerRepository
+                .buscarAlquilerVisiblePorId(id)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "El alquiler no existe."
+                        )
+                );
+
+        boolean esPropietario =
+                alquiler.getUsuario().getId() == usuario.getId();
+
+        if (!esAdmin && !esPropietario) {
+            throw new AccessDeniedException(
+                    "No tiene permiso para consultar este alquiler."
+            );
+        }
+
+        // Los detalles se consultan después de comprobar el acceso.
+        List<AlquilerDetalle> detalles = alquilerDetalleRepository
+                .buscarPorAlquilerConDatos(id);
+
+        if (detalles.isEmpty()) {
+            throw new ConfiguracionSistemaException(
+                    "El alquiler no tiene detalles registrados."
+            );
+        }
+
+        return new AlquilerCabeceraDTO(alquiler, detalles);
+    }
+
+    @PreAuthorize("hasAuthority('CLIENTE')")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public Integer crearReserva(CrearAlquilerDTO solicitud) {
+
+        if (solicitud == null) {
+            throw new IllegalArgumentException(
+                    "Los datos del alquiler son obligatorios."
+            );
+        }
+
+        if (maxBicicletasPorContratacion <= 0) {
+            throw new ConfiguracionSistemaException(
+                    "El máximo de bicicletas por alquiler debe ser positivo."
+            );
+        }
+
+        Set<ConstraintViolation<CrearAlquilerDTO>> errores =
+                validator.validate(solicitud);
+
+        if (!errores.isEmpty()) {
+            throw new ConstraintViolationException(errores);
+        }
+
+        if (solicitud.getBicicletaIds().size()
+                > maxBicicletasPorContratacion) {
+            throw new IllegalArgumentException(
+                    "Podés contratar hasta "
+                            + maxBicicletasPorContratacion
+                            + " bicicletas por alquiler."
+            );
+        }
+
+        String email = obtenerUsuarioAutenticado().getEmail();
+
+        Integer estacionId = solicitud.getEstacionRetiroId();
+        int duracionSegundos = solicitud.getDuracionEstimadaSegundos();
+
+        List<Integer> bicicletaIds =
+                new ArrayList<>(solicitud.getBicicletaIds());
+
+        Collections.sort(bicicletaIds);
+
+        // La consulta externa se realiza sin mantener bloqueos en la BD.
+        CotizacionDolarDTO cotizacion =
+                cotizacionDolarService.obtenerCotizacion();
+
+        TransactionTemplate transaccion =
+                new TransactionTemplate(transactionManager);
+
+        transaccion.setIsolationLevel(
+                TransactionDefinition.ISOLATION_READ_COMMITTED
+        );
+
+        return transaccion.execute(estado ->
+                guardarReserva(
+                        email,
+                        estacionId,
+                        bicicletaIds,
+                        duracionSegundos,
+                        cotizacion
+                )
+        );
+    }
+
+    private Integer guardarReserva(
+            String email,
+            Integer estacionId,
+            List<Integer> bicicletaIds,
+            int duracionSegundos,
+            CotizacionDolarDTO cotizacion
+    ) {
+
+        Usuario usuario = usuarioRepository
+                .buscarActivoPorEmailConBloqueo(email)
+                .orElseThrow(() ->
+                        new AccessDeniedException(
+                                "El usuario autenticado no existe o está inactivo."
+                        )
+                );
+
+        // Se comprueba también el rol vigente en la base de datos.
+        boolean clienteVigente = usuario.getUsuarioRoles().stream()
+                .map(UsuarioRol::getRol)
+                .anyMatch(rol -> "CLIENTE".equals(rol.getCodigo()));
+
+        if (!clienteVigente) {
+            throw new AccessDeniedException(
+                    "La cuenta debe tener rol CLIENTE para contratar."
+            );
+        }
+
+        List<Bicicleta> bicicletas = new ArrayList<>();
+        Set<Integer> tipoIds = new TreeSet<>();
+
+        // Los bloqueos se solicitan en orden de ID.
+        for (Integer bicicletaId : bicicletaIds) {
+
+            Bicicleta bicicleta = bicicletaRepository
+                    .buscarActivaPorIdConBloqueo(bicicletaId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Una de las bicicletas seleccionadas no existe."
+                            )
+                    );
+
+            if (bicicleta.getEstado() == null
+                    || !"DISPONIBLE".equals(
+                    bicicleta.getEstado().getCodigo()
+            )) {
+                throw new IllegalStateException(
+                        "Una de las bicicletas seleccionadas ya no está disponible."
+                );
+            }
+
+            if (bicicleta.getUbicacionActual() == null
+                    || !Objects.equals(
+                    bicicleta.getUbicacionActual().getId(),
+                    estacionId
+            )) {
+                throw new IllegalStateException(
+                        "Todas las bicicletas deben estar en la estación elegida."
+                );
+            }
+
+            if (bicicleta.getTipo() == null) {
+                throw new ConfiguracionSistemaException(
+                        "Una bicicleta no tiene un tipo configurado."
+                );
+            }
+
+            bicicletas.add(bicicleta);
+            tipoIds.add(bicicleta.getTipo().getId());
+        }
+
+        Estacion estacion = estacionRepository
+                .buscarActivaPorIdConBloqueo(estacionId)
+                .filter(Estacion::isEsPublica)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Debés elegir una estación pública habilitada."
+                        )
+                );
+
+        Map<Integer, TipoBicicleta> tiposContratados = new TreeMap<>();
+
+        for (Integer tipoId : tipoIds) {
+
+            TipoBicicleta tipo = tipoBicicletaRepository
+                    .buscarPorIdConBloqueo(tipoId)
+                    .orElseThrow(() ->
+                            new ConfiguracionSistemaException(
+                                    "No se encontró el tipo de una bicicleta."
+                            )
+                    );
+
+            if (tipo.getPrecioPorHoraUsd() == null
+                    || tipo.getPrecioPorHoraUsd().compareTo(
+                    new BigDecimal("0.01")
+            ) < 0) {
+                throw new ConfiguracionSistemaException(
+                        "Un tipo de bicicleta no tiene una tarifa válida."
+                );
+            }
+
+            tiposContratados.put(tipoId, tipo);
+        }
+
+        EstadoAlquiler estadoReserva = estadoAlquilerRepository
+                .findByCodigo("RESERVADO")
+                .orElseThrow(() ->
+                        new ConfiguracionSistemaException(
+                                "Falta el estado de alquiler RESERVADO."
+                        )
+                );
+
+        EstadoAlquilerDetalle estadoDetalleReserva =
+                estadoAlquilerDetalleRepository
+                        .findByCodigo("RESERVADO")
+                        .orElseThrow(() ->
+                                new ConfiguracionSistemaException(
+                                        "Falta el estado de detalle RESERVADO."
+                                )
+                        );
+
+        EstadoBicicleta estadoBicicletaReservada =
+                estadoBicicleta("RESERVADA");
+
+        LocalDateTime ahora = LocalDateTime.now(reloj);
+
+        Alquiler cabecera = new Alquiler();
+
+        cabecera.setUsuario(usuario);
+        cabecera.setEstadoContratacion(estadoReserva);
+        cabecera.setUbicacionRetiro(estacion);
+        cabecera.setFechaHoraCreacion(ahora);
+        cabecera.setFechaHoraVencimientoReserva(ahora.plusMinutes(15));
+
+        cabecera.setCotizacionArsPorUsd(
+                cotizacion.getCotizacionArsPorUsd()
+        );
+        cabecera.setFuenteCotizacion(cotizacion.getFuente());
+        cabecera.setFechaHoraAplicacionCotizacion(ahora);
+
+        if (cotizacion.getFechaActualizacionFuente() != null) {
+            cabecera.setFechaHoraActualizacionFuente(
+                    cotizacion.getFechaActualizacionFuente()
+                            .withOffsetSameInstant(ZoneOffset.UTC)
+                            .toLocalDateTime()
+            );
+        }
+
+        List<AlquilerDetalle> detalles = new ArrayList<>();
+
+        BigDecimal totalUsd = new BigDecimal("0.00");
+        BigDecimal totalArs = new BigDecimal("0.00");
+
+        for (Bicicleta bicicleta : bicicletas) {
+
+            TipoBicicleta tipo = tiposContratados.get(
+                    bicicleta.getTipo().getId()
+            );
+
+            BigDecimal subtotalUsd =
+                    calculadoraAlquiler.calcularSubtotalUsd(
+                            tipo.getPrecioPorHoraUsd(),
+                            duracionSegundos
+                    );
+
+            BigDecimal subtotalArs =
+                    calculadoraAlquiler.calcularSubtotalArs(
+                            tipo.getPrecioPorHoraUsd(),
+                            duracionSegundos,
+                            cotizacion.getCotizacionArsPorUsd()
+                    );
+
+            AlquilerDetalle detalle = new AlquilerDetalle();
+
+            detalle.setAlquiler(cabecera);
+            detalle.setBicicleta(bicicleta);
+            detalle.setTipoBicicletaContratado(tipo);
+            detalle.setEstado(estadoDetalleReserva);
+            detalle.setPrecioPorHoraAplicadoUsd(
+                    tipo.getPrecioPorHoraUsd()
+            );
+            detalle.setDuracionEstimadaSegundos(duracionSegundos);
+            detalle.setSubtotalEstimadoUsd(subtotalUsd);
+            detalle.setSubtotalEstimadoArs(subtotalArs);
+
+            if (!validator.validate(detalle).isEmpty()) {
+                throw new IllegalArgumentException(
+                        "La duración y las tarifas generan importes "
+                                + "fuera de los límites admitidos."
+                );
+            }
+
+            detalles.add(detalle);
+
+            totalUsd = totalUsd.add(subtotalUsd);
+            totalArs = totalArs.add(subtotalArs);
+        }
+
+        cabecera.setCostoEstimadoUsd(totalUsd);
+        cabecera.setCostoEstimadoArs(totalArs);
+
+        if (!validator.validate(cabecera).isEmpty()) {
+            throw new IllegalArgumentException(
+                    "La contratación genera un importe "
+                            + "fuera del límite admitido."
+            );
+        }
+
+        Alquiler cabeceraGuardada = alquilerRepository.save(cabecera);
+
+        for (AlquilerDetalle detalle : detalles) {
+
+            detalle.setAlquiler(cabeceraGuardada);
+
+            AlquilerDetalle detalleGuardado =
+                    alquilerDetalleRepository.save(detalle);
+
+            historialEstadoDetalleRepository.save(
+                    new HistorialEstadoDetalle(
+                            detalleGuardado,
+                            null,
+                            estadoDetalleReserva,
+                            usuario,
+                            "USUARIO",
+                            "Reserva creada."
+                    )
+            );
+
+            Bicicleta bicicleta = detalleGuardado.getBicicleta();
+            EstadoBicicleta estadoAnterior = bicicleta.getEstado();
+
+            bicicleta.setEstado(estadoBicicletaReservada);
+
+            // Reservar no implica retirar físicamente la bicicleta.
+            bicicletaRepository.save(bicicleta);
+
+            trazabilidadInventario.estado(
+                    bicicleta,
+                    estadoAnterior,
+                    usuario,
+                    "Reserva del alquiler "
+                            + cabeceraGuardada.getId()
+                            + "."
+            );
+        }
+
+        return cabeceraGuardada.getId();
+    }
+
     // CREAR UN ALQUILER
+    @PreAuthorize("hasAuthority('CLIENTE')")
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
     public AlquilerDTO crearAlquiler(
             AlquilerRequestDTO alquilerRequest
@@ -102,6 +535,16 @@ public class AlquilerService {
 
         // 1. Obtener el usuario de la sesión
         Usuario usuario = obtenerUsuarioAutenticado();
+
+        boolean clienteVigente = usuario.getUsuarioRoles().stream()
+                .map(UsuarioRol::getRol)
+                .anyMatch(rol -> "CLIENTE".equals(rol.getCodigo()));
+
+        if (!clienteVigente) {
+            throw new AccessDeniedException(
+                    "La cuenta debe tener rol CLIENTE para contratar."
+            );
+        }
 
         // 2. Buscar y bloquear la bicicleta durante el alquiler
         Bicicleta bicicleta = bicicletaRepository
@@ -206,34 +649,59 @@ public class AlquilerService {
         return new AlquilerDTO(alquilerGuardado);
     }
 
-    /*
-     * BORRAR LÓGICAMENTE UN ALQUILER
-     *
-     * Actualmente este metodo está protegido para ADMIN desde
-     * WebAuthorization.
-     */
-    @Transactional
+
+    // BORRAR LÓGICAMENTE UN ALQUILER
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Transactional(
+            isolation = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class
+    )
     public void borrarAlquilerLogico(Integer id) throws Exception {
 
-        Alquiler alquiler = alquilerRepository.findById(id)
+        Alquiler alquiler = alquilerRepository
+                .buscarPorIdConBloqueo(id)
                 .filter(a -> !a.isBorradoAlquiler())
                 .orElseThrow(() ->
                         new Exception(
-                                "El alquiler con ID "
-                                        + id
-                                        + " no existe."
+                                "El alquiler con ID " + id + " no existe."
                         )
                 );
 
-        // Un viaje activo debe devolverse físicamente antes de borrarse
         if (alquiler.getEstado() == CodigoEstadoAlquiler.INICIADO) {
             throw new IllegalStateException(
-                    "No se puede eliminar un alquiler en curso. " +
-                            "Primero debe finalizarse indicando una estación de devolución."
+                    "No se puede eliminar un alquiler en curso. "
+                            + "Primero debe finalizarse indicando "
+                            + "una estación de devolución."
             );
         }
 
-        // Solo se borran lógicamente alquileres terminados o cancelados
+        EstadoAlquiler estadoContratacion =
+                alquiler.getEstadoContratacion();
+
+        if (estadoContratacion != null) {
+
+            String codigo = estadoContratacion.getCodigo();
+
+            boolean contratacionCerrada =
+                    "FINALIZADO".equals(codigo)
+                            || "CANCELADO".equals(codigo)
+                            || "VENCIDO".equals(codigo);
+
+            if (!contratacionCerrada) {
+                throw new IllegalStateException(
+                        "No se puede eliminar una contratación "
+                                + "que todavía no está cerrada."
+                );
+            }
+
+        } else if (alquiler.getEstado() == null) {
+
+            throw new ConfiguracionSistemaException(
+                    "El alquiler no tiene un estado configurado."
+            );
+        }
+
+        // Solo cambia la visibilidad; no cancela ni liquida.
         alquiler.setBorradoAlquiler(true);
         alquilerRepository.save(alquiler);
     }
