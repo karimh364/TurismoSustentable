@@ -1,5 +1,12 @@
 # Propuesta unificada de estados y transiciones
 
+Nota de vigencia, 11 de noviembre de 2026: las reglas aprobadas de este
+documento se mantienen. Sus notas antiguas de "no implementado" no describen
+por sí solas el avance actual, que es parcial. Consultar el
+[balance de migración](40-revision-coherencia-migracion-der-v5.md) y el índice 00
+para distinguir diseño, código integrado y pendientes; no reabrir aprobaciones
+por una observación histórica.
+
 Ampliación aprobada el 8 de noviembre de 2026: RN-INV-04 (documento 26,
 sección 10) permite Eliminar con retirada física definitiva desde la ubicación
 pública o interna activa registrada, manteniendo los controles de RN-INV-02.

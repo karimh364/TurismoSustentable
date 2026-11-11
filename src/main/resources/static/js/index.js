@@ -43,7 +43,7 @@ function mostrarSesionConfirmada(usuario) {
     const isLogueado = Boolean(usuario);
     const roles = usuario ? rolesDelUsuario(usuario) : [];
     const esAdmin = roles.includes('ADMIN');
-    const puedeAlquilar = esAdmin || roles.includes('CLIENTE');
+    const puedeAlquilar = roles.includes('CLIENTE');
 
     document.querySelectorAll('.nav-visitante, .btn-visitante').forEach(
         el => el.classList.toggle('d-none', isLogueado)

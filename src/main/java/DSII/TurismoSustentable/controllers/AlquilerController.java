@@ -85,26 +85,20 @@ public class AlquilerController {
     // BORRAR ALQUILER
     @DeleteMapping("/alquileres/{id}")
     public ResponseEntity<Object> borrarAlquilerLogico(
-            @PathVariable Integer id
+            @PathVariable("id") Integer id
     ) {
         try {
             alquilerService.borrarAlquilerLogico(id);
 
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return ResponseEntity.noContent().build();
+
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(e.getMessage());
 
         } catch (IllegalStateException e) {
-            // El alquiler todavía está en curso
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.CONFLICT
-            );
-
-        } catch (Exception e) {
-            // El alquiler no existe
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.NOT_FOUND
-            );
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
         }
     }
 

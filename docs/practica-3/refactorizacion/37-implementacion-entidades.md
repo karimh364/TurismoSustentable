@@ -10375,3 +10375,98 @@ Fecha: 10 de noviembre de 2026.
   completadas; no se ha acreditado aún esquema MySQL posterior a su retiro.
   Documentación actualizada por el asistente, sin nuevas ediciones Java,
   ejecuciones de Gradle/SQL, eliminaciones o escrituras Git.
+
+### Etapa 251 Revisión de coherencia antes de migrar listados
+
+Fecha: 11 de noviembre de 2026.
+
+- Revisión pedida por el usuario antes de continuar: DER v5 completo, reglas
+  aprobadas, fuentes actuales y consumidores. Resultado consolidado en documento
+  40, con hallazgos R01-R09, evidencias y condiciones de cierre. No auditoría
+  exhaustiva de seguridad ni validación de BD viva.
+- Confirmados hash idéntico Mermaid/TXT, 24 Entity del DER, cinco financieras
+  faltantes, tarjetas/suscripción retiradas y legado activo localizado. Hallazgo
+  adicional de enum GeneroUsuario sin referencias y propiedades alquileres de
+  UsuarioDTO/BicicletaDTO sin llenar, separadas del legado todavía consumido.
+- No migrar solo GET/JSON: POST/PATCH y pantallas continúan en modelo anterior;
+  nuevos registros en listados AlquilerDTO pueden provocar null dereference.
+  Incluir estadísticas, guardas de inventario, auditoría ADMIN y actor SISTEMA
+  en el cierre; no declarar operativos mantenimiento/incidencias por sus modelos.
+- Índice actualizado como estado actual y bitácora identificada como histórica.
+  Notas de vigencia en 08/22/25/28 para no confundir diseño y código actual.
+  Documento 31 alineado con decisión exclusiva ADMIN del 35, sin nuevas tablas
+  o reglas de pago. Origen automático no se atribuye a administrador ficticio.
+- Git estaba limpio al iniciar, commit 25c54fa. Solo documentos Markdown
+  modificados/creados; sin cambios Java, eliminaciones, Gradle, HTTP, SQL o Git
+  de escritura. Próximo paso propuesto: cierre acotado de limpieza y errores,
+  seguido de integración coordinada de lecturas y dependencias del recorrido.
+
+### Etapa 252 Bloque manual de limpieza y coherencia HTTP/UI preparado
+
+Fecha: 11 de noviembre de 2026.
+
+- Instrucciones propuestas (todavía sin edición Java/JS): retirar GeneroUsuario
+  sin referencias; campo/getter alquileres de UsuarioDTO y BicicletaDTO, import
+  List sobrante y mapeo comentado de este último. Conservar AlquilerDTO y las
+  asociaciones de entidades que aún tienen consumidores del circuito anterior.
+- Borrado de alquiler: reemplazar excepción genérica de inexistencia por
+  EntityNotFoundException y retirar throws Exception del método de servicio.
+  Controlador captura solo inexistencia 404 y conflicto de estado 409; no
+  convertir AccessDeniedException/configuración/errores imprevistos en 404.
+- index.js: puedeAlquilar depende solo de CLIENTE; ADMIN conserva acceso al panel
+  y logout. No tocar reglas HTTP para ampliar privilegios. Confirmados selectores:
+  btn-usuario corresponde al botón alquilar; logout no depende de esa clase.
+- Pruebas propuestas: ContratoSalidaDTOTest (dos contratos JSON sin propiedad
+  alquileres), BorradoAlquilerControllerTest (ocho estados/permisos HTTP), ajustar
+  aserción de inexistencia del servicio al tipo específico y añadir cinco casos
+  al arnés Sesion.test.cjs para navegación según roles. Reusar arnés existente.
+- Comprobación manual con clean, regresión filtrada y Node; sin habilitar variable
+  de MySQL. No se acreditan resultados del bloque ni se declara migrado el listado.
+  R01/R02/R03/R07/R08/R09 y resto de R06 permanecen pendientes en documento 40.
+
+### Etapa 253 Bloque acotado aplicado por autorización expresa
+
+Fecha: 11 de noviembre de 2026.
+
+- Usuario delega solo etapa 252 y reserva parte 5 de guardar/comprobar.
+  Retirado GeneroUsuario.java (versionado, recuperable en Git), propiedades
+  alquileres/getters sin completar de UsuarioDTO y BicicletaDTO, import List
+  sobrante y mapeo comentado del último. Conservados DTO y relaciones del legado
+  que siguen activos; sin tocar listados o claves del DER.
+- borrarAlquilerLogico ahora lanza EntityNotFoundException si no existe y no
+  declara throws Exception. Controlador DELETE captura solo inexistencia 404 y
+  conflicto de estado 409; denegación/configuración no se convierten en 404.
+  Guardas, bloqueo y borrado lógico conservados; texto usa alquiler.
+- index.js exige CLIENTE para botones de alquiler/Mi Cuenta; panel ADMIN y
+  logout se mantienen. No se cambiaron permisos HTTP, pagos o sesiones.
+- Agregados ocho casos en BorradoAlquilerControllerTest, dos en
+  ContratoSalidaDTOTest y cinco en arnés existente Sesion.test.cjs. Ajustada la
+  aserción de inexistencia de BorradoAlquilerServiceTest al tipo específico.
+- Revisión estática de diff y referencias sin restos de GeneroUsuario ni campos
+  retirados en DTO. git diff --check sin errores de espacios. No ejecutados
+  Gradle, Node, aplicación o SQL; compilados viejos pendientes de clean.
+- R04/R05 y permiso visual de R06 aplicados, no verificados aún por ejecución.
+  El resto del informe 40 sigue pendiente; no declarar cerrado alquiler ni la
+  migración del listado. Sin commit/push por el asistente.
+
+### Etapa 254 Limpieza y coherencia HTTP/UI verificadas
+
+Fecha: 11 de noviembre de 2026.
+
+- Parte 5 ejecutada por el usuario: clean test dirigido exitoso. XML actuales:
+  22 suites, 207 casos declarados, 204 aprobados, cero fallos/errores y tres
+  omitidos correspondientes a AlquilerMysqlIntegrationTest. Incluye ocho casos
+  nuevos de DELETE, dos de contrato JSON y 21 de CrearReservaServiceTest.
+- Salida Node aportada por el usuario: check de index.js sin error y 22 casos
+  de Sesion.test.cjs aprobados, sin omisiones/fallos. Incluye cinco variantes
+  de navegación CLIENTE, ADMIN, ambos roles, TECNICO y visitante.
+- Búsqueda posterior sin referencias de GeneroUsuario o propiedades eliminadas
+  en DTO/tests; GeneroUsuario.class no existe tras clean. No nueva ejecución
+  de Node/Gradle ni acceso SQL por el asistente.
+- R04 y R05 cerrados en el alcance revisado y probado (fuente, serialización,
+  lógica y MVC). Permiso visual de R06 comprobado mediante arnés, no navegador
+  manual; importes/fechas del frontend aún pendientes. No acredita auditoría
+  completa de seguridad o validación MySQL después de la limpieza.
+- Documentación actualizada. Listados, circuito financiero/operativo y demás
+  hallazgos de documento 40 continúan abiertos. Sin modificaciones Java o Git
+  de escritura en esta verificación.

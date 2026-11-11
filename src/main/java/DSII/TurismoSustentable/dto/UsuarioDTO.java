@@ -22,8 +22,6 @@ public class UsuarioDTO {
     private List<String> roles;
     private LocalDate fechaNacimiento;
 
-    private List<AlquilerDTO> alquileres;
-
     // Constructor
     public UsuarioDTO(Usuario usuario) {
         Persona persona = usuario.getPersona();
@@ -87,7 +85,5 @@ public class UsuarioDTO {
     }
 
     public LocalDate getFechaNacimiento() { return fechaNacimiento; }
-
-    public List<AlquilerDTO> getAlquileres() { return alquileres; }
 
 }

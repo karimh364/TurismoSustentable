@@ -1,5 +1,11 @@
 # Revisión de personas usuarios y roles
 
+Nota de vigencia, 11 de noviembre de 2026: Persona, catálogos, UsuarioRol y login
+por nickname ya tienen implementación. Las observaciones originales de esta
+revisión describen la versión anterior, no el código actual. Las reglas de
+identidad/permisos siguen vigentes; sus brechas de integración se distinguen en
+el [balance de migración](40-revision-coherencia-migracion-der-v5.md).
+
 Fecha: 28 de octubre de 2026.
 
 Estado: las tres incorporaciones de identificación y acceso fueron aprobadas expresamente el 28 de octubre de 2026 y se integraron al DER v5: TIPO_DOCUMENTO y PAIS, documento compuesto obligatorio al registrarse y nickname único para iniciar sesión. Email conserva su unicidad independiente, recuperación y notificaciones. El modelo tiene 28 entidades; no se modificaron Java ni la base de datos. Las longitudes nuevas, normalizaciones específicas, datos iniciales y transición del legado se concretarán en el diseño físico y la implementación.

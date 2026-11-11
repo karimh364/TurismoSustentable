@@ -19,6 +19,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.util.Optional;
 
@@ -187,8 +188,8 @@ class BorradoAlquilerServiceTest {
                                 : Optional.empty()
                 );
 
-        Exception error = assertThrows(
-                Exception.class,
+        EntityNotFoundException error = assertThrows(
+                EntityNotFoundException.class,
                 () -> servicio.borrarAlquilerLogico(50)
         );
 

@@ -656,13 +656,13 @@ public class AlquilerService {
             isolation = Isolation.READ_COMMITTED,
             rollbackFor = Exception.class
     )
-    public void borrarAlquilerLogico(Integer id) throws Exception {
+    public void borrarAlquilerLogico(Integer id) {
 
         Alquiler alquiler = alquilerRepository
                 .buscarPorIdConBloqueo(id)
                 .filter(a -> !a.isBorradoAlquiler())
                 .orElseThrow(() ->
-                        new Exception(
+                        new EntityNotFoundException(
                                 "El alquiler con ID " + id + " no existe."
                         )
                 );
@@ -689,8 +689,8 @@ public class AlquilerService {
 
             if (!contratacionCerrada) {
                 throw new IllegalStateException(
-                        "No se puede eliminar una contratación "
-                                + "que todavía no está cerrada."
+                        "No se puede eliminar un alquiler "
+                                + "que todavía no está cerrado."
                 );
             }
 

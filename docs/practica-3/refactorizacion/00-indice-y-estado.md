@@ -1,26 +1,33 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 10 de noviembre de 2026.
+Actualizado: 11 de noviembre de 2026.
 
-Estado más reciente: etapa 250 del documento 37. Retirados cuatro archivos de
-tarjetas locales/suscripción y referencias de Usuario/UsuarioDTO. Clean verificado:
-173 pruebas aprobadas y 3 de MySQL omitidas intencionalmente; sin referencias ni
-compilados de clases retiradas. CrearReservaServiceTest verificado después en
-otra ejecución: 21 casos aprobados. Sin comprobación SQL posterior a esta limpieza.
-Balance nominal: 24/29 entidades
-del DER tienen clase Java (82,8% estructural por nombre, NO avance funcional).
-Cinco entidades financieras faltantes; Tarjeta/Suscripcion ya retiradas del código.
-Alquiler NO cerrado al 100%:
-pendientes migración de listados/consumidores HTTP y retiro coordinado de legado,
-además de ciclo operativo y financiero. Checkpoint Git parcial propuesto al usuario.
-Tres pruebas de integración de etapa 244
-MySQL real aprobadas sin omisiones: guardado de reserva/historias, consulta de
-DTO y rollback tras escrituras. Reutilizada turismo_sustentable con create-drop
-por aceptación del usuario y aplicación detenida. Las 98 pruebas unitarias/MVC
-previas corresponden a otra ejecución. Cotización real, concurrencia y matriz
-negativa de seguridad sobre proxy siguen pendientes; alta nueva sin exponer HTTP.
-Retiro de dependencias del legado documentado, no completado. Sin activar reserva;
-deuda/pagos, controlador/frontend, devolución, vencimiento e integración SQL pendientes.
+Estado más reciente: etapa 254 del documento 37. Limpieza R04, errores HTTP R05
+y permiso visual CLIENTE de R06 verificados: 204 pruebas Java aprobadas y tres
+MySQL omitidas intencionalmente; 22 pruebas Node aprobadas y check sin error.
+No se reejecutaron por el asistente. Referencia de seguimiento:
+[revisión de coherencia y pendientes de cierre](40-revision-coherencia-migracion-der-v5.md).
+El documento 37 conserva la bitácora; las notas de etapas anteriores no son
+estados actuales ni invalidan reglas aprobadas posteriores.
+
+- DER vigente: 29 entidades/55 relaciones; Mermaid y TXT idénticos. 24 entidades
+  con clase Java; no es un porcentaje funcional ni de conformidad total de campos.
+- Reserva interna, consulta por ID y protección de borrado implementadas en el
+  alcance probado. Alta/devolución HTTP, listados, estadísticas y controles de
+  inventario aún mezclan consumidores antiguos. No activar creación nueva por HTTP.
+- Tarjetas locales/suscripción retiradas y confirmadas en commit 25c54fa. Regresiones
+  de limpieza: 173 casos y luego 21 de reserva en tandas distintas. Tres pruebas
+  MySQL anteriores a esa limpieza; sin repetir SQL en esta revisión.
+- Limpieza aplicada: enum GeneroUsuario y propiedades alquileres no completadas
+  de DTO retirados; DELETE diferencia inexistencia/conflicto de fallo interno y
+  denegación; inicio muestra alquiler solo con CLIENTE. Regresiones verificadas.
+  Las lecturas nuevas deben coordinar consumidor y productor, no solo su JSON.
+- Pendientes de circuito: pagos/deuda, retiro/devolución por detalle, vencimiento,
+  cancelaciones, preventivo, incidencias, auditoría ADMIN y eventos SISTEMA.
+- Pruebas dirigidas posteriores a etapa 253 verificadas; sin SQL o prueba manual
+  de navegador nueva en esta tanda. Listados y circuito completo siguen pendientes.
+
+## Antecedentes cronológicos (no representan el estado actual)
 
 Etapa 198: AlquilerImportesTest creado
 y revisado sin correcciones; cuarenta y ocho pruebas conjuntas verificadas

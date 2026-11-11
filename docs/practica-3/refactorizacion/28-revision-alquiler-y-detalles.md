@@ -1,5 +1,12 @@
 # Revisión de alquiler y detalles
 
+Nota de vigencia, 11 de noviembre de 2026: la reserva interna por cabecera y
+detalles, consulta nueva por ID e historiales ya cuentan con código y pruebas
+registradas. No está completo el circuito operativo/financiero ni migrados todos
+los consumidores. Los párrafos fechados de diagnóstico conservan su carácter
+histórico; el estado actual y las guardas de retiro del legado se encuentran en
+el [balance de migración](40-revision-coherencia-migracion-der-v5.md).
+
 Fecha: 28 de octubre de 2026.
 
 Estado: unicidad alquiler/bicicleta, FK al tipo contratado, RN-ALQ-10 y RN-ALQ-11 aprobadas e incorporadas. El 2 de noviembre RN-TRZ-01 incorpora además incidencia_corte_id opcional FK/UK de la incidencia determinante del mismo detalle. El modelo completo queda en 29 entidades y 55 FK/relaciones por las cuatro mejoras de trazabilidad. Se conservan cobro real, origen único en cabecera, máximo inicial de diez configurable y selección fija. Java y la base siguen sin cambios; los casos de negocio no se ejecutaron.

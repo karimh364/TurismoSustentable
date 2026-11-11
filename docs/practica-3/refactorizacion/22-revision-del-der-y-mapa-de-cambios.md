@@ -1,5 +1,12 @@
 # Revisión del DER y mapa de cambios
 
+Nota de vigencia, 11 de noviembre de 2026: este archivo conserva revisiones y
+fotografías históricas del diseño. El Mermaid v5 vigente tiene 29 entidades y
+55 relaciones; el código está parcialmente migrado. Para el estado actual de
+implementación y retiro del legado consultar el
+[balance de migración](40-revision-coherencia-migracion-der-v5.md), no deducirlo
+de cantidades o pendientes fechados anteriores.
+
 Fecha: 28 de octubre de 2026.
 
 Estado actualizado al 6 de noviembre de 2026: DER v5 lógico de trabajo con 29 entidades y 55 FK/relaciones. Se conservan las incorporaciones de RN-TRZ-01 y se refleja RN-INV-01: ESTACION.es_publica distingue Taller interno y BICICLETA.borrado_bici se conserva separado del estado. La sección 7 del documento 26 registra las condiciones aprobadas y la precisión sobre EXTRAVIADA; no se agregan entidades o relaciones. El diseño físico, las integraciones y migración siguen pendientes. No se modificaron Java, MySQL, frontend, originales ni la copia del compañero.

@@ -32,7 +32,13 @@ La documentación oficial de Mercado Pago consultada el 1 de noviembre distingue
 | REEMBOLSO.motivo, referencia_externa, clave_idempotencia y version | Justificación, conciliación y control de esa devolución, sin modificar el monto del pago original |
 | Ambos historiales financieros | Conservan estado anterior/nuevo, fecha local, fecha externa si existe, actor/origen y correlación; estado actual e historial se mantienen en una transacción local |
 
-No hace falta otro historial que duplique los dos ya aprobados. AUDITORIA_SISTEMA cubre hechos relevantes sin transición de estado, incluido el tratamiento de notificaciones repetidas; no se inventan transiciones para llenar un historial.
+No hace falta otro historial que duplique los dos ya aprobados. Conforme a la
+decisión posterior del documento 35, AUDITORIA_SISTEMA registra exclusivamente
+acciones administrativas relevantes ejecutadas como ADMIN. No es un registro
+genérico de notificaciones automáticas: no se atribuyen esas notificaciones a
+un administrador ficticio ni se inventan transiciones para llenar un historial.
+La detección y conciliación de eventos repetidos corresponde a la integración
+del pago y sus referencias/idempotencia; esta aclaración no incorpora otra tabla.
 
 ## 3. RN-PAG-03 aprobada sobre cancelación durante el anticipo
 

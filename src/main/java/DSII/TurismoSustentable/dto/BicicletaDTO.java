@@ -4,7 +4,6 @@ import DSII.TurismoSustentable.models.Bicicleta;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 public class BicicletaDTO {
 
@@ -23,8 +22,6 @@ public class BicicletaDTO {
     private Integer version;
     private LocalDate fechaAlta;
     private boolean borradoBici;
-
-    private List<AlquilerDTO> alquileres;
 
     public BicicletaDTO() {
     }
@@ -48,9 +45,6 @@ public class BicicletaDTO {
             this.ubicacion = "Sin Asignar";
         }
 
-        //ALQUILERES
-        /*this.alquileres = bicicleta.getAlquileres().stream().map(alquiler ->
-                new AlquilerDTO(alquiler)).collect(Collectors.toList());*/
     }
 
     public int getId() {
@@ -82,7 +76,4 @@ public class BicicletaDTO {
         return precio;
     }
 
-    public List<AlquilerDTO>getAlquileres(){
-        return alquileres;
-    }
 }

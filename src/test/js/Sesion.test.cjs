@@ -239,3 +239,63 @@ test('guardar estación con 401 no anuncia éxito ni reenvía el POST', async ()
     assert.equal(e.avisos.length, 0);
     assert.deepEqual(e.redirecciones, ['index.html?sesion=finalizada#login-anchor']);
 });
+
+for (const caso of [
+    { nombre: 'CLIENTE', roles: ['CLIENTE'], cliente: true, admin: false },
+    { nombre: 'ADMIN', roles: ['ADMIN'], cliente: false, admin: true },
+    { nombre: 'ADMIN y CLIENTE', roles: ['ADMIN', 'CLIENTE'], cliente: true, admin: true },
+    { nombre: 'TECNICO', roles: ['TECNICO'], cliente: false, admin: false },
+    { nombre: 'visitante', roles: null, cliente: false, admin: false }
+]) {
+    test(`inicio muestra acciones correctas para ${caso.nombre}`, () => {
+        const e = entorno();
+        const ocultos = new Map();
+
+        const control = nombre => ({
+            classList: {
+                toggle(clase, ocultar) {
+                    assert.equal(clase, 'd-none');
+                    ocultos.set(nombre, ocultar);
+                }
+            }
+        });
+
+        const alquilar = control('alquilar');
+        const panel = control('panel');
+        const misAlquileres = control('misAlquileres');
+
+        e.contexto.document.querySelectorAll = selector => {
+            if (selector === '.btn-usuario') return [alquilar];
+            if (selector === '.nav-admin') return [panel];
+            return [];
+        };
+
+        const selectorOriginal = e.contexto.document.querySelector;
+
+        e.contexto.document.querySelector = selector => {
+            if (selector.includes('a[href="mis_alquileres.html"]')) {
+                return { closest: () => misAlquileres };
+            }
+            return selectorOriginal(selector);
+        };
+
+        e.cargar('index.js');
+
+        e.contexto.mostrarSesionConfirmada(
+            caso.roles ? { nombre: 'QA', roles: caso.roles } : null
+        );
+
+        assert.equal(ocultos.get('alquilar'), !caso.cliente);
+        assert.equal(ocultos.get('misAlquileres'), !caso.cliente);
+        assert.equal(ocultos.get('panel'), !caso.admin);
+
+        assert.equal(
+            e.formulario.innerHTML.includes('Ir a Mi Cuenta'),
+            caso.cliente
+        );
+        assert.equal(
+            e.formulario.innerHTML.includes('Ir al Panel Admin'),
+            caso.admin
+        );
+    });
+}
