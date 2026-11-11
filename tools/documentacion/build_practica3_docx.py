@@ -272,7 +272,7 @@ section(doc, "3.1 Modelo incremental e iterativo", ["Cada incremento incluirá r
 add_placeholder(doc, 1, "Ciclo de vida incremental e iterativo", "Necesidad → requerimientos → análisis → diseño → implementación → pruebas → evaluación → documentación.")
 section(doc, "3.2 Etapas", bullets=["Relevar la necesidad.", "Definir requerimientos y aceptación.", "Modelar procesos y datos.", "Diseñar y registrar decisiones.", "Implementar el incremento.", "Probar y conservar evidencias.", "Actualizar documentación y trazabilidad."], numbered=True)
 section(doc, "3.3 Incrementos previstos")
-add_table(doc, ["Incremento", "Contenido"], [["0", "Arquitectura y migraciones"], ["1", "Usuarios y seguridad"], ["2", "Estaciones"], ["3", "Bicicletas y mantenimiento"], ["4", "Tarifas y alquileres"], ["5", "Pagos o suscripciones"], ["6", "Notificaciones y reportes"], ["7", "Pruebas integrales y cierre"]], [2.8, 13.4])
+add_table(doc, ["Incremento", "Contenido"], [["0", "Arquitectura y migraciones"], ["1", "Usuarios y seguridad"], ["2", "Estaciones"], ["3", "Bicicletas y mantenimiento"], ["4", "Tarifas y alquileres"], ["5", "Pagos y reembolsos"], ["6", "Notificaciones y reportes"], ["7", "Pruebas integrales y cierre"]], [2.8, 13.4])
 section(doc, "3.4 Definición de terminado", ["Una funcionalidad se considerará terminada cuando el requerimiento esté aprobado, el código integrado, las reglas probadas, las evidencias registradas y la documentación actualizada."])
 
 chapter(doc, "4. Relevamiento y requerimientos")

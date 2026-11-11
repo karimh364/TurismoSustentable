@@ -2,7 +2,15 @@
 
 Actualizado: 10 de noviembre de 2026.
 
-Estado más reciente: etapa 245 del documento 37. Alquiler NO cerrado al 100%:
+Estado más reciente: etapa 250 del documento 37. Retirados cuatro archivos de
+tarjetas locales/suscripción y referencias de Usuario/UsuarioDTO. Clean verificado:
+173 pruebas aprobadas y 3 de MySQL omitidas intencionalmente; sin referencias ni
+compilados de clases retiradas. CrearReservaServiceTest verificado después en
+otra ejecución: 21 casos aprobados. Sin comprobación SQL posterior a esta limpieza.
+Balance nominal: 24/29 entidades
+del DER tienen clase Java (82,8% estructural por nombre, NO avance funcional).
+Cinco entidades financieras faltantes; Tarjeta/Suscripcion ya retiradas del código.
+Alquiler NO cerrado al 100%:
 pendientes migración de listados/consumidores HTTP y retiro coordinado de legado,
 además de ciclo operativo y financiero. Checkpoint Git parcial propuesto al usuario.
 Tres pruebas de integración de etapa 244

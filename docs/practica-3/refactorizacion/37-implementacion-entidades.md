@@ -10264,3 +10264,114 @@ Fecha: 10 de noviembre de 2026.
   no afirmar que los últimos cambios están respaldados ni hacer escrituras Git
   por una pregunta. git add actualizará eliminación del nombre anterior y alta
   del nuevo. No se ejecutaron commit, push o fetch por el asistente.
+
+### Etapa 246 Balance estructural y criterio de cierre de migración
+
+Fecha: 10 de noviembre de 2026.
+
+- Ante observación del usuario sobre frentes abiertos se contrastaron nombres
+  de entidades del Mermaid v5 con clases @Entity: 29 en DER, 24 con clase Java
+  correspondiente (82,8% de cobertura nominal de entidades). No es porcentaje
+  de conformidad de campos/FK, funcionalidades ni finalización del proyecto.
+- Sin clase correspondiente: ESTADO_PAGO, PAGO, REEMBOLSO,
+  HISTORIAL_ESTADO_PAGO e HISTORIAL_ESTADO_REEMBOLSO. Fuera del DER siguen dos
+  Entity de legado: Tarjeta y Suscripcion. Tarjeta conserva relaciones en Usuario
+  y usos en TarjetaDTO/TarjetaRepository; Suscripcion sin referencias externas en
+  src/main/java en esta búsqueda. No se borró ninguna clase por esta revisión.
+- Servicios/controladores vigentes confirman reserva/consulta parcial de alquiler
+  y módulos de personas/roles/estaciones/inventario; modelos de mantenimiento e
+  incidencias no equivalen a servicios/operaciones completas. No hay porcentaje
+  global funcional auditado. Número de pruebas no es medida de avance del DER.
+- La coexistencia temporal debía terminar al migrar consumidores, no perpetuarse.
+  Se reconoce exceso de fragmentación: preparar muchos elementos sin una puerta
+  de cierre visible prolonga legado y genera deuda de integración. No prometer
+  cierre completo de alquiler antes de sus dependencias de pago/uso/devolución.
+- Criterio de cierre por funcionalidad: camino servicio/repositorio/HTTP/permisos
+  y consumidor aplicable integrado; pruebas del alcance; retiro de métodos,
+  referencias, clases/campos sustituidos tras comprobación de consumidores;
+  documentación de uso/estado actual coherente; checkpoint Git del avance real.
+- Próximo trabajo debe incluir auditoría acotada y retiro del legado fuera de
+  alcance aprobado (tarjetas locales/suscripción), previa revisión de consumidores
+  y pruebas; no seguir agregando entidades sin resolver esta limpieza identificada.
+  Después completar recorridos de alquiler con sus dependencias explícitas,
+  evitando tanto eliminar usos activos como conservar dos circuitos definitivos.
+- Solo lectura y documentación en esta revisión. No cambios Java, eliminaciones,
+  ejecución SQL o Git de escritura.
+
+### Etapa 247 Retiro de tarjetas locales y suscripción delimitado
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario confirma eliminar todo el módulo local Tarjeta/Suscripcion por no
+  pertenecer al alcance actual. Auditoría de src, configuración y herramientas:
+  cuatro archivos a retirar (models/Tarjeta.java, models/Suscripcion.java,
+  dto/TarjetaDTO.java, repositories/TarjetaRepository.java).
+- Usuario: retirar únicamente colección JPA tarjetas, addTarjeta, getTarjetas y
+  setTarjetas. UsuarioDTO: retirar import Tarjeta, campo List<TarjetaDTO> tarjetas
+  y getter. Mantener relaciones de usuario con alquileres/roles sin cambios.
+- No encontrados controladores, endpoints, formularios, JS o tests que consuman
+  ese módulo o propiedad tarjetas. Los restantes textos tarjeta en src son
+  dólar tarjeta/API y tarjetas visuales de bicicletas: no son medios de pago
+  locales y no deben eliminarse por reemplazo textual global.
+- tools/documentacion/build_practica3_docx.py aún propone Pagos o suscripciones
+  en una tabla de planificación; cambiar a Pagos y reembolsos para futuras
+  generaciones, sin regenerar Word/PDF ni alterar documentos originales.
+- Mantener antecedente histórico de cambios de alcance y negación de tarjetas
+  locales en RN-PAG-05: no representan módulos activos que deban borrarse.
+  No modificación del DER v5: esas dos entidades ya están excluidas de él.
+- Propuesta manual pendiente de aplicar por usuario. Usar clean para eliminar
+  .class de entidades retiradas, comprobar referencias y ejecutar regresión
+  dirigida sin activar integración MySQL. El test destructivo opt-in permanece
+  excluido si TURISMO_TEST_MYSQL no está habilitada. No DROP manual de tablas.
+- No se editaron fuentes Java/Python ni se eliminaron archivos por el asistente.
+
+### Etapa 248 Tarjetas y suscripción retiradas por autorización expresa
+
+Fecha: 10 de noviembre de 2026.
+
+- Usuario delega expresamente solo el bloque de etapa 247 y reserva parte 5
+  (guardar/comprobar). Retirados Tarjeta.java, Suscripcion.java, TarjetaDTO.java
+  y TarjetaRepository.java; archivos versionados recuperables mediante Git.
+- Usuario sin colección/relación JPA tarjetas ni add/get/setTarjetas. UsuarioDTO
+  sin import, propiedad o getter de tarjetas. Relaciones de roles y alquileres
+  conservadas. Herramienta documental cambia solo Pagos o suscripciones por
+  Pagos y reembolsos. No se regeneraron documentos.
+- Búsqueda en src/main/java y src/test/java sin referencias a clases y métodos
+  retirados. Revisado diff de archivos modificados; git diff --check sin errores
+  de espacios. Conservados dólar tarjeta, Mercado Pago, tarjetas visuales y
+  documentación histórica de decisiones; DER v5 sin modificaciones.
+- No ejecución de Gradle, script documental, aplicación, SQL o escrituras Git.
+  No se eliminaron tablas manualmente. Compilados antiguos se retirarán con
+  clean al ejecutar el usuario la parte 5; tests y esquema recreado pendientes
+  de verificar. No se presenta limpieza de fuente como prueba de persistencia.
+
+### Etapa 249 Limpieza de fuentes y compilados verificada
+
+Fecha: 10 de noviembre de 2026.
+
+- Ejecución clean test del usuario verificada por XML de 2026-11-11T00:15:57/
+  00:16:00Z (10/11 hora local): 19 suites, 176 casos declarados, 173 ejecutados
+  sin fallos/errores y 3 omitidos correspondientes a AlquilerMysqlIntegrationTest.
+  La prueba destructiva no fue habilitada, como se esperaba.
+- Búsqueda sin referencias a las clases/métodos retirados en main/test Java;
+  tampoco existen Tarjeta.class, Suscripcion.class, TarjetaDTO.class ni
+  TarjetaRepository.class en build/classes tras clean. Confirmada limpieza de
+  fuente y compilación, no de tablas físicas mediante esta ejecución sin SQL.
+- Observación de filtro: CrearReservaServiceTest NO coincide con *Alquiler*Test
+  ni *Usuario*Test. No se ejecutó en esta tanda; indicar ejecución específica
+  para completar su regresión tras limpieza. No afirmar que todos los casos
+  anteriores de alquiler se reejecutaron aquí.
+- No cambios Java o ejecución de Gradle/SQL/Git por el asistente. Documentación
+  actualizada con resultados y pendiente puntual de prueba de crearReserva.
+
+### Etapa 250 Regresión de reserva tras limpieza completada
+
+Fecha: 10 de noviembre de 2026.
+
+- XML CrearReservaServiceTest de 2026-11-11T00:30:25.953Z: 21 casos,
+  sin fallos, errores u omisiones. Completada la regresión que no incluían los
+  filtros de etapa 249. Ejecución separada, no una suite conjunta de 194 casos.
+- Limpieza de tarjetas locales/suscripción y regresiones dirigidas de fuente
+  completadas; no se ha acreditado aún esquema MySQL posterior a su retiro.
+  Documentación actualizada por el asistente, sin nuevas ediciones Java,
+  ejecuciones de Gradle/SQL, eliminaciones o escrituras Git.

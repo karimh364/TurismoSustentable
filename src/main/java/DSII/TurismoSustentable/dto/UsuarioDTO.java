@@ -1,7 +1,6 @@
 package DSII.TurismoSustentable.dto;
 
 import DSII.TurismoSustentable.models.Persona;
-import DSII.TurismoSustentable.models.Tarjeta;
 import DSII.TurismoSustentable.models.Usuario;
 
 import java.time.LocalDate;
@@ -24,7 +23,6 @@ public class UsuarioDTO {
     private LocalDate fechaNacimiento;
 
     private List<AlquilerDTO> alquileres;
-    private List<TarjetaDTO> tarjetas;
 
     // Constructor
     public UsuarioDTO(Usuario usuario) {
@@ -91,6 +89,5 @@ public class UsuarioDTO {
     public LocalDate getFechaNacimiento() { return fechaNacimiento; }
 
     public List<AlquilerDTO> getAlquileres() { return alquileres; }
-    public List<TarjetaDTO> getTarjetas() { return tarjetas; }
 
 }

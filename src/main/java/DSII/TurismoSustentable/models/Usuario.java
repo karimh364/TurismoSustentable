@@ -105,9 +105,6 @@ public class    Usuario {
     @OneToMany(mappedBy = "usuario", fetch = FetchType.EAGER)
     Set<Alquiler> alquileres = new HashSet<>();
 
-    @OneToMany(mappedBy = "usuario", fetch = FetchType.EAGER)
-    Set<Tarjeta> tarjetas = new HashSet<>();
-
     // CONSTRUCTORES
     public Usuario() {
     }
@@ -137,12 +134,6 @@ public class    Usuario {
     public void addAlquiler(Alquiler alquiler){
         alquiler.setUsuario(this);
         this.alquileres.add(alquiler);
-    }
-
-    // Metodo para añadir una Tarjeta
-    public void addTarjeta(Tarjeta tarjeta){
-        tarjeta.setUsuario(this);
-        this.tarjetas.add(tarjeta);
     }
 
     // GETTERS Y SETTERS
@@ -218,16 +209,8 @@ public class    Usuario {
         return alquileres;
     }
 
-    public Set<Tarjeta> getTarjetas() {
-        return tarjetas;
-    }
-
     public void setAlquileres(Set<Alquiler> alquileres) {
         this.alquileres = alquileres;
-    }
-
-    public void setTarjetas(Set<Tarjeta> tarjetas) {
-        this.tarjetas = tarjetas;
     }
 
     public String getTokenRecuperacion() {
