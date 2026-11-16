@@ -13,6 +13,8 @@ import java.util.Optional;
 import java.util.List;
 
 public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
+    @Query("select b.id from Bicicleta b where b.borradoBici=false and b.estado.codigo='DISPONIBLE' and b.id > :desde order by b.id")
+    List<Integer> buscarCandidatasPreventiva(@Param("desde") Integer desde, org.springframework.data.domain.Pageable pagina);
 
     /**
      * 3. ESTADOS DE LAS BICICLETAS (Preferencias/Estados de Bicis en general)

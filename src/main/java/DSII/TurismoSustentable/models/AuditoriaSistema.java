@@ -28,6 +28,10 @@ public class AuditoriaSistema {
     protected AuditoriaSistema() {}
     public AuditoriaSistema(Usuario admin, String entidad, Integer entidadId,
                             String accion, String anteriores, String nuevos, String motivo) {
+        this(admin,entidad,entidadId,accion,anteriores,nuevos,motivo,LocalDateTime.now());
+    }
+    public AuditoriaSistema(Usuario admin, String entidad, Integer entidadId,
+                            String accion, String anteriores, String nuevos, String motivo,LocalDateTime fecha) {
         this.administrador = java.util.Objects.requireNonNull(admin);
         this.entidadAfectada = entidad;
         this.entidadId = entidadId;
@@ -35,7 +39,7 @@ public class AuditoriaSistema {
         this.valoresAnteriores = anteriores;
         this.valoresNuevos = nuevos;
         this.motivo = motivo;
-        this.fechaOperacion = LocalDateTime.now();
+        this.fechaOperacion = java.util.Objects.requireNonNull(fecha);
     }
     public Integer getId() { return id; }
     public Usuario getAdministrador() { return administrador; }

@@ -5,4 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface HistorialOrdenMantenimientoRepository
         extends JpaRepository<HistorialOrdenMantenimiento, Integer> {
+    java.util.List<HistorialOrdenMantenimiento> findByOrdenMantenimientoIdOrderByIdAsc(Integer ordenId);
 }

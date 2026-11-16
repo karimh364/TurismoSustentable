@@ -1,5 +1,9 @@
 # RN-MAN-02 Permisos de mantenimiento y vuelta al servicio
 
+Implementación vigente: etapa 334 (16/11/2026), circuito ADMIN/TECNICO y baja
+atómica con pantalla y pruebas. Ver reporte 42. Las menciones de no implementación
+de esta aprobación se conservan debajo como antecedente de su fecha original.
+
 Fecha de aprobación: 28 de octubre de 2026.
 
 Ampliación aprobada el 4 de noviembre de 2026: pausa administrativa excepcional y desasignación de órdenes abiertas al inactivar al técnico asignado. Se incorpora en la sección 3.1, sin nuevos estados ni tablas.

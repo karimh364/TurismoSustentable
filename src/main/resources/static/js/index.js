@@ -44,6 +44,8 @@ function mostrarSesionConfirmada(usuario) {
     const roles = usuario ? rolesDelUsuario(usuario) : [];
     const esAdmin = roles.includes('ADMIN');
     const puedeAlquilar = roles.includes('CLIENTE');
+    const puedeMantener = esAdmin || roles.includes('TECNICO');
+    document.querySelectorAll('.nav-mantenimiento').forEach(el=>el.classList.toggle('d-none',!puedeMantener));
 
     document.querySelectorAll('.nav-visitante, .btn-visitante').forEach(
         el => el.classList.toggle('d-none', isLogueado)
@@ -70,6 +72,7 @@ function mostrarSesionConfirmada(usuario) {
                     <p class="text-muted">Ya has iniciado sesión.</p>
                     ${puedeAlquilar ? '<a href="mis_alquileres.html" class="btn btn-success w-100 mb-2 rounded-pill">Ir a Mi Cuenta</a>' : ''}
                     ${esAdmin ? '<a href="admin.html" class="btn btn-primary w-100 mb-2 rounded-pill">Ir al Panel Admin</a>' : ''}
+                    ${puedeMantener ? '<a href="mantenimiento.html" class="btn btn-outline-primary w-100 mb-2 rounded-pill">Mantenimiento</a>' : ''}
 
                     <button type="button" onclick="logout()" class="btn btn-outline-danger w-100 rounded-pill">Cerrar Sesión</button>
 
@@ -150,6 +153,8 @@ if (loginForm) {
                         window.location.href = '/admin.html';
                     } else if (roles.includes('CLIENTE')) {
                         window.location.href = '/alquiler.html';
+                    } else if (roles.includes('TECNICO')) {
+                        window.location.href = '/mantenimiento.html';
                     } else {
                         window.location.href = '/index.html';
                     }

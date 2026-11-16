@@ -12,6 +12,20 @@ import java.util.List;
 
 public interface OrdenMantenimientoRepository
         extends JpaRepository<OrdenMantenimiento, Integer> {
+    @Query("select o.bicicleta.id from OrdenMantenimiento o where o.id=:id")
+    java.util.Optional<Integer> buscarBicicletaId(@Param("id") Integer id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select o from OrdenMantenimiento o where o.id=:id")
+    java.util.Optional<OrdenMantenimiento> buscarPorIdConBloqueo(@Param("id") Integer id);
+
+    @Query("select o from OrdenMantenimiento o where (:tecnicoId is null or o.tecnico.id=:tecnicoId) order by o.id desc")
+    List<OrdenMantenimiento> listarPorTecnico(@Param("tecnicoId") Integer tecnicoId);
+
+    @Query("select distinct o.bicicleta.id from OrdenMantenimiento o where o.tecnico.id=:tecnicoId and o.estado.codigo in ('CREADA','EN_PROCESO','PAUSADA') order by o.bicicleta.id")
+    List<Integer> buscarBicicletasAbiertasDeTecnico(@Param("tecnicoId") Integer tecnicoId);
+
+    List<OrdenMantenimiento> findByBicicletaIdOrderByIdDesc(Integer bicicletaId);
 
     // El bloqueo de Bicicleta serializa la comprobación y la creación de una orden.
     @Lock(LockModeType.PESSIMISTIC_WRITE)

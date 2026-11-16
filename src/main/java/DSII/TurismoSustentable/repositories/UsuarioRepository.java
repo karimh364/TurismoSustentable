@@ -11,6 +11,15 @@ import org.springframework.data.jpa.repository.Lock;
 import javax.persistence.LockModeType;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+    @Query("select u.id from Usuario u where u.email=:email")
+    Optional<Integer> buscarIdPorEmail(@Param("email") String email);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u where u.id=:id")
+    Optional<Usuario> buscarPorIdConBloqueo(@Param("id") Integer id);
+
+    @Query("select distinct u from Usuario u join u.usuarioRoles ur where u.activo=true and ur.rol.codigo='TECNICO' order by u.id")
+    List<Usuario> buscarTecnicosActivos();
 
     List<Usuario> findByActivoTrue();
     Optional<Usuario> findByEmail(String email);

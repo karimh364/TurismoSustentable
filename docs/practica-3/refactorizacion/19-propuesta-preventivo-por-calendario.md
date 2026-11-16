@@ -1,5 +1,11 @@
 # RN-MAN-04 Mantenimiento preventivo por calendario
 
+Implementación vigente: etapa 334 (16/11/2026), reporte 42. Tarea automática,
+calendario UTC, intervalos positivos por tipo y guardas de reserva/liberación/
+devolución/reactivación/habilitación comprobadas. Se usan los valores iniciales
+de prueba ya aprobados; las referencias a decisiones abiertas siguientes son
+antecedentes, no autorización para cambiar esos valores silenciosamente.
+
 Fecha de consulta: 28 de octubre de 2026.
 
 Fecha de aprobación de la incorporación como requisito: 28 de octubre de 2026.

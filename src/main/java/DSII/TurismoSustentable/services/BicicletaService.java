@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 @Validated
 @Transactional(readOnly = true)
 public class BicicletaService {
+    private final MantenimientoService mantenimiento;
+    private final OrdenMantenimientoRepository ordenes;
+    private final AlquilerDetalleRepository detalles;
     private final BicicletaRepository bicicletas;
     private final TipoBicicletaRepository tipos;
     private final EstadoBicicletaRepository estados;
@@ -32,7 +35,9 @@ public class BicicletaService {
     public BicicletaService(BicicletaRepository bicicletas, TipoBicicletaRepository tipos,
                             EstadoBicicletaRepository estados, EstacionRepository estaciones,
                             AlquilerRepository alquileres, UsuarioRepository usuarios,
-                            TrazabilidadInventarioService trazabilidad) {
+                            TrazabilidadInventarioService trazabilidad,MantenimientoService mantenimiento,
+                            OrdenMantenimientoRepository ordenes,AlquilerDetalleRepository detalles) {
+        this.mantenimiento=mantenimiento; this.ordenes=ordenes; this.detalles=detalles;
         this.bicicletas = bicicletas; this.tipos = tipos; this.estados = estados;
         this.estaciones = estaciones; this.alquileres = alquileres;
         this.usuarios = usuarios; this.trazabilidad = trazabilidad;
@@ -81,6 +86,7 @@ public class BicicletaService {
         Usuario admin = administrador();
         Bicicleta bicicleta = activa(id, dto.getVersion());
         comprobarEditable(bicicleta);
+        comprobarSinOrden(bicicleta);
         comprobarCodigo(dto.getCodigoBicicleta(), id);
         TipoBicicleta tipo = tipo(dto.getTipoBicicletaId());
         Estacion destino = bicicleta.getUbicacionActual();
@@ -106,9 +112,11 @@ public class BicicletaService {
     public BicicletaDTO cambiarEstado(Integer id, String codigo, @Valid OperacionBicicletaDTO dto) {
         Usuario admin = administrador();
         Bicicleta bicicleta = activa(id, dto.getVersion());
-        comprobarEditable(bicicleta);
+        if("DE_BAJA".equals(codigo) && "MANTENIMIENTO".equals(bicicleta.getEstado().getCodigo())) comprobarSinAlquiler(bicicleta);
+        else comprobarEditable(bicicleta);
         exigirMotivo(dto.getMotivo());
         String actual = bicicleta.getEstado().getCodigo();
+        if(!("INACTIVA".equals(actual) && "DISPONIBLE".equals(codigo))) comprobarSinOrden(bicicleta);
         // Viajes, reservas, pérdidas y mantenimiento pertenecen a sus flujos específicos.
         boolean cambioOperativo = ("DISPONIBLE".equals(actual) && "INACTIVA".equals(codigo))
                 || ("INACTIVA".equals(actual) && "DISPONIBLE".equals(codigo));
@@ -123,6 +131,7 @@ public class BicicletaService {
                 throw error(HttpStatus.CONFLICT, "La bicicleta no tiene una ubicación física registrada.");
             }
             destino(bicicleta.getUbicacionActual().getId());
+            if(mantenimiento.requiereMantenimientoEnReactivacion(bicicleta)) codigo="MANTENIMIENTO";
         }
         EstadoBicicleta nuevo = estado(codigo);
         EstadoBicicleta anteriorEstado = bicicleta.getEstado();
@@ -140,6 +149,7 @@ public class BicicletaService {
         Bicicleta bicicleta = activa(id, dto.getVersion());
         if (!"DE_BAJA".equals(bicicleta.getEstado().getCodigo())) comprobarEditable(bicicleta);
         else comprobarSinAlquiler(bicicleta);
+        comprobarSinOrden(bicicleta);
         if (!Boolean.TRUE.equals(dto.getSalidaFisicaConfirmada())) {
             throw error(HttpStatus.BAD_REQUEST,
                     "Debe confirmar la salida física definitiva de la bicicleta.");
@@ -197,10 +207,17 @@ public class BicicletaService {
         }
     }
     private void comprobarSinAlquiler(Bicicleta bicicleta) {
+        if(detalles.contarAsignacionesActivas(bicicleta.getId())>0) {
+            throw error(HttpStatus.CONFLICT,"La bicicleta tiene una reserva o viaje activo.");
+        }
         if (alquileres.existsByBicicletaAndEstado(bicicleta, CodigoEstadoAlquiler.INICIADO)) {
             throw error(HttpStatus.CONFLICT,
                     "La bicicleta tiene un alquiler activo. Debe finalizarse antes de editarla.");
         }
+    }
+    private void comprobarSinOrden(Bicicleta bicicleta) {
+        if(!ordenes.buscarAbiertasPorBicicleta(bicicleta.getId()).isEmpty())
+            throw error(HttpStatus.CONFLICT,"La bicicleta tiene una orden de mantenimiento abierta.");
     }
     private void comprobarCodigo(String codigo, int id) {
         if (bicicletas.existsByCodigoBicicletaIgnoreCaseAndIdNot(codigo, id)) {

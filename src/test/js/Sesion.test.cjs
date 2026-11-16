@@ -263,10 +263,12 @@ for (const caso of [
         const alquilar = control('alquilar');
         const panel = control('panel');
         const misAlquileres = control('misAlquileres');
+        const mantenimiento = control('mantenimiento');
 
         e.contexto.document.querySelectorAll = selector => {
             if (selector === '.btn-usuario') return [alquilar];
             if (selector === '.nav-admin') return [panel];
+            if (selector === '.nav-mantenimiento') return [mantenimiento];
             return [];
         };
 
@@ -288,6 +290,7 @@ for (const caso of [
         assert.equal(ocultos.get('alquilar'), !caso.cliente);
         assert.equal(ocultos.get('misAlquileres'), !caso.cliente);
         assert.equal(ocultos.get('panel'), !caso.admin);
+        assert.equal(ocultos.get('mantenimiento'), !(caso.admin || caso.roles?.includes('TECNICO')));
 
         assert.equal(
             e.formulario.innerHTML.includes('Ir a Mi Cuenta'),

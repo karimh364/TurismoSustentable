@@ -55,14 +55,17 @@ async function cargarUsuarios() {
 
 // DELETE Usuario
 async function borrarUsuario(id) {
-    if (await confirmar()) {
+    const decision=await Swal.fire({title:'Inactivar usuario',input:'textarea',
+        inputLabel:'Motivo (obligatorio si tiene órdenes abiertas; se pausarán/desasignarán juntas)',
+        showCancelButton:true,inputValidator:v=>!v.trim()||v.trim().length>2000?'Ingresá un motivo de hasta 2000 caracteres.':undefined});
+    if (decision.isConfirmed) {
         try {
-            await axios.delete(`/api/usuarios/${id}`);
+            await axios.delete(`/api/usuarios/${id}`,{data:{motivo:decision.value.trim()}});
             cargarUsuarios();
-            Swal.fire('Eliminado', '', 'success');
+            Swal.fire('Usuario inactivado', 'Se conservan sus datos y las órdenes cerradas. Las abiertas se desasignan; las que estaban en proceso quedan pausadas.', 'success');
         } catch (e) {
             if (manejarErrorSesion(e)) return;
-            Swal.fire('Error', 'No se pudo eliminar', 'error');
+            Swal.fire('No se pudo inactivar', typeof e.response?.data==='string'?e.response.data:'Intentá nuevamente.', 'error');
         }
     }
 }

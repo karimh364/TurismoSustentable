@@ -117,6 +117,7 @@ window.addEventListener('pageshow', evento => {
     const pagina = window.location.pathname.split('/').pop();
     const permisos = {
         'admin.html': ['ADMIN'],
+        'mantenimiento.html': ['ADMIN','TECNICO'],
         'alquiler.html': ['CLIENTE'],
         'mis_alquileres.html': ['ADMIN', 'CLIENTE']
     };

@@ -49,6 +49,10 @@ public class TrazabilidadInventarioService {
                                String anteriores, String nuevos, String motivo) {
         auditoria.save(new AuditoriaSistema(admin, entidad, id, accion, anteriores, nuevos, motivo));
     }
+    public void administracion(Usuario admin,String entidad,int id,String accion,
+                               String anteriores,String nuevos,String motivo,java.time.LocalDateTime fecha) {
+        auditoria.save(new AuditoriaSistema(admin,entidad,id,accion,anteriores,nuevos,motivo,fecha));
+    }
     public String datos(Bicicleta b) {
         // Lista explícita de datos de inventario: nunca serializar al usuario ni credenciales.
         return "codigo=" + b.getCodigoBicicleta() + ";tipoId=" + b.getTipo().getId()

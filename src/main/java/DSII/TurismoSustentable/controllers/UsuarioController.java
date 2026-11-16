@@ -131,38 +131,16 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/usuarios/{id}")
-    public ResponseEntity<Object> eliminarUsuarioLogico(@PathVariable Integer id) {
-
-        Optional<Usuario> usuarioOptional = usuarioRepository.buscarPorIdConDatosYRoles(id); // Buscar el usuario
-
-        if (usuarioOptional.isEmpty()) { // Verificar existencia
-            // Si no existe devuelve 404
-            return new ResponseEntity<>("El usuario con ID " + id + " no existe.", HttpStatus.NOT_FOUND);
+    public ResponseEntity<Object> eliminarUsuarioLogico(@PathVariable Integer id,
+            @Valid @RequestBody(required=false) DSII.TurismoSustentable.dto.InactivarUsuarioDTO datos) {
+        try {
+            usuarioService.inactivarUsuario(id,datos==null?null:datos.getMotivo());
+            return ResponseEntity.noContent().build();
+        } catch(org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatus()).body(e.getReason());
+        } catch(org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
-
-        Usuario usuario = usuarioOptional.get();
-
-        // --- VALIDACIÓN DE ROL ---
-        boolean esAdministrador = usuario.getUsuarioRoles().stream()
-                .anyMatch(asignacion ->
-                        "ADMIN".equals(asignacion.getRol().getCodigo())
-                );
-
-        if (esAdministrador) {
-            return new ResponseEntity<>(
-                    "No se puede eliminar a un usuario Administrador.",
-                    HttpStatus.FORBIDDEN // 403 Prohibido
-            );
-        }
-
-        // borrado logico
-        if (!usuario.isActivo()) {
-            // si ya estaba inactivo, devuelve un error 400
-            return new ResponseEntity<>("El usuario ya se encuentra inactivo.", HttpStatus.BAD_REQUEST);
-        }
-        usuario.setActivo(false);
-        usuarioRepository.save(usuario);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PutMapping("/usuarios/{id}")

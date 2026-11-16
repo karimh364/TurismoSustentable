@@ -1,5 +1,24 @@
 # Implementación de entidades
 
+## Etapa 334 — Mantenimiento de punta a punta (16/11/2026)
+
+Implementación autorizada y delimitada al mantenimiento. MantenimientoService,
+comandos/DTO escalares, controlador y pantalla ADMIN/TECNICO. CREADA, EN_PROCESO,
+PAUSADA, FINALIZADA y CANCELADA existentes, con técnico activo/asignado, versión,
+diagnóstico/trabajo/resultado, costos internos ARS e historiales de datos/estados.
+ADMIN habilita después de APTA vigente, no por finalizar una orden.
+Preventivo automático por calendario UTC, misma política compartida con alquiler,
+intervalos ADMIN, reactivación protegida y control de una orden abierta por bici.
+La baja del técnico desasigna/pausa en la misma transacción, conserva cerradas,
+primer inicio, trabajo y costos y revierte todo ante fallo.
+
+Evidencia: 845 unitarias/HTTP (59 clases), 78 JavaScript, 60 SQL de mantenimiento
+y alquiler (tres recorridos Chromium reales), cero fallos/errores/omisiones en
+cada tanda. No se agregan entidades/catálogos/estados al DER ni se alteran
+liquidación, pagos, Gradle o tests de la otra materia. Reporte y rutas:
+[42-mantenimiento-operativo-punta-a-punta.md](42-mantenimiento-operativo-punta-a-punta.md).
+Sin commit/push nuevo. Incidencias de viaje y migración global siguen pendientes.
+
 ## Etapa 333 — Tres bloques operativos/financieros conectados (16/11/2026)
 
 Por autorización expresa se implementaron reembolso simulado, cancelación y

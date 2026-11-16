@@ -14,6 +14,14 @@ import java.util.Optional;
 
 public interface AlquilerDetalleRepository
         extends JpaRepository<AlquilerDetalle, Integer> {
+    @Query("select count(d) from AlquilerDetalle d where d.bicicleta.id=:bicicletaId and d.estado.codigo in ('RESERVADO','PENDIENTE_RETIRO','EN_CURSO')")
+    long contarAsignacionesActivas(@Param("bicicletaId") Integer bicicletaId);
+
+    @Query("select count(d) from AlquilerDetalle d where d.bicicleta.id=:bicicletaId and d.fallaReportada=true "
+            + "and (d.fechaReporteFalla is null or d.fechaReporteFalla > :fecha)")
+    long contarFallasPosteriores(@Param("bicicletaId") Integer bicicletaId, @Param("fecha") java.time.LocalDateTime fecha);
+    @Query("select count(d) from AlquilerDetalle d where d.bicicleta.id=:bicicletaId and d.fallaReportada=true")
+    long contarFallasReportadas(@Param("bicicletaId") Integer bicicletaId);
 
     @Query("select case when count(d) > 0 then true else false end from AlquilerDetalle d "
             + "where d.bicicleta.id = :bicicletaId and d.id <> :detalleId "

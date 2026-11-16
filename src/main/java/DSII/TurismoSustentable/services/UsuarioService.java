@@ -26,6 +26,14 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final GeneroRepository generoRepository;
     private final EntityManager entityManager;
+    @org.springframework.beans.factory.annotation.Autowired
+    private MantenimientoService mantenimiento;
+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED,rollbackFor=Exception.class)
+    public void inactivarUsuario(Integer id,String motivo) {
+        mantenimiento.inactivarUsuario(id,motivo);
+    }
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,

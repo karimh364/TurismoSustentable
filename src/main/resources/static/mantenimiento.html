@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mantenimiento - Turismo Sustentable</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-dark"><div class="container">
+    <a class="navbar-brand" href="index.html">Turismo Sustentable</a>
+    <div class="d-flex align-items-center gap-3">
+        <a id="volver-admin" href="admin.html" class="btn btn-outline-light btn-sm" hidden>Panel ADMIN</a>
+        <span id="navbar-username" class="text-white"></span>
+        <button class="btn btn-outline-light btn-sm" onclick="logout()">Cerrar sesión</button>
+    </div>
+</div></nav>
+<main class="container py-4">
+    <h1>Mantenimiento</h1>
+    <p id="alcance-mantenimiento"></p>
+    <div class="alert alert-info">Finalizar una orden no habilita automáticamente la bicicleta. ADMIN debe autorizar su vuelta al servicio con una revisión favorable vigente.</div>
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <button class="btn btn-outline-success" onclick="Mantenimiento.cargar()">Actualizar órdenes</button>
+        <button id="crear-orden" class="btn btn-success" onclick="Mantenimiento.crear()" hidden>Crear orden</button>
+        <button id="configurar-preventivo" class="btn btn-outline-primary" onclick="Mantenimiento.intervalos()" hidden>Intervalos preventivos</button>
+    </div>
+    <div id="mensaje-mantenimiento" class="my-2" role="status"></div>
+    <div class="table-responsive">
+        <table class="table table-striped align-middle bg-white">
+            <thead><tr><th>Orden / bicicleta</th><th>Tipo / estado</th><th>Técnico</th><th>Ubicación física</th><th>Trabajo y resultado</th><th>Acciones</th></tr></thead>
+            <tbody id="ordenes-body"><tr><td colspan="6">Cargando…</td></tr></tbody>
+        </table>
+    </div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="js/auth.js"></script>
+<script src="js/mantenimiento.js"></script>
+</body></html>

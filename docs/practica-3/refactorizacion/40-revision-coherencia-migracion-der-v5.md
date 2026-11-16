@@ -2,6 +2,18 @@
 
 Fecha: 11 de noviembre de 2026.
 
+## Estado vigente — etapa 334 (16/11)
+
+Mantenimiento operativo completado y conectado con inventario, baja de técnicos,
+historia, autorización, calendario y pantallas. R08 deja de considerar pendiente
+el ciclo técnico descrito en el reporte 42: una orden abierta por bici, asignación,
+trabajo del TECNICO, pausa/desasignación atómica y habilitación ADMIN posterior.
+845 unitarias/HTTP, 78 JavaScript y 60 SQL aprobadas, incluidos tres navegadores.
+Ver [42-mantenimiento-operativo-punta-a-punta.md](42-mantenimiento-operativo-punta-a-punta.md).
+No se cierra todavía R08 para incidencias durante un viaje. R03, retiro definitivo
+de consumidores anteriores y R09/producción siguen pendientes. Se conservan
+las notas siguientes como antecedentes, no como afirmaciones vigentes contrarias.
+
 ## Estado vigente al 16/11 — etapa 333
 
 Se completaron por delegación los tres bloques de alquiler/finanzas del

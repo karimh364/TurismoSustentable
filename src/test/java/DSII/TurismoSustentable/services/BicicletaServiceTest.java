@@ -22,6 +22,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BicicletaServiceTest {
+    @org.mockito.Mock private MantenimientoService mantenimiento;
+    @org.mockito.Mock private DSII.TurismoSustentable.repositories.OrdenMantenimientoRepository ordenes;
+    @org.mockito.Mock private DSII.TurismoSustentable.repositories.AlquilerDetalleRepository detalles;
     @Mock BicicletaRepository bicicletas;
     @Mock TipoBicicletaRepository tipos;
     @Mock EstadoBicicletaRepository estados;
@@ -39,7 +42,7 @@ class BicicletaServiceTest {
 
     @BeforeEach void preparar() {
         service = new BicicletaService(bicicletas, tipos, estados, estaciones, alquileres, usuarios,
-                new TrazabilidadInventarioService(historial, auditoria));
+                new TrazabilidadInventarioService(historial, auditoria),mantenimiento,ordenes,detalles);
         admin = new Usuario();
         admin.setId(1); admin.setEmail("admin.qa@example.com"); admin.setActivo(true);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(

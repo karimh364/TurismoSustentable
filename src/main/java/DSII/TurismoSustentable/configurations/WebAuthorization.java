@@ -64,6 +64,15 @@ public class WebAuthorization {
                 // 3. PÁGINAS PRIVADAS
                 .antMatchers("/alquiler.html").hasAuthority("CLIENTE")
                 .antMatchers("/mis_alquileres.html").hasAnyAuthority("ADMIN", "CLIENTE")
+                .antMatchers("/mantenimiento.html").hasAnyAuthority("ADMIN","TECNICO")
+
+                .antMatchers(HttpMethod.GET,"/api/mantenimiento/ordenes","/api/mantenimiento/ordenes/**")
+                .hasAnyAuthority("ADMIN","TECNICO")
+                .antMatchers(HttpMethod.POST,"/api/mantenimiento/ordenes/*/iniciar",
+                        "/api/mantenimiento/ordenes/*/reanudar","/api/mantenimiento/ordenes/*/pausar",
+                        "/api/mantenimiento/ordenes/*/trabajo","/api/mantenimiento/ordenes/*/finalizar")
+                .hasAuthority("TECNICO")
+                .antMatchers("/api/mantenimiento/**").hasAuthority("ADMIN")
 
                 .antMatchers(
                         "/admin.html"
@@ -222,6 +231,7 @@ public class WebAuthorization {
         }
         String ruta = request.getServletPath();
         return "/admin.html".equals(ruta)
+                || "/mantenimiento.html".equals(ruta)
                 || "/alquiler.html".equals(ruta)
                 || "/mis_alquileres.html".equals(ruta);
     }

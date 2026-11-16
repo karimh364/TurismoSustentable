@@ -2,7 +2,16 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 333. Los tres bloques autorizados quedaron conectados:
+Estado más reciente: etapa 334. Mantenimiento de punta a punta implementado:
+ADMIN gestiona/habilita, TECNICO asignado trabaja, preventiva automática y baja
+transaccional de técnicos con historial/auditoría. Pantalla y navegación conectadas.
+845 unitarias/HTTP, 78 JavaScript y 60 de integración aprobadas; estas últimas
+incluyen tres circuitos Chromium y regresión de alquileres. Detalle y límites:
+[42-mantenimiento-operativo-punta-a-punta.md](42-mantenimiento-operativo-punta-a-punta.md).
+Sin cambios en Gradle/pruebas de la otra materia ni commit/push nuevo.
+Incidencias durante el viaje y cierre global de migración siguen pendientes.
+
+Verificación anterior: etapa 333. Los tres bloques autorizados quedaron conectados:
 reembolso simulado, cancelación/vencimiento y creación HTTP nueva, pantallas
 CLIENTE/ADMIN. Compilación correcta, 758 unitarias/HTTP, 66 JavaScript y 48 de
 integración aprobadas; las últimas incluyen dos circuitos Chromium reales.

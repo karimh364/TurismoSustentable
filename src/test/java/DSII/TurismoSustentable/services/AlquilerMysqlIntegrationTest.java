@@ -79,6 +79,7 @@ import static org.mockito.Mockito.*;
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.open-in-view=false",
                 "alquiler.vencimientos.automaticos=false",
+                "mantenimiento.preventivo.automatico=false",
                 "pagos.simulados.saldo-inicial-ars=1000000.00",
                 "spring.datasource.hikari.connection-init-sql=SET SESSION innodb_lock_wait_timeout=10"
         }

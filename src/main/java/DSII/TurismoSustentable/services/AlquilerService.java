@@ -1306,22 +1306,8 @@ public class AlquilerService {
 
     private boolean preventivaVencidaEnDevolucion(Bicicleta bicicleta, LocalDateTime ahora) {
         Integer meses = bicicleta.getTipo() == null ? null : bicicleta.getTipo().getIntervaloPreventivoMeses();
-        if (meses == null || meses <= 0) {
-            throw new ConfiguracionSistemaException("Falta un intervalo preventivo válido para el tipo de bicicleta.");
-        }
         LocalDateTime ultima = ordenMantenimientoRepository.buscarUltimaPreventivaApta(bicicleta.getId());
-        if (ultima != null && ultima.isAfter(ahora)) {
-            throw new ConfiguracionSistemaException("La última preventiva no puede estar en el futuro.");
-        }
-        java.time.LocalDate referencia = ultima == null ? bicicleta.getFechaAlta() : ultima.toLocalDate();
-        if (referencia == null) {
-            return true; // Sin referencia fiable, revisión inicial antes de otro alquiler.
-        }
-        if (referencia.isAfter(ahora.toLocalDate())) {
-            throw new ConfiguracionSistemaException("La referencia preventiva no puede estar en el futuro.");
-        }
-        // Fecha calendario UTC, coherente con el Clock del nuevo circuito; plusMonths ajusta fin de mes.
-        return !ahora.toLocalDate().isBefore(referencia.plusMonths(meses));
+        return CalendarioPreventivo.vencida(bicicleta.getFechaAlta(), ultima, meses, ahora);
     }
 
     private void cerrarUsoDelConjuntoSiCorresponde(

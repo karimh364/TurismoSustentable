@@ -1,5 +1,10 @@
 # RN-MAN-03 Generación y organización de órdenes
 
+Implementación vigente: generación/vinculación desde devolución en etapas de
+alquiler y gestión operativa completada en etapa 334 (16/11/2026), reporte 42.
+Concurrencia, una abierta y asignación opcional comprobadas; el texto de aprobación
+siguiente conserva su contexto histórico.
+
 Fecha de aprobación: 28 de octubre de 2026.
 
 Estado: tres reglas aprobadas expresamente por el usuario. No implementadas en Java ni en la base de datos. Las pruebas están especificadas, no ejecutadas.
