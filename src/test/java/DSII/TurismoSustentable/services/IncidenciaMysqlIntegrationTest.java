@@ -45,6 +45,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 class IncidenciaMysqlIntegrationTest {
     @Autowired IncidenciaService servicio;@Autowired AlquilerService alquiler;@Autowired PagoService pagos;
     @Autowired LiquidacionAlquilerService liquidacion;@Autowired MantenimientoService mantenimiento;
+    @Autowired private EstadisticasService estadisticasService;
     @Autowired IncidenciaRepository incidencias;@Autowired HistorialIncidenciaRepository historias;
     @Autowired UsuarioRepository usuarios;
     @Autowired PlatformTransactionManager txManager;@Autowired PasswordEncoder encoder;@Autowired MockMvc http;
@@ -208,6 +209,67 @@ class IncidenciaMysqlIntegrationTest {
             p.screenshot(new com.microsoft.playwright.Page.ScreenshotOptions().setPath(carpeta.resolve("cliente-360.png")).setFullPage(true));
             q.screenshot(new com.microsoft.playwright.Page.ScreenshotOptions().setPath(carpeta.resolve("admin-1366.png")).setFullPage(true));
         }
+    }
+
+    @Test
+    void estadisticasMysqlIncluyeCierrePorIncidenciaSinDuplicarRecuperacion() {
+        long activasIniciales = estadisticasService
+                .getBicicletasAlquiladasActuales();
+        long preferenciasIniciales = preferenciasMontanaMasculino();
+
+        AlquilerCabeceraDTO reserva = retirada(false);
+
+        assertEquals(activasIniciales + 1, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+
+        // Reportar no cierra el uso ni lo convierte en un uso concluido.
+        IncidenciaDTO incidencia = servicio.reportar(
+                reporte(reserva, 0, "ROBO")
+        );
+
+        assertEquals("PENDIENTE", incidencia.estadoRevision);
+        assertEquals(activasIniciales + 1, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+        assertEquals(preferenciasIniciales, preferenciasMontanaMasculino());
+
+        avanzar(20);
+        sesion(adminId);
+
+        IncidenciaDTO resuelta = servicio.resolver(
+                incidencia.id,
+                decision(incidencia, "VALIDADA")
+        );
+
+        assertEquals("CERRADO_POR_INCIDENCIA", resuelta.estadoDetalle);
+        assertEquals("EXTRAVIADA", resuelta.estadoBicicleta);
+
+        // Ya terminó el uso: sale del contador activo y entra al histórico.
+        assertEquals(activasIniciales, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+        assertEquals(preferenciasIniciales + 1, preferenciasMontanaMasculino());
+
+        avanzar(5);
+
+        IncidenciaDTO recuperada = servicio.recibir(
+                resuelta.id,
+                recepcion(resuelta, tallerId)
+        );
+
+        assertEquals("MANTENIMIENTO", recuperada.estadoBicicleta);
+
+        // Recuperar no inicia otro uso ni duplica la estadística histórica.
+        assertEquals(activasIniciales, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+        assertEquals(preferenciasIniciales + 1, preferenciasMontanaMasculino());
+    }
+
+    private long preferenciasMontanaMasculino() {
+        return estadisticasService.getPreferenciasBicicletaPorGenero()
+                .stream()
+                .filter(fila -> "MONTANA".equals(fila[0])
+                        && "MASCULINO".equals(fila[1]))
+                .mapToLong(fila -> ((Number) fila[2]).longValue())
+                .sum();
     }
 
     private String recibirEnHilo(IncidenciaDTO i){sesion(adminId);try{servicio.recibir(i.id,recepcion(i,tallerId));return "RECIBIDA";}catch(ResponseStatusException ex){assertEquals(409,ex.getStatus().value());return "LLENA";}}

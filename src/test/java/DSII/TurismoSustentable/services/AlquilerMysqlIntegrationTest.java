@@ -140,6 +140,9 @@ class AlquilerMysqlIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private EstadisticasService estadisticasService;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -3403,4 +3406,114 @@ class AlquilerMysqlIntegrationTest {
                 .setParameter("codigo", codigo)
                 .getSingleResult();
     }
+
+    @Test
+    void estadisticasMysqlCuentaBicicletasEnUsoNoReservasNiCabeceras() {
+        long inicial = estadisticasService
+                .getBicicletasAlquiladasActuales();
+
+        AlquilerCabeceraDTO reserva = crearReservaPagadaMysql();
+
+        // Reservar y pagar todavía no significa retirar.
+        assertEquals(inicial, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+
+        retirarParaDevolucionMysql(reserva);
+
+        assertEquals(inicial + 1, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+
+        alquilerService.retirarBicicleta(
+                reserva.getId(),
+                reserva.getDetalles().get(1).getId()
+        );
+
+        // Una cabecera, pero dos bicicletas efectivamente en uso.
+        assertEquals(inicial + 2, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+
+        when(reloj.instant()).thenReturn(
+                instantePagos.plus(32, ChronoUnit.MINUTES)
+        );
+
+        alquilerService.devolverBicicleta(
+                reserva.getId(),
+                reserva.getDetalles().get(0).getId(),
+                solicitudDevolucionMysql(false)
+        );
+
+        assertEquals(inicial + 1, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+
+        alquilerService.devolverBicicleta(
+                reserva.getId(),
+                reserva.getDetalles().get(1).getId(),
+                solicitudDevolucionMysql(false)
+        );
+
+        assertEquals(inicial, estadisticasService
+                .getBicicletasAlquiladasActuales().longValue());
+    }
+
+    @Test
+    void estadisticasMysqlConservaTipoContratadoYUsosHistoricos() {
+        long montanaInicial = cantidadPreferenciasMysql("MONTANA");
+        long paseoInicial = cantidadPreferenciasMysql("PASEO");
+
+        AlquilerCabeceraDTO reserva = crearReservaRetiradaMysql();
+
+        // Los usos todavía abiertos no cuentan como usos concluidos.
+        assertEquals(montanaInicial, cantidadPreferenciasMysql("MONTANA"));
+        assertEquals(paseoInicial, cantidadPreferenciasMysql("PASEO"));
+
+        when(reloj.instant()).thenReturn(
+                instantePagos.plus(32, ChronoUnit.MINUTES)
+        );
+
+        alquilerService.devolverBicicleta(
+                reserva.getId(),
+                reserva.getDetalles().get(0).getId(),
+                solicitudDevolucionMysql(false)
+        );
+
+        // Cuenta la unidad devuelta aunque la otra siga circulando.
+        assertEquals(montanaInicial + 1, cantidadPreferenciasMysql("MONTANA"));
+        assertEquals(paseoInicial, cantidadPreferenciasMysql("PASEO"));
+
+        // Cambio controlado del dato actual para comprobar el snapshot contratado.
+        transaccion.executeWithoutResult(estado -> {
+            Bicicleta bicicleta = entityManager.find(
+                    Bicicleta.class, bicicleta1Id
+            );
+            bicicleta.setTipo(catalogo(TipoBicicleta.class, "PASEO"));
+        });
+
+        assertEquals(montanaInicial + 1, cantidadPreferenciasMysql("MONTANA"));
+        assertEquals(paseoInicial, cantidadPreferenciasMysql("PASEO"));
+
+        alquilerService.devolverBicicleta(
+                reserva.getId(),
+                reserva.getDetalles().get(1).getId(),
+                solicitudDevolucionMysql(false)
+        );
+
+        // Ocultar el alquiler no borra los usos históricos.
+        transaccion.executeWithoutResult(estado ->
+                entityManager.find(Alquiler.class, reserva.getId())
+                        .setBorradoAlquiler(true)
+        );
+
+        assertEquals(montanaInicial + 1, cantidadPreferenciasMysql("MONTANA"));
+        assertEquals(paseoInicial + 1, cantidadPreferenciasMysql("PASEO"));
+    }
+
+    private long cantidadPreferenciasMysql(String tipo) {
+        return estadisticasService.getPreferenciasBicicletaPorGenero()
+                .stream()
+                .filter(fila -> tipo.equals(fila[0])
+                        && "MASCULINO".equals(fila[1]))
+                .mapToLong(fila -> ((Number) fila[2]).longValue())
+                .sum();
+    }
+
 }

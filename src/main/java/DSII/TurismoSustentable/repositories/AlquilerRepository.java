@@ -32,31 +32,6 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
             DSII.TurismoSustentable.models.Bicicleta bicicleta,
             DSII.TurismoSustentable.models.CodigoEstadoAlquiler estado);
 
-    /**
-     * Agrupa alquileres finalizados por tipo de bicicleta
-     * y código de género de la persona.
-     *
-     * Cada fila contiene:
-     * [String codigoTipoBicicleta, String codigoGenero, Long cantidad].
-     */
-    @Query("SELECT a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo, COUNT(a.id) " +
-            "FROM Alquiler a " +
-            "WHERE a.estado = DSII.TurismoSustentable.models.CodigoEstadoAlquiler.FINALIZADO " +
-            "GROUP BY a.bicicleta.tipo.codigo, a.usuario.persona.genero.codigo " +
-            "ORDER BY a.usuario.persona.genero.codigo, COUNT(a.id) DESC")
-    List<Object[]> contarPreferenciasBicicletaPorGenero();
-
-    // ----------------------------------------------------------------------------------------------------
-
-    /**
-     * 2. CANTIDAD DE BICICLETAS ALQUILADAS
-     * * Devuelve la cantidad de alquileres que están actualmente en curso (estado INICIADO).
-     */
-    @Query("SELECT COUNT(a) FROM Alquiler a WHERE a.estado = DSII.TurismoSustentable.models.CodigoEstadoAlquiler.INICIADO")
-    Long contarBicicletasAlquiladasActuales();
-
-    // ----------------------------------------------------------------------------------------------------
-
     // MÉTODOS DE BÚSQUEDA PERSONALIZADOS
     List<Alquiler> findByBorradoAlquilerFalse();
     List<Alquiler> findByUsuarioAndBorradoAlquilerFalse(Usuario usuario);

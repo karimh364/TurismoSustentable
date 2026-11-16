@@ -2,6 +2,19 @@
 
 Fecha: 11 de noviembre de 2026.
 
+## Estado vigente — etapa 337 (16/11)
+
+Parte estadística de R03 migrada y comprobada: conteo por detalle EN_CURSO y
+preferencias de usos concluidos con tipo contratado. Consultas anteriores
+retiradas; servicio y formato del resumen HTTP conservados. Tres SQL específicas
+aprobadas en dos tandas y 70 HTTP/regresión aprobadas (seis nuevas), cero fallos,
+errores u omisiones. Evidencia y criterios en la
+[etapa 337](37-implementacion-entidades.md#etapa-337--estadísticas-por-detalle-y-tipo-contratado-16112026).
+No se declara R03 completo: quedan las dependencias heredadas de inventario y
+el retiro coordinado de correos/consumidores, rutas, campos y relaciones antiguas.
+No se alteran DER, permisos o política económica. El checkpoint anterior es
+7c6045a; las notas de etapas anteriores describen sus estados históricos.
+
 ## Estado vigente — etapa 336 (16/11)
 
 RN-INC-01 y RN-INV-03 conectadas de punta a punta con los modelos existentes:

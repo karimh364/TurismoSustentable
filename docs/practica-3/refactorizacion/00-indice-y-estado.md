@@ -2,7 +2,16 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 336. Incidencias durante el alquiler implementadas:
+Estado más reciente: etapa 337. Estadísticas de uso migradas a ALQUILER_DETALLE:
+contador EN_CURSO y preferencias de usos concluidos por tipo contratado/género.
+Consultas anteriores retiradas, servicio conectado y contrato HTTP conservado.
+Verificación: tres pruebas SQL específicas en dos tandas y 70 HTTP/regresión
+aprobadas sin fallos, errores u omisiones. Detalle y límites en la
+[etapa 337 del registro](37-implementacion-entidades.md#etapa-337--estadísticas-por-detalle-y-tipo-contratado-16112026).
+No cierra el retiro del modelo anterior: correos/consumidores heredados y demás
+pendientes globales siguen separados. Las etapas 335/336 están en 7c6045a.
+
+Etapa 336. Incidencias durante el alquiler implementadas:
 reporte del titular/ADMIN, revisión/corte, devolución previa con importe provisional,
 recepción/recuperación y mantenimiento, ingreso físico posterior y pérdida definitiva
 respaldada. No agrega entidades/estados ni cambia la política de cobro del DER.
@@ -11,7 +20,7 @@ incluidos cuatro circuitos Chromium, sin fallos u omisiones en cada tanda.
 Reporte, rutas, alcance y evidencia en
 [43-incidencias-durante-el-alquiler.md](43-incidencias-durante-el-alquiler.md).
 Permanece pendiente el cierre global de migración/legado y despliegue. Las etapas
-335 y 336 aún no tienen commit/push; se conserva el checkpoint funcional 1d75fd1.
+335 y 336 fueron guardadas y subidas en 7c6045a, posterior al checkpoint 1d75fd1.
 
 Etapa 335. Corrección puntual de la pantalla de mantenimiento:
 estilo coherente, menú plegable, órdenes adaptadas a móvil, carga visible,
@@ -20,8 +29,8 @@ Chromium de interfaz, 87 JavaScript y regresión de 845 unitarias/HTTP aprobadas
 sin cambios de backend, DER o BD.
 Detalle y límites en la actualización de interfaz del
 [reporte 42](42-mantenimiento-operativo-punta-a-punta.md#corrección-puntual-de-interfaz--etapa-335).
-El bloque funcional anterior está respaldado en 1d75fd1; esta corrección aún
-no tiene commit/push. Incidencias de viaje y cierre global siguen pendientes.
+El bloque funcional anterior está respaldado en 1d75fd1; esta corrección y las
+incidencias posteriores se guardaron en 7c6045a. El cierre global sigue pendiente.
 
 Etapa 334. Mantenimiento de punta a punta implementado:
 ADMIN gestiona/habilita, TECNICO asignado trabaja, preventiva automática y baja

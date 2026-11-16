@@ -76,4 +76,23 @@ public interface AlquilerDetalleRepository
             @Param("alquilerId") Integer alquilerId
     );
 
+    // Cuenta bicicletas efectivamente en uso, no cabeceras ni reservas.
+    @Query("select count(d) from AlquilerDetalle d "
+            + "where d.estado.codigo = 'EN_CURSO'")
+    Long contarBicicletasAlquiladasActuales();
+
+    // Cada fila: código de tipo contratado, código de género y cantidad de usos.
+    @Query("select t.codigo, g.codigo, count(d.id) "
+            + "from AlquilerDetalle d "
+            + "join d.tipoBicicletaContratado t "
+            + "join d.alquiler a "
+            + "join a.usuario u "
+            + "join u.persona p "
+            + "join p.genero g "
+            + "where d.estado.codigo in ('DEVUELTO', 'CERRADO_POR_INCIDENCIA') "
+            + "and d.fechaHoraRetiro is not null "
+            + "group by t.codigo, g.codigo "
+            + "order by g.codigo, count(d.id) desc, t.codigo")
+    List<Object[]> contarPreferenciasBicicletaPorGenero();
+
 }

@@ -1,5 +1,53 @@
 # Implementación de entidades
 
+## Etapa 337 — Estadísticas por detalle y tipo contratado (16/11/2026)
+
+Bloque puntual implementado manualmente por el usuario; adiciones específicas de
+pruebas delegadas y comprobación ejecutada por el usuario. Base Git: 7c6045a,
+que respalda las etapas 335 y 336. No se implementa todavía el retiro del legado.
+
+- AlquilerDetalleRepository cuenta EN_CURSO: una cabecera puede contribuir varias
+  bicicletas; reservar/pagar no equivale a retirar. Devolver o cerrar por incidencia
+  quita únicamente la unidad afectada del contador activo.
+- Preferencias agrupa por tipoBicicletaContratado.codigo y género del titular,
+  contando detalles DEVUELTO/CERRADO_POR_INCIDENCIA con retiro registrado. No
+  exige que las otras unidades de la cabecera estén cerradas. Ocultar un alquiler
+  no borra su uso histórico; cambiar el tipo actual de la bici no reasigna el
+  tipo contratado del detalle. No se agregan snapshots ni catálogos nuevos.
+- EstadisticasService utiliza ambas consultas nuevas. Se retiran las dos
+  consultas sustituidas de AlquilerRepository y su dependencia/import sobrantes
+  en ese servicio. Las otras consultas del repositorio permanecen intactas.
+- AdminController conserva GET /api/admin/estadisticas/resumen y sus tres claves,
+  arrays y contador. No cambian el indicador de estados del inventario, las rutas,
+  permisos, pantallas, entidades, columnas, cobros o correos.
+
+Evidencia corroborada en tres tandas separadas, no una regresión global nueva:
+
+1. AlquilerMysqlIntegrationTest: dos casos nuevos aprobados, cero fallos/errores/
+   omisiones; XML 2026-11-16T16:04:39.072Z. Conteo por unidad, reserva sin retiro,
+   devolución parcial, tipo contratado inalterado y uso histórico tras ocultar.
+2. IncidenciaMysqlIntegrationTest: un caso nuevo aprobado, cero fallos/errores/
+   omisiones; XML 2026-11-16T18:01:59.080Z. Reporte pendiente conserva uso activo;
+   validar el cierre suma un uso concluido; recuperar no duplica ni reinicia uso.
+3. HTTP/regresión: 70 aprobadas, cero fallos/errores/omisiones. XML 18:10:50.914Z
+   a 18:10:53.472Z del 16/11: WebAuthorizationTest 21,
+   ConsultaAlquilerControllerTest 43 y EstadisticasControllerTest 6. Salida del
+   usuario BUILD SUCCESSFUL 11 s. ADMIN y ADMIN+CLIENTE pueden consultar,
+   CLIENTE/TECNICO reciben 403 y visitante 401; formato y ausencia de datos correctos.
+
+Las tres SQL usan los servicios/consultas reales en MariaDB opt-in/create-drop,
+con app detenida y datos descartables según la comprobación informada. Las seis
+HTTP nuevas simulan EstadisticasService para comprobar serialización/permisos;
+no se presentan como prueba de las consultas SQL. Gradle reemplaza los XML: la
+última carpeta contiene las tres suites HTTP, no las dos tandas SQL anteriores.
+El asistente revisó fuentes/reportes sin repetir Gradle, app o MariaDB en el cierre.
+
+Queda cerrado este alcance de estadísticas, no todo R03 ni la migración completa.
+Siguen consumidores/correos y rutas/DTO/campos/relaciones del alquiler anterior,
+su retirada coordinada, revisión transversal y despliegue. Sin cambios a Gradle,
+tests de la otra materia o los tres PNG del usuario. Se documenta y prepara este
+checkpoint por autorización expresa; el resultado Git se informa al confirmar/subir.
+
 ## Etapa 336 — Incidencias durante el alquiler de punta a punta (16/11/2026)
 
 Implementación expresamente autorizada de RN-INC-01/RN-INV-03/RN-TRZ-01.
@@ -17,7 +65,7 @@ evita precargar cabeceras antes de bloquearlas; su condición y carrera están p
 Sin tablas/estados nuevos, cambios a Gradle o tests de la otra materia, ni Git de
 escritura. Alcance, conexiones y evidencia final en
 [43-incidencias-durante-el-alquiler.md](43-incidencias-durante-el-alquiler.md).
-Se conserva intacta la corrección 335 aún sin commit. El cierre global del legado
+Las etapas 335/336 se guardaron posteriormente en 7c6045a. El cierre global del legado
 y despliegue siguen pendientes; no se declara finalizado todo el DER.
 
 ## Etapa 335 — Corrección acotada de interfaz de mantenimiento (16/11/2026)
