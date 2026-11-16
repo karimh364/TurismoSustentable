@@ -73,18 +73,23 @@ import static org.mockito.Mockito.*;
         matches = "true"
 )
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.datasource.url=jdbc:mariadb://localhost:3306/turismo_sustentable?sslMode=disable",
                 "spring.jpa.hibernate.ddl-auto=create-drop",
                 "spring.jpa.open-in-view=false",
+                "alquiler.vencimientos.automaticos=false",
                 "pagos.simulados.saldo-inicial-ars=1000000.00",
                 "spring.datasource.hikari.connection-init-sql=SET SESSION innodb_lock_wait_timeout=10"
         }
 )
 @ActiveProfiles("refactor")
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AlquilerMysqlIntegrationTest {
+    @Autowired private ReembolsoService reembolsoService;
+    @Autowired private org.springframework.test.web.servlet.MockMvc http;
+    @org.springframework.boot.web.server.LocalServerPort private int puertoWeb;
 
     private static final AtomicInteger DOCUMENTOS =
             new AtomicInteger(10000000);
@@ -1820,7 +1825,6 @@ class AlquilerMysqlIntegrationTest {
             entityManager.find(Alquiler.class, reserva.getId())
                     .setBorradoAlquiler(true);
 
-            assertFalse(bicicletaRepository.existsById(Integer.MAX_VALUE));
         });
 
         assertEquals(1L, contarDeudasMysql());
@@ -1834,23 +1838,6 @@ class AlquilerMysqlIntegrationTest {
 
         assertTrue(
                 reservaRechazada.getMessage().contains("saldo pendiente")
-        );
-
-        DSII.TurismoSustentable.dto.AlquilerRequestDTO solicitudAnterior =
-                new DSII.TurismoSustentable.dto.AlquilerRequestDTO();
-
-        // Si se saltea el control de deuda, falla antes de consultar una API externa.
-        solicitudAnterior.setBicicletaId(Integer.MAX_VALUE);
-        solicitudAnterior.setDuracionEnHoras(1);
-
-        IllegalStateException alquilerAnteriorRechazado = assertThrows(
-                IllegalStateException.class,
-                () -> alquilerService.crearAlquiler(solicitudAnterior)
-        );
-
-        assertTrue(
-                alquilerAnteriorRechazado.getMessage()
-                        .contains("saldo pendiente")
         );
 
         assertArrayEquals(antes, contarEscriturasDevolucionMysql());
@@ -2001,6 +1988,8 @@ class AlquilerMysqlIntegrationTest {
         long[] esperados = antes.clone();
         esperados[2] += 2; // HistorialEstadoDetalle
         esperados[3] += 2; // HistorialEstadoBicicleta
+        esperados[7]++; // Obligación de reintegro al cerrar con excedente.
+        esperados[9]++; // Historia inicial del reembolso.
 
         assertArrayEquals(esperados, contarEscriturasDevolucionMysql());
         assertEquals(0L, contarDeudasMysql());
@@ -2168,7 +2157,8 @@ class AlquilerMysqlIntegrationTest {
         long[] esperados = antes.clone();
         esperados[2]++;
         esperados[3]++;
-
+        esperados[7]++;
+        esperados[9]++;
         assertArrayEquals(esperados, contarEscriturasDevolucionMysql());
         assertEquals(
                 new BigDecimal("979345.00"),
@@ -2326,6 +2316,326 @@ class AlquilerMysqlIntegrationTest {
         assertEquals("APROBADO", pagoService.resolverAdicional(alquiler.getId(), clave).getEstadoPago());
         comprobarAdicionalAprobadoMysql(alquiler.getId(), inicio.getPagoId(), alquiler.getFechaHoraLiquidacion());
         assertEquals(0L, contarDeudasMysql());
+    }
+
+    @Test
+    void reembolsoMysqlAcreditaUnaSolaVezYConservaPagoOriginal() throws Exception {
+        AlquilerCabeceraDTO a = crearAlquilerConReintegroMysql();
+        assertEquals(new BigDecimal("979345.00"), pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+        var pendiente = reembolsoService.consultar(a.getId());
+        assertEquals(1, pendiente.getReembolsos().size());
+        assertEquals("PENDIENTE", pendiente.getReembolsos().get(0).getEstado());
+        assertEquals(new BigDecimal("6885.00"), pendiente.getLiquidacion().getReembolsoPendienteArs());
+        var resultados = ejecutarDosOperaciones(() -> reembolsoService.resolver(a.getId()));
+        assertEquals("SALDADO", resultados.get(0).getLiquidacion().getSituacionFinanciera());
+        long[] antes = contarEscriturasDevolucionMysql();
+        reembolsoService.resolver(a.getId());
+        assertArrayEquals(antes, contarEscriturasDevolucionMysql());
+        assertEquals(new BigDecimal("986230.00"), pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+        transaccion.executeWithoutResult(tx -> {
+            var pagos = pagoRepository.findByAlquilerIdOrderByIdAsc(a.getId());
+            assertEquals(1, pagos.size());
+            assertEquals("APROBADO", pagos.get(0).getEstadoPago().getCodigo());
+            assertEquals(new BigDecimal("20655.00"), pagos.get(0).getMontoArs());
+            var r = reembolsoRepository.findByPagoAlquilerIdOrderByIdAsc(a.getId()).get(0);
+            assertEquals(3, historialReembolsoRepository.findByReembolsoIdOrderByIdAsc(r.getId()).size());
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"EN_PROCESO", "FALLIDO"})
+    void reembolsoMysqlInciertoOFallidoNoAcreditaYReintentaMismaObligacion(String modo) {
+        AlquilerCabeceraDTO a = crearAlquilerConReintegroMysql();
+        String nick = transaccion.execute(tx -> entityManager.find(Usuario.class, usuarioId).getNickname());
+        String prefijo = "pagos.simulados.cuentas." + nick + ".";
+        entorno.getPropertySources().addFirst(new MapPropertySource(PROPIEDADES_PAGOS_MYSQL,
+                Map.<String,Object>of(prefijo + "reembolso-resultado", modo, prefijo + "demora-segundos", "9999")));
+        var resultado = reembolsoService.resolver(a.getId());
+        var r = resultado.getReembolsos().get(0);
+        assertEquals(modo, r.getEstado());
+        assertNull(r.getFechaConfirmacion());
+        assertEquals(new BigDecimal("979345.00"), pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+        entorno.getPropertySources().remove(PROPIEDADES_PAGOS_MYSQL);
+        var confirmado = reembolsoService.resolver(a.getId());
+        assertEquals(r.getId(), confirmado.getReembolsos().get(0).getId());
+        assertEquals("CONFIRMADO", confirmado.getReembolsos().get(0).getEstado());
+        assertEquals(new BigDecimal("986230.00"), pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+    }
+
+    @Test
+    void falloTrasConfirmarReembolsoMysqlRevierteCreditoEHistorias() {
+        AlquilerCabeceraDTO a = crearAlquilerConReintegroMysql();
+        long[] antes = contarEscriturasDevolucionMysql();
+        doAnswer(inv -> {
+            entityManager.flush();
+            var lista = reembolsoRepository.findByPagoAlquilerIdOrderByIdAsc(a.getId());
+            if (lista.stream().anyMatch(r -> "CONFIRMADO".equals(r.getEstado()))) throw new IllegalStateException("Fallo QA tras confirmar");
+            return inv.callRealMethod();
+        }).when(liquidacionEspiada).resumenInterno(any(Alquiler.class));
+        assertThrows(IllegalStateException.class, () -> reembolsoService.resolver(a.getId()));
+        assertArrayEquals(antes, contarEscriturasDevolucionMysql());
+        reset(liquidacionEspiada);
+        assertEquals("PENDIENTE", reembolsoService.consultar(a.getId()).getReembolsos().get(0).getEstado());
+        assertEquals("SALDADO", reembolsoService.resolver(a.getId()).getLiquidacion().getSituacionFinanciera());
+    }
+
+    @Test
+    void cancelarReservaPagadaMysqlConservaLugarYGeneraReintegroTotal() {
+        AlquilerCabeceraDTO a = crearReservaPagadaMysql();
+        AlquilerCabeceraDTO cancelado = alquilerService.cancelarReserva(a.getId(), null, null, false);
+        assertEquals("CANCELADO", cancelado.getEstado());
+        assertEquals(new BigDecimal("0.00"), cancelado.getCostoFinalArs());
+        assertEquals(a.getCostoEstimadoArs(), cancelado.getCostoEstimadoArs());
+        assertTrue(cancelado.getDetalles().stream().allMatch(d -> d.getFechaHoraRetiro() == null));
+        transaccion.executeWithoutResult(tx -> {
+            comprobarBicicletas("DISPONIBLE");
+            assertEquals(2L, ocupacionEstacionMysql());
+        });
+        assertEquals(new BigDecimal("20655.00"), reembolsoService.consultar(a.getId()).getLiquidacion().getReembolsoPendienteArs());
+        reembolsoService.resolver(a.getId());
+        assertEquals(new BigDecimal("1000000.00"), pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+        long[] antes = contarEscriturasDevolucionMysql();
+        alquilerService.cancelarReserva(a.getId(), null, null, false);
+        assertArrayEquals(antes, contarEscriturasDevolucionMysql());
+    }
+
+    @Test
+    void vencimientoMysqlEnLimiteEsAutomaticoIdempotenteYSinActorInventado() {
+        int alquilerId = alquilerService.crearReserva(solicitud());
+        when(reloj.instant()).thenReturn(instantePagos.plus(15, ChronoUnit.MINUTES).minusNanos(1000));
+        assertEquals(0, alquilerService.vencerReserva(alquilerId));
+        when(reloj.instant()).thenReturn(instantePagos.plus(15, ChronoUnit.MINUTES));
+        SecurityContextHolder.clearContext();
+        assertEquals(2, alquilerService.vencerReserva(alquilerId));
+        long[] antes = contarEscriturasDevolucionMysql();
+        assertEquals(0, alquilerService.vencerReserva(alquilerId));
+        assertArrayEquals(antes, contarEscriturasDevolucionMysql());
+        transaccion.executeWithoutResult(tx -> {
+            Alquiler a = entityManager.find(Alquiler.class, alquilerId);
+            assertEquals("VENCIDO", a.getEstadoContratacion().getCodigo());
+            assertEquals(new BigDecimal("0.00"), a.getCostoFinalArs());
+            assertTrue(pagoRepository.findByAlquilerIdOrderByIdAsc(alquilerId).isEmpty());
+            historiasDetalleMysql(alquilerId).stream().filter(h -> "VENCIDO".equals(h.getEstadoNuevo().getCodigo())).forEach(h -> {
+                assertEquals("SISTEMA", h.getOrigen()); assertNull(h.getActorUsuario());
+            });
+            for (int bici : List.of(bicicleta1Id, bicicleta2Id)) {
+                var h = historiasBicicletaMysql(bici);
+                assertEquals("SISTEMA", h.get(h.size()-1).getOrigen());
+                assertNull(h.get(h.size()-1).getActorUsuario());
+            }
+            comprobarBicicletas("DISPONIBLE"); assertEquals(2L, ocupacionEstacionMysql());
+        });
+    }
+
+    @Test
+    void cancelacionParcialMysqlNoDetieneUsoYUltimaDevolucionLiquida() {
+        AlquilerCabeceraDTO a = crearReservaPagadaMysql();
+        retirarParaDevolucionMysql(a);
+        var parcial = alquilerService.cancelarReserva(a.getId(), a.getDetalles().get(1).getId(), null, false);
+        assertEquals("EN_PROGRESO", parcial.getEstado());
+        assertNull(parcial.getFechaHoraLiquidacion());
+        when(reloj.instant()).thenReturn(instantePagos.plus(32, ChronoUnit.MINUTES));
+        alquilerService.devolverBicicleta(a.getId(), a.getDetalles().get(0).getId(), solicitudDevolucionMysql(false));
+        var cerrado = alquilerService.obtenerAlquiler(a.getId());
+        assertEquals("FINALIZADO", cerrado.getEstado());
+        assertNotNull(cerrado.getFechaHoraLiquidacion());
+        assertEquals(1, reembolsoService.consultar(a.getId()).getReembolsos().size());
+    }
+
+    @Test
+    void httpMysqlCreaReservaNuevaYCancelaConAutorizacionReal() throws Exception {
+        String cuerpo = "{\"estacionRetiroId\":" + estacionId + ",\"bicicletaIds\":[" + bicicleta1Id + "," + bicicleta2Id +
+                "],\"duracionEstimadaSegundos\":2700}";
+        var sesion = org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(email).authorities(new SimpleGrantedAuthority("CLIENTE"));
+        var respuesta = http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/alquileres")
+                .with(sesion).contentType("application/json").content(cuerpo))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.estado").value("RESERVADO"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.detalles.length()").value(2)).andReturn();
+        int alquilerId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(respuesta.getResponse().getContentAsString()).get("id").asInt();
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/alquileres/" + alquilerId + "/cancelar").with(sesion))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.estado").value("CANCELADO"));
+        http.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/pagos/reembolsos/" + alquilerId).with(sesion))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.liquidacion.situacionFinanciera").value("SALDADO"));
+    }
+
+    @Test
+    void preventivaVencidaMysqlBloqueaReservaYAlLiberarGeneraOrdenSinMoverLugar() {
+        AlquilerCabeceraDTO a = crearReservaPagadaMysql();
+        // Fixture SQL: fechaAlta es inmutable por JPA. No quitar updatable=false del modelo.
+        transaccion.executeWithoutResult(tx -> entityManager.createNativeQuery("update bicicleta set fecha_alta=:fecha where id=:id")
+                .setParameter("fecha",LocalDate.ofInstant(instantePagos,ZoneOffset.UTC).minusYears(2))
+                .setParameter("id",bicicleta1Id).executeUpdate());
+        alquilerService.cancelarReserva(a.getId(), null, null, false);
+        transaccion.executeWithoutResult(tx -> {
+            Bicicleta bici = entityManager.find(Bicicleta.class,bicicleta1Id);
+            assertEquals("MANTENIMIENTO",bici.getEstado().getCodigo());
+            assertEquals(estacionId,bici.getUbicacionActual().getId());
+            var ordenes = entityManager.createQuery("select o from OrdenMantenimiento o where o.bicicleta.id=:b", OrdenMantenimiento.class)
+                    .setParameter("b",bicicleta1Id).getResultList();
+            assertEquals(1,ordenes.size());
+            assertEquals("PREVENTIVO",ordenes.get(0).getTipoMantenimiento().getCodigo());
+            // Aunque alguien olvidara cambiar el estado visible, el calendario no permite otra reserva.
+            bici.setEstado(catalogo(EstadoBicicleta.class,"DISPONIBLE"));
+        });
+        assertThrows(IllegalStateException.class, () -> alquilerService.crearReserva(solicitud()));
+    }
+
+    @Test
+    void pendientesFinancierosMysqlIncluyenReintegroAunqueAlquilerEsteOculto() {
+        AlquilerCabeceraDTO a = crearAlquilerConReintegroMysql();
+        // Preparar un registro ya ocultado por ADMIN; no concederle ese permiso al cliente del test.
+        transaccion.executeWithoutResult(tx -> entityManager.find(Alquiler.class,a.getId()).setBorradoAlquiler(true));
+        assertTrue(liquidacionService.listarPendientesPropios().stream().anyMatch(l -> l.getAlquilerId()==a.getId()));
+        reembolsoService.resolver(a.getId());
+        assertTrue(liquidacionService.listarPendientesPropios().isEmpty());
+    }
+
+    @Test
+    void consultaDeVencimientosMysqlExcluyeTodosRetiradosYNoDependeDelNavegador() {
+        AlquilerCabeceraDTO a = crearReservaRetiradaMysql();
+        when(reloj.instant()).thenReturn(instantePagos.plus(16,ChronoUnit.MINUTES));
+        var pagina = org.springframework.data.domain.PageRequest.of(0,100);
+        assertFalse(alquilerRepository.buscarReservasVencidas(LocalDateTime.ofInstant(reloj.instant(),ZoneOffset.UTC),pagina).contains(a.getId()));
+        // Las unidades siguen en uso: no hay cierre artificial a los quince minutos.
+        assertEquals(0,alquilerService.vencerReserva(a.getId()));
+        assertEquals("EN_PROGRESO",alquilerService.obtenerAlquiler(a.getId()).getEstado());
+    }
+
+    @Test
+    void nuevaReservaMysqlRechazaPreventivaAunqueNoHayaOrdenNiCambioVisible() {
+        transaccion.executeWithoutResult(tx -> entityManager.createNativeQuery("update bicicleta set fecha_alta=:fecha where id=:id")
+                .setParameter("fecha",LocalDate.ofInstant(instantePagos,ZoneOffset.UTC).minusYears(2))
+                .setParameter("id",bicicleta1Id).executeUpdate());
+        long[] antes = contarEscriturasDevolucionMysql();
+        assertThrows(IllegalStateException.class, () -> alquilerService.crearReserva(solicitud()));
+        assertArrayEquals(antes,contarEscriturasDevolucionMysql());
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named="TURISMO_TEST_WEB", matches="true")
+    void navegadorRealReservaPagaRetiraDevuelveYRecibeReintegro() throws Exception {
+        String base = "http://localhost:" + puertoWeb;
+        String nickname = transaccion.execute(tx -> entityManager.find(Usuario.class,usuarioId).getNickname());
+        try (com.microsoft.playwright.Playwright pw = com.microsoft.playwright.Playwright.create();
+             com.microsoft.playwright.Browser browser = pw.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions().setHeadless(true));
+             com.microsoft.playwright.BrowserContext contexto = browser.newContext()) {
+            var login = contexto.request().post(base + "/api/login", com.microsoft.playwright.options.RequestOptions.create()
+                    .setForm(com.microsoft.playwright.options.FormData.create().set("nickname",nickname).set("password","PruebaMysql?1")));
+            assertEquals(200,login.status());
+            var page = contexto.newPage();
+            page.setDefaultTimeout(20000);
+            List<String> erroresJs = new ArrayList<>();
+            page.onPageError(erroresJs::add);
+            page.navigate(base + "/alquiler.html");
+            page.locator("#filtro-estacion option[value='" + estacionId + "']").waitFor(
+                    new com.microsoft.playwright.Locator.WaitForOptions().setState(com.microsoft.playwright.options.WaitForSelectorState.ATTACHED));
+            page.selectOption("#filtro-estacion",String.valueOf(estacionId));
+            page.locator("input[onchange='seleccionarBicicleta(" + bicicleta1Id + ")']").check();
+            page.locator("input[onchange='seleccionarBicicleta(" + bicicleta2Id + ")']").check();
+            page.fill("#duracion-reserva","45");
+            page.click("#crear-reserva"); page.click(".swal2-confirm");
+            page.waitForSelector(".swal2-title:text-is('Reserva creada')");
+            page.click(".swal2-confirm");
+            page.waitForURL("**/mis_alquileres.html");
+            page.waitForSelector("button:has-text('Pagar/consultar anticipo simulado')");
+            int alquilerId = transaccion.execute(tx -> entityManager.createQuery(
+                    "select a.id from Alquiler a where a.usuario.id=:u order by a.id desc",Integer.class)
+                    .setParameter("u",usuarioId).setMaxResults(1).getSingleResult());
+            page.click("button:has-text('Pagar/consultar anticipo simulado')");
+            page.waitForSelector(".swal2-html-container:has-text('Pago SIMULADO')");
+            page.click(".swal2-confirm");
+            page.waitForSelector(".swal2-html-container:has-text('APROBADO')");
+            page.click(".swal2-confirm");
+            AlquilerCabeceraDTO a = alquilerService.obtenerAlquiler(alquilerId);
+            when(reloj.instant()).thenReturn(instantePagos.plus(2,ChronoUnit.MINUTES));
+            page.locator("details[data-alquiler-detalles='" + alquilerId + "'] summary").click();
+            for (var d : a.getDetalles()) {
+                page.click("button[onclick='OperacionesAlquiler.retirar(" + alquilerId + "," + d.getId() + ")']");
+                page.click(".swal2-confirm");
+                page.waitForSelector(".swal2-title:text-is('Operación registrada')"); page.click(".swal2-confirm");
+            }
+            when(reloj.instant()).thenReturn(instantePagos.plus(32,ChronoUnit.MINUTES));
+            for (var d : a.getDetalles()) {
+                page.click("button[onclick='OperacionesAlquiler.devolver(" + alquilerId + "," + d.getId() + ")']");
+                page.selectOption(".swal2-select",String.valueOf(estacionId)); page.click(".swal2-confirm");
+                page.waitForSelector(".swal2-title:text-is('¿La bicicleta tiene una falla?')"); page.click(".swal2-deny");
+                page.waitForSelector(".swal2-title:text-is('Bicicleta devuelta')"); page.click(".swal2-confirm");
+            }
+            page.locator("button[onclick='OperacionesAlquiler.finanzas(" + alquilerId + ")']").first().click();
+            page.waitForSelector(".swal2-html-container:has-text('REEMBOLSO_PENDIENTE')");
+            page.click(".swal2-deny");
+            page.waitForSelector(".swal2-html-container:has-text('CONFIRMADO')"); page.click(".swal2-confirm");
+            page.waitForSelector(".swal2-container",new com.microsoft.playwright.Page.WaitForSelectorOptions()
+                    .setState(com.microsoft.playwright.options.WaitForSelectorState.HIDDEN));
+            page.evaluate("window.scrollTo(0,0)");
+            page.waitForFunction("window.scrollY === 0");
+            assertEquals("FINALIZADO",alquilerService.obtenerAlquiler(alquilerId).getEstado());
+            assertEquals(new BigDecimal("986230.00"),pagoService.consultarSaldoSimulado().getSaldoDisponibleArs());
+            assertTrue(erroresJs.isEmpty(),erroresJs.toString());
+            java.nio.file.Path carpeta = java.nio.file.Path.of("build/reports/tests/navegador");
+            java.nio.file.Files.createDirectories(carpeta);
+            page.screenshot(new com.microsoft.playwright.Page.ScreenshotOptions().setPath(carpeta.resolve("alquiler-circuito-completo.png")).setFullPage(true));
+        }
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named="TURISMO_TEST_WEB", matches="true")
+    void navegadorAdminSinClienteCancelaConMotivoYConsultaDineroSinCobrar() {
+        AlquilerCabeceraDTO a = crearReservaPagadaMysql();
+        String nickname = transaccion.execute(tx -> {
+            Usuario u = entityManager.find(Usuario.class,usuarioId);
+            entityManager.createQuery("delete from UsuarioRol ur where ur.usuario.id=:u").setParameter("u",usuarioId).executeUpdate();
+            entityManager.persist(new UsuarioRol(u,catalogo(Rol.class,"ADMIN")));
+            return u.getNickname();
+        });
+        autenticarListado("ADMIN");
+        String base = "http://localhost:" + puertoWeb;
+        try (com.microsoft.playwright.Playwright pw = com.microsoft.playwright.Playwright.create();
+             com.microsoft.playwright.Browser browser = pw.chromium().launch(new com.microsoft.playwright.BrowserType.LaunchOptions().setHeadless(true));
+             com.microsoft.playwright.BrowserContext contexto = browser.newContext()) {
+            var login = contexto.request().post(base + "/api/login",com.microsoft.playwright.options.RequestOptions.create()
+                    .setForm(com.microsoft.playwright.options.FormData.create().set("nickname",nickname).set("password","PruebaMysql?1")));
+            assertEquals(200,login.status());
+            var page = contexto.newPage(); page.setDefaultTimeout(20000);
+            List<String> errores = new ArrayList<>(); page.onPageError(errores::add);
+            page.navigate(base + "/admin.html");
+            // La tabla de alquileres está en su pestaña, no en la vista inicial de usuarios.
+            page.locator("[data-bs-target='#tab-alquileres']").click();
+            page.locator("details[data-alquiler-detalles='" + a.getId() + "'] summary").click();
+            assertEquals(0,page.locator("#tabla-alquileres-body button[onclick*='.anticipo(']").count());
+            assertEquals(0,page.locator("#tabla-alquileres-body button[onclick*='.retirar(']").count());
+            for (var d : a.getDetalles()) {
+                page.click("button[onclick='OperacionesAlquiler.cancelarAdmin(" + a.getId() + "," + d.getId() + ")']");
+                page.fill(".swal2-textarea","Falla operativa detectada por administración.");
+                page.click(".swal2-confirm");
+                page.selectOption(".swal2-select","INACTIVA"); page.click(".swal2-confirm");
+                page.waitForSelector(".swal2-title:text-is('Cancelación registrada')"); page.click(".swal2-confirm");
+            }
+            page.locator("button[onclick='OperacionesAlquiler.finanzas(" + a.getId() + ")']").click();
+            page.waitForSelector(".swal2-html-container:has-text('REEMBOLSO_PENDIENTE')");
+            assertFalse(page.locator(".swal2-deny").isVisible(),"ADMIN no puede resolver pagos ni reintegros de clientes.");
+            page.click(".swal2-confirm");
+            assertEquals("CANCELADO",alquilerService.obtenerAlquiler(a.getId()).getEstado());
+            transaccion.executeWithoutResult(tx -> {
+                for (int bici : List.of(bicicleta1Id,bicicleta2Id)) {
+                    Bicicleta b = entityManager.find(Bicicleta.class,bici);
+                    assertEquals("INACTIVA",b.getEstado().getCodigo());
+                    assertEquals(estacionId,b.getUbicacionActual().getId());
+                }
+            });
+            assertEquals(403,contexto.request().post(base + "/api/pagos/reembolsos/" + a.getId() + "/resolver").status());
+            assertTrue(errores.isEmpty(),errores.toString());
+        }
+    }
+
+    private AlquilerCabeceraDTO crearAlquilerConReintegroMysql() {
+        AlquilerCabeceraDTO a = crearReservaRetiradaMysql();
+        when(reloj.instant()).thenReturn(instantePagos.plus(32, ChronoUnit.MINUTES));
+        for (AlquilerDetalleDTO d : a.getDetalles()) alquilerService.devolverBicicleta(a.getId(), d.getId(), solicitudDevolucionMysql(false));
+        return alquilerService.obtenerAlquiler(a.getId());
     }
 
     private AlquilerCabeceraDTO crearAlquilerConDeudaMysql() {

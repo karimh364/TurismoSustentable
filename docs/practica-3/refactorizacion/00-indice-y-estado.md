@@ -2,7 +2,17 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 332 del documento 37, usuario confirma compilación y
+Estado más reciente: etapa 333. Los tres bloques autorizados quedaron conectados:
+reembolso simulado, cancelación/vencimiento y creación HTTP nueva, pantallas
+CLIENTE/ADMIN. Compilación correcta, 758 unitarias/HTTP, 66 JavaScript y 48 de
+integración aprobadas; las últimas incluyen dos circuitos Chromium reales.
+Sin cambios en Gradle/Playwright de la otra materia ni otro commit/push.
+Detalle, límites, rutas, evidencia y repetición en
+[41-circuito-alquiler-y-finanzas-simuladas.md](41-circuito-alquiler-y-finanzas-simuladas.md).
+El DER completo y el retiro total de consumidores/columnas anteriores NO se
+declaran terminados; incidencias/mantenimiento y despliegue siguen pendientes.
+
+Verificación anterior: etapa 332 del documento 37, usuario confirma compilación y
 todas las pruebas aprobadas. Última tanda corroborada en XML: 34 SQL aprobadas,
 cero fallos/errores/omisiones, 16/11 a las 04:48 de Argentina. Incluye cinco casos
 nuevos del adicional: deuda oculta saldada permite reservar, rechazo, pendiente,

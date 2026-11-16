@@ -1,7 +1,7 @@
 package DSII.TurismoSustentable.configurations;
 
 import DSII.TurismoSustentable.controllers.AlquilerController;
-import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
+import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.services.AlquilerService;
@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AutorizacionAlquilerTest {
 
     private static final String SOLICITUD =
-            "{\"bicicletaId\":1,\"duracionEnHoras\":1}";
+            "{\"estacionRetiroId\":1,\"bicicletaIds\":[1],\"duracionEstimadaSegundos\":3600}";
 
     @Autowired
     private MockMvc mockMvc;
@@ -98,7 +98,7 @@ class AutorizacionAlquilerTest {
     @Test
     @WithMockUser(authorities = "CLIENTE")
     void denegacionDelServicioSeConservaComo403() throws Exception {
-        when(alquilerService.crearAlquiler(any(AlquilerRequestDTO.class)))
+        when(alquilerService.crearReserva(any(CrearAlquilerDTO.class)))
                 .thenThrow(new AccessDeniedException(
                         "El usuario ya no tiene rol CLIENTE."
                 ));
@@ -112,7 +112,7 @@ class AutorizacionAlquilerTest {
     @Test
     @WithMockUser(authorities = "CLIENTE")
     void deudaDelServicioSeConservaComo409() throws Exception {
-        when(alquilerService.crearAlquiler(any(AlquilerRequestDTO.class)))
+        when(alquilerService.crearReserva(any(CrearAlquilerDTO.class)))
                 .thenThrow(new IllegalStateException("Saldo pendiente."));
 
         mockMvc.perform(post("/api/alquileres")
@@ -122,6 +122,7 @@ class AutorizacionAlquilerTest {
     }
 
     private void comprobarCreacionPermitida() throws Exception {
+        when(alquilerService.crearReserva(any(CrearAlquilerDTO.class))).thenReturn(7);
         // Servicio simulado: se prueba acceso y delegación, no un alquiler real.
         mockMvc.perform(post("/api/alquileres")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,6 +130,16 @@ class AutorizacionAlquilerTest {
                 .andExpect(status().isCreated());
 
         verify(alquilerService)
-                .crearAlquiler(any(AlquilerRequestDTO.class));
+                .crearReserva(any(CrearAlquilerDTO.class));
+        verify(alquilerService).obtenerAlquiler(7);
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void payloadAnteriorNoPermiteSaltarReservaYAnticipo() throws Exception {
+        mockMvc.perform(post("/api/alquileres").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"bicicletaId\":1,\"duracionEnHoras\":1}"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(alquilerService);
     }
 }

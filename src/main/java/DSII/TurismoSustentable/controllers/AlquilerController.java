@@ -1,7 +1,8 @@
 package DSII.TurismoSustentable.controllers;
 
 import DSII.TurismoSustentable.dto.AlquilerDTO;
-import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
+import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
+import DSII.TurismoSustentable.dto.CancelarDetalleDTO;
 import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.services.AlquilerService; // <-- 1. IMPORTA EL SERVICIO
@@ -82,13 +83,13 @@ public class AlquilerController {
      * Ahora solo llama al servicio y maneja la respuesta.
      */
     @PostMapping("/alquileres")
-    public ResponseEntity<Object> crearAlquiler(@RequestBody AlquilerRequestDTO alquilerRequest) {
+    public ResponseEntity<Object> crearAlquiler(@Valid @RequestBody CrearAlquilerDTO alquilerRequest) {
         try {
             // 2. Llama al servicio (que es transaccional)
-            AlquilerDTO alquilerGuardado = alquilerService.crearAlquiler(alquilerRequest);
+            Integer alquilerId = alquilerService.crearReserva(alquilerRequest);
 
             // 3. Devuelve la respuesta OK
-            return new ResponseEntity<>(alquilerGuardado, HttpStatus.CREATED);
+            return ResponseEntity.status(HttpStatus.CREATED).body(alquilerService.obtenerAlquiler(alquilerId));
 
         } catch (AccessDeniedException
                  | ConfiguracionSistemaException
@@ -99,10 +100,34 @@ public class AlquilerController {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(e.getMessage());
 
-        } catch (Exception e) {
-            // 4. Si el servicio lanzó un error, devuélvelo como 400 Bad Request
+        } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @GetMapping("/alquileres/pendientes-financieros")
+    public Object pendientesFinancieros() { return liquidacionAlquilerService.listarPendientesPropios(); }
+
+    @PostMapping({"/alquileres/{alquilerId}/cancelar", "/alquileres/{alquilerId}/detalles/{detalleId}/cancelar"})
+    public ResponseEntity<Object> cancelarReserva(
+            @PathVariable("alquilerId") Integer alquilerId,
+            @PathVariable(value = "detalleId", required = false) Integer detalleId) {
+        return cancelar(alquilerId, detalleId, null, false);
+    }
+
+    @PostMapping("/admin/alquileres/{alquilerId}/detalles/{detalleId}/cancelar")
+    public ResponseEntity<Object> cancelarAdministrativamente(
+            @PathVariable("alquilerId") Integer alquilerId, @PathVariable("detalleId") Integer detalleId,
+            @Valid @RequestBody CancelarDetalleDTO solicitud) {
+        return cancelar(alquilerId, detalleId, solicitud, true);
+    }
+
+    private ResponseEntity<Object> cancelar(Integer alquilerId, Integer detalleId,
+            CancelarDetalleDTO solicitud, boolean administrativa) {
+        try { return ResponseEntity.ok(alquilerService.cancelarReserva(alquilerId, detalleId, solicitud, administrativa)); }
+        catch (EntityNotFoundException e) { return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage()); }
+        catch (IllegalArgumentException e) { return ResponseEntity.badRequest().body(e.getMessage()); }
+        catch (IllegalStateException e) { return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage()); }
     }
 
     // BORRAR ALQUILER

@@ -36,6 +36,7 @@ class PagoServiceTest {
 
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private LiquidacionAlquilerService liquidacionAlquilerService;
+    @Mock private ReembolsoService reembolsoService;
     @Mock private PagoRepository pagoRepository;
     @Mock private ReembolsoRepository reembolsoRepository;
     @Mock private PasarelaSimulada pasarelaSimulada;

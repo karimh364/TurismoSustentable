@@ -1,5 +1,33 @@
 # Implementación de entidades
 
+## Etapa 333 — Tres bloques operativos/financieros conectados (16/11/2026)
+
+Por autorización expresa se implementaron reembolso simulado, cancelación y
+vencimiento de pendientes, corte del productor HTTP anterior y conexión de
+pantallas CLIENTE/ADMIN. Se mantienen las 29 entidades del DER v5. Nuevo servicio
+ReembolsoService y DTO escalares; historias y crédito solo por confirmación.
+VencimientoReservasJob independiente del navegador, sin actor humano ficticio.
+POST principal utiliza CrearAlquilerDTO; se retiran crearAlquiler anterior,
+AlquilerRequestDTO y respaldo fijo del dólar. Cancelación no detiene uso ni
+mueve inventario; cierre conjunto conserva snapshots y liquida sin inventar
+dinero. ADMIN puede recibir/cancelar por operación pero no hereda CLIENTE.
+
+Verificación ejecutada por el asistente, autorizada: 758 unitarias/HTTP en 55
+clases, 66 JavaScript y última integración 48 casos aprobados, sin fallos,
+errores u omisiones en cada tanda. SQL real y dos casos Chromium con servidor
+HTTP, incluido circuito CLIENTE completo y ADMIN sin CLIENTE. Última SQL:
+16/11 09:57 Argentina, BUILD SUCCESSFUL 47 s. Los reportes pertenecen a
+tandas distintas; la última SQL reemplaza los XML de unitarias/HTTP.
+Solo datos descartables de turismo_sustentable; create-drop al finalizar.
+No cambios en Gradle/pruebas de la otra materia ni commit/push nuevo.
+
+Reporte detallado de código, endpoints, pruebas y pendientes:
+[41-circuito-alquiler-y-finanzas-simuladas.md](41-circuito-alquiler-y-finanzas-simuladas.md).
+No confundir este cierre de tres bloques con DER completo: incidencias,
+mantenimiento técnico, consumidores heredados y producción siguen pendientes.
+
+Las secciones siguientes conservan el registro histórico de implementaciones.
+
 ## Bloque 1 Catálogos de identificación
 
 Estado: entidades incorporadas y revisadas estáticamente.

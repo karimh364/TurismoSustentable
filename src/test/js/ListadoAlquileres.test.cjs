@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const carpetaStatic = path.join(__dirname, '../../main/resources/static');
 const fuentes = Object.fromEntries(
-    ['alquileres-vista.js', 'mis_alquileres.js', 'admin.js'].map(
+    ['alquileres-vista.js', 'alquileres-operaciones.js', 'mis_alquileres.js', 'admin.js'].map(
         archivo => [
             archivo,
             fs.readFileSync(path.join(carpetaStatic, 'js', archivo), 'utf8')
@@ -154,6 +154,7 @@ function entorno(pagina, respuesta = [], fallo = null) {
             nombre: 'QA', roles: ['ADMIN', 'CLIENTE']
         }),
         cargarNombreUsuario: async () => {},
+        rolesDelUsuario: u => u.roles,
         manejarErrorSesion(error) {
             erroresSesion.push(error);
             return [401, 403].includes(error.response?.status);
@@ -169,6 +170,7 @@ function entorno(pagina, respuesta = [], fallo = null) {
     const archivoPagina = pagina === 'cliente'
         ? 'mis_alquileres.js'
         : 'admin.js';
+    vm.runInContext(fuentes['alquileres-operaciones.js'], contexto, {filename: 'alquileres-operaciones.js'});
 
     vm.runInContext(
         fuentes[archivoPagina],
@@ -240,8 +242,10 @@ for (const pagina of ['cliente', 'admin']) {
             assert.doesNotMatch(historial, /QA-DET-01|QA-ANT-01/);
 
             assert.match(activos, /abrirDevolucionAnterior\(40\)/);
-            assert.equal((activos.match(/onclick=/g) || []).length, 1);
-            assert.doesNotMatch(historial, /onclick=/);
+            assert.equal((activos.match(/abrirDevolucionAnterior\(/g) || []).length, 1);
+            assert.match(activos, /OperacionesAlquiler.finanzas\(50\)/);
+            assert.match(historial, /OperacionesAlquiler.finanzas\(38\)/);
+            assert.doesNotMatch(historial, /OperacionesAlquiler\.(retirar|devolver|anticipo)\(/);
             assert.match(historial, /Pendiente de liquidación/);
         } else {
             const filas = [...html.matchAll(/<tr>([\s\S]*?)<\/tr>/g)]
@@ -258,7 +262,9 @@ for (const pagina of ['cliente', 'admin']) {
             assert.match(filas[3], /Pendiente de liquidación/);
 
             assert.match(html, /finalizarAlquilerAdmin\(40\)/);
-            assert.equal((html.match(/onclick=/g) || []).length, 1);
+            assert.equal((html.match(/finalizarAlquilerAdmin\(/g) || []).length, 1);
+            assert.match(filas[0], /OperacionesAlquiler.cancelarAdmin\(50,101\)/);
+            assert.doesNotMatch(html, /OperacionesAlquiler\.(retirar|anticipo|adicional)\(/);
         }
     });
 

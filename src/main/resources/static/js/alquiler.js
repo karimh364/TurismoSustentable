@@ -1,326 +1,95 @@
-// Variables globales para guardar datos
-let todasLasBicis = [];
-let precioActualBici = 0;
-
-let tasaCambio = 1; // Por defecto 1 (para dólares)
-let monedaActual = 'USD'; // USD o ARS
-
-document.addEventListener("DOMContentLoaded", async function() {
-    const usuario = await requerirSesion(['ADMIN', 'CLIENTE']);
+// Reserva de varias unidades de una misma estación. El servidor fija importes y permisos.
+let bicicletas = [];
+const seleccionBicicletas = new Set();
+let cotizacionReserva = null;
+let creandoReserva = false;
+document.addEventListener('DOMContentLoaded', async () => {
+    const usuario = await requerirSesion(['CLIENTE']);
     if (!usuario) return;
-
-    // Ejecutamos las 4 cargas en paralelo (nombre, estaciones, bicis y cotización)
-    await Promise.all([
-        cargarNombreUsuario(usuario),
-        cargarEstaciones(),
-        cargarBicicletas(),
-        cargarCotizacion() // Llamada a la API del dólar
-    ]);
-
-    // Listeners para ambos filtros (Estación y Tipo)
-    document.getElementById('filtro-estacion').addEventListener('change', filtrarBicicletas);
-    document.getElementById('filtro-tipo').addEventListener('change', filtrarBicicletas);
-
-    // Listener para calcular precio en tiempo real en el modal
-    document.getElementById('duracion').addEventListener('input', actualizarTotalModal);
-});
-
-// --- 1. CARGAR ESTACIONES (Para el select) ---
-async function cargarEstaciones() {
+    await cargarNombreUsuario(usuario);
     try {
-        const response = await axios.get('/api/estaciones');
-        const select = document.getElementById('filtro-estacion');
-
-        response.data.forEach(est => {
-            const option = document.createElement('option');
-            option.value = est.nombre; // Filtramos por nombre de estación
-            option.textContent = est.nombre;
-            select.appendChild(option);
+        const [bicis, estaciones] = await Promise.all([axios.get('/api/bicicletas/disponibles'), axios.get('/api/estaciones')]);
+        bicicletas = bicis.data;
+        estaciones.data.forEach(e => {
+            const opcion = document.createElement('option');
+            opcion.value = e.id; opcion.textContent = e.nombre;
+            document.getElementById('filtro-estacion').appendChild(opcion);
         });
-    } catch (error) {
-        if (manejarErrorSesion(error)) return;
-        console.error("Error cargando estaciones", error);
-    }
-}
-
-// --- 2. CARGAR BICICLETAS DISPONIBLES ---
-async function cargarBicicletas() {
-    const container = document.getElementById('bicicletas-container');
-
-    try {
-        const response = await axios.get('/api/bicicletas/disponibles');
-        todasLasBicis = response.data;
-
-        renderizarBicicletas(todasLasBicis);
-
-    } catch (error) {
-        if (manejarErrorSesion(error)) return;
-        container.innerHTML = `<div class="alert alert-danger text-center">No se pudieron cargar las bicicletas. ¿Has iniciado sesión?</div>`;
-        console.error(error);
-    }
-}
-
-// --- 3. RENDERIZAR TARJETAS (HTML Dinámico) ---
-function renderizarBicicletas(listaBicis) {
-    const container = document.getElementById('bicicletas-container');
-    container.innerHTML = ''; // Limpiar loader
-
-    if (listaBicis.length === 0) {
-        container.innerHTML = `<div class="col-12 text-center text-muted py-5"><h4><i class="fas fa-bicycle"></i> No hay bicicletas disponibles con estos filtros.</h4></div>`;
-        return;
-    }
-
-    listaBicis.forEach(bici => {
-        // Asignar imagen según tipo
-        let imagenUrl = '';
-        switch(bici.tipo) {
-            case 'MONTANA':
-                imagenUrl = 'img/montana.jpg';
-                break;
-            case 'ELECTRICA':
-                imagenUrl = 'img/electrica.jpg';
-                break;
-            case 'PASEO':
-                imagenUrl = 'img/paseo.jpg';
-                break;
-            default:
-                imagenUrl = 'img/paseo.jpg';
-                break;
+        ['filtro-estacion', 'filtro-tipo', 'switch-moneda'].forEach(n =>
+            document.getElementById(n).addEventListener('change', mostrarBicicletas));
+        try {
+            const {data} = await axios.get('/api/cotizacion');
+            if (Number(data) > 0) cotizacionReserva = Number(data);
+        } catch (e) {
+            if (manejarErrorSesion(e)) return;
+            document.getElementById('aviso-reserva').textContent = 'Referencia ARS no disponible. Al confirmar se verificará nuevamente la cotización.';
         }
-
-        // Traducción del tipo de bici para el usuario
-        let tipoBonito = bici.tipo;
-        if (bici.tipo === 'MONTANA') tipoBonito = 'Montaña';
-        if (bici.tipo === 'ELECTRICA') tipoBonito = 'Eléctrica';
-        if (bici.tipo === 'PASEO') tipoBonito = 'Paseo';
-
-        // LÓGICA DE PRECIO Y MONEDA
-        let precioMostrar = bici.precio;
-        let simbolo = 'US$';
-
-        if (monedaActual === 'ARS') {
-            precioMostrar = (bici.precio * tasaCambio).toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-            simbolo = 'AR$';
-        } else {
-            precioMostrar = bici.precio.toFixed(2);
-        }
-
-        const html = `
-    <div class="col-md-6 col-lg-4 fade-in">
-        <div class="card h-100 shadow-sm border-0 bike-card">
-            <div class="position-relative">
-                <img src="${imagenUrl}" class="card-img-top" alt="Bicicleta" style="height: 200px; object-fit: cover;">
-                <span class="position-absolute top-0 end-0 badge bg-success m-2 shadow">
-                    <i class="fas fa-check-circle"></i> Disponible
-                </span>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title fw-bold mb-0">${tipoBonito}</h5>
-                    <span class="text-success fw-bold h5">${simbolo} ${precioMostrar} <small class="text-muted fs-6">/h</small></span>
-                </div>
-                <p class="card-text text-muted small">
-                    <i class="fas fa-map-marker-alt text-danger"></i> ${bici.ubicacion}
-                    <br>
-                    <i class="fas fa-barcode"></i> Código: ${bici.codigoBicicleta}
-                </p>
-            </div>
-            <div class="card-footer bg-white border-0 pb-3 text-center">
-                <button class="btn btn-outline-success w-100 rounded-pill fw-bold"
-                    onclick="abrirModalAlquiler(${bici.id}, '${bici.codigoBicicleta}', '${bici.ubicacion}', ${bici.precio}, '${tipoBonito}')">
-                    Alquilar Ahora
-                </button>
-            </div>
-        </div>
-    </div>
-    `;
-        container.innerHTML += html;
-    });
-}
-
-// --- 4. FILTRADO COMBINADO (Estación + Tipo) ---
-function filtrarBicicletas() {
-    const filtroEstacion = document.getElementById('filtro-estacion').value;
-    const filtroTipo = document.getElementById('filtro-tipo').value;
-
-    let bicisFiltradas = todasLasBicis;
-
-    // Filtrar por estación si no está en "todas"
-    if (filtroEstacion !== 'todas') {
-        bicisFiltradas = bicisFiltradas.filter(b => b.ubicacion === filtroEstacion);
-    }
-
-    // Filtrar por tipo si no está en "todos"
-    if (filtroTipo !== 'todos') {
-        bicisFiltradas = bicisFiltradas.filter(b => b.tipo === filtroTipo);
-    }
-
-    renderizarBicicletas(bicisFiltradas);
-}
-
-// --- 5. LÓGICA DEL MODAL DE DOS PASOS ---
-
-// Reinicia siempre el modal al Paso 1 cuando se abre
-function volverAPaso1() {
-    document.getElementById('modal-paso-2').classList.add('d-none');
-    document.getElementById('footer-paso-2').classList.remove('d-flex');
-    document.getElementById('footer-paso-2').classList.add('d-none');
-
-    document.getElementById('modal-paso-1').classList.remove('d-none');
-    document.getElementById('footer-paso-1').classList.remove('d-none');
-    document.getElementById('footer-paso-1').classList.add('d-flex');
-}
-
-function abrirModalAlquiler(id, codigo, ubicacion, precio, tipo) {
-    volverAPaso1(); // Forzamos reset de la vista
-
-    document.getElementById('modal-bici-id').value = id;
-    document.getElementById('modal-bici-codigo').textContent = `${tipo} ${codigo}`;
-    document.getElementById('modal-bici-ubicacion').textContent = ubicacion;
-
-    // Configurar precio en el modal según moneda actual
-    let simbolo = monedaActual === 'ARS' ? 'AR$' : 'US$';
-    let precioModal = monedaActual === 'ARS' ? (precio * tasaCambio).toLocaleString('es-AR', {maximumFractionDigits: 0}) : precio.toFixed(2);
-
-    document.getElementById('modal-bici-precio').textContent = `${simbolo} ${precioModal} / hora`;
-
-    precioActualBici = precio;
-    document.getElementById('duracion').value = 1;
-    actualizarTotalModal();
-
-    const modal = new bootstrap.Modal(document.getElementById('modalAlquiler'));
-    modal.show();
-}
-
-function actualizarTotalModal() {
-    const horas = document.getElementById('duracion').value || 0;
-    const totalDolares = horas * precioActualBici;
-
-    if (monedaActual === 'ARS') {
-        const totalPesos = (totalDolares * tasaCambio).toLocaleString('es-AR', { maximumFractionDigits: 0 });
-        document.getElementById('calculo-total').textContent = `AR$ ${totalPesos}`;
-    } else {
-        document.getElementById('calculo-total').textContent = `US$ ${totalDolares.toFixed(2)}`;
-    }
-}
-
-// Lógica de transición y cálculo de fechas para el ticket
-function pasarAPaso2() {
-    const horasInput = document.getElementById('duracion').value;
-    const horas = parseInt(horasInput);
-
-    if (isNaN(horas) || horas < 1 || horas > 24) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Cantidad inválida',
-            text: 'Debes seleccionar entre 1 y 24 horas para alquilar.',
-            confirmButtonColor: '#198754'
-        });
-        return;
-    }
-
-    // Calcular Fechas (Hora actual vs Hora de devolución)
-    const fechaInicio = new Date();
-    const fechaFin = new Date(fechaInicio.getTime() + (horas * 60 * 60 * 1000));
-
-    // Formatear las fechas
-    const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
-    const formatoInicio = fechaInicio.toLocaleString('es-AR', opcionesFecha);
-    const formatoFin = fechaFin.toLocaleString('es-AR', opcionesFecha);
-
-    // Llenar los datos del Ticket (Paso 2)
-    document.getElementById('ticket-bici').textContent = document.getElementById('modal-bici-codigo').textContent;
-    document.getElementById('ticket-ubicacion').textContent = document.getElementById('modal-bici-ubicacion').textContent;
-    document.getElementById('ticket-inicio').textContent = formatoInicio;
-    document.getElementById('ticket-fin').textContent = formatoFin + ` (${horas}h)`;
-    document.getElementById('ticket-total').textContent = document.getElementById('calculo-total').textContent;
-
-    // Cambiar la vista (Ocultar Paso 1, Mostrar Paso 2)
-    document.getElementById('modal-paso-1').classList.add('d-none');
-    document.getElementById('footer-paso-1').classList.remove('d-flex');
-    document.getElementById('footer-paso-1').classList.add('d-none');
-
-    document.getElementById('modal-paso-2').classList.remove('d-none');
-    document.getElementById('footer-paso-2').classList.remove('d-none');
-    document.getElementById('footer-paso-2').classList.add('d-flex');
-}
-
-// --- 6. ACCIÓN: ALQUILAR (POST) ---
-async function confirmarAlquiler() {
-    const biciId = document.getElementById('modal-bici-id').value;
-    const horas = document.getElementById('duracion').value;
-
-    if (horas <= 0) {
-        Swal.fire('Error', 'La duración debe ser al menos 1 hora', 'error');
-        return;
-    }
-
-    try {
-        // Mostrar cargando
-        Swal.fire({ title: 'Procesando...', didOpen: () => Swal.showLoading() });
-
-        const payload = {
-            bicicletaId: parseInt(biciId),
-            duracionEnHoras: parseInt(horas)
-        };
-
-        // Petición al backend
-        const response = await axios.post('/api/alquileres', payload);
-
-        if (response.status === 201) {
-            // Cerrar modal
-            const modalEl = document.getElementById('modalAlquiler');
-            const modal = bootstrap.Modal.getInstance(modalEl);
-            modal.hide();
-
-            // Éxito (SweetAlert)
-            await Swal.fire({
-                icon: 'success',
-                title: '¡Alquiler Iniciado!',
-                text: 'Tu bicicleta ha sido desbloqueada. ¡Disfrutá el viaje!',
-                confirmButtonColor: '#198754'
-            });
-
-            // Recargar la lista para quitar la bici alquilada
-            cargarBicicletas();
-        }
-
-    } catch (error) {
-        if (manejarErrorSesion(error)) return;
-        console.error(error);
-        let mensaje = 'No se pudo procesar el alquiler.';
-        if (error.response && error.response.data) {
-            mensaje = error.response.data; // Mensaje del backend ("Bicicleta ocupada")
-        }
-        Swal.fire('Oops...', mensaje, 'error');
-    }
-}
-
-// --- 7. LÓGICA DE MONEDA Y DOLARAPI ---
-async function cargarCotizacion() {
-    try {
-        // Apuntamos al Dólar Tarjeta
-        const response = await axios.get('/api/cotizacion');
-        tasaCambio = response.data;
-        console.log("Cotización Dólar Tarjeta cargada: AR$", tasaCambio);
-    } catch (error) {
-        if (manejarErrorSesion(error)) return;
-        console.error("Error al cargar la cotización de DolarAPI", error);
-        // Respaldo por si falla la API
-        tasaCambio = 1400;
-    }
-}
-
-// Escuchar cambios en el Switch de Moneda
-document.getElementById('switch-moneda').addEventListener('change', function(e) {
-    monedaActual = e.target.checked ? 'ARS' : 'USD';
-
-    // Cambiar la etiqueta junto al switch
-    document.getElementById('label-moneda').textContent = monedaActual === 'ARS' ? 'AR$' : 'US$';
-
-    // Volver a renderizar las tarjetas y el modal con la nueva moneda
-    filtrarBicicletas();
-
-    // Si el modal está abierto, actualiza su total también
-    actualizarTotalModal();
+        mostrarBicicletas();
+    } catch (e) { await errorReserva(e); }
 });
+function escaparReserva(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function unidadesSeleccionadas() { return bicicletas.filter(b => seleccionBicicletas.has(b.id)); }
+function seleccionarBicicleta(id) {
+    const bici = bicicletas.find(b => b.id === id);
+    if (!bici) return;
+    if (seleccionBicicletas.has(id)) seleccionBicicletas.delete(id);
+    else if (unidadesSeleccionadas().some(b => b.estacionId !== bici.estacionId)) {
+        Swal.fire('Una estación por reserva', 'Quitá la selección anterior para elegir otra estación.', 'info');
+    } else seleccionBicicletas.add(id);
+    mostrarBicicletas();
+}
+function mostrarBicicletas() {
+    const estacion = document.getElementById('filtro-estacion').value;
+    const tipo = document.getElementById('filtro-tipo').value;
+    const ars = document.getElementById('switch-moneda').checked;
+    document.getElementById('label-moneda').textContent = ars ? 'AR$' : 'US$';
+    document.getElementById('bicicletas-container').innerHTML = bicicletas
+        .filter(b => (estacion === 'todas' || Number(estacion) === b.estacionId) && (tipo === 'todos' || tipo === b.tipo))
+        .map(b => {
+            if (!Number.isSafeInteger(b.id) || b.id <= 0) throw new Error('Bicicleta sin identificación válida.');
+            const precio = ars ? (cotizacionReserva == null ? null : Number(b.precio) * cotizacionReserva) : Number(b.precio);
+            return `<div class="col-md-4"><article class="card h-100"><div class="card-body">
+                <h5>${escaparReserva(b.codigoBicicleta)}</h5><p>${escaparReserva(b.tipo)} · ${escaparReserva(b.ubicacion)}</p>
+                <p>${precio == null ? 'Referencia ARS no disponible' : (ars ? 'AR$ ' : 'US$ ') + precio.toLocaleString('es-AR', {minimumFractionDigits:2,maximumFractionDigits:2}) + '/hora'}</p>
+                <label><input type="checkbox" onchange="seleccionarBicicleta(${b.id})" ${seleccionBicicletas.has(b.id) ? 'checked' : ''}> Seleccionar</label>
+            </div></article></div>`;
+        }).join('') || '<p>No hay bicicletas disponibles para estos filtros.</p>';
+    document.getElementById('seleccion-reserva').textContent =
+        unidadesSeleccionadas().map(b => b.codigoBicicleta).join(', ') || 'Ninguna bicicleta seleccionada';
+}
+function solicitudReserva() {
+    const unidades = unidadesSeleccionadas();
+    const minutos = Number(document.getElementById('duracion-reserva').value);
+    if (!unidades.length) throw new Error('Seleccioná al menos una bicicleta.');
+    if (!Number.isSafeInteger(minutos) || minutos <= 0 || minutos * 60 > 2147483647)
+        throw new Error('Ingresá una duración estimada válida en minutos enteros.');
+    if (!Number.isSafeInteger(unidades[0].estacionId) || unidades.some(b => b.estacionId !== unidades[0].estacionId))
+        throw new Error('Todas las bicicletas deben pertenecer a la misma estación.');
+    return {estacionRetiroId: unidades[0].estacionId, bicicletaIds: unidades.map(b => b.id), duracionEstimadaSegundos: minutos * 60};
+}
+async function confirmarReserva() {
+    if (creandoReserva) return;
+    creandoReserva = true;
+    const boton = document.getElementById('crear-reserva');
+    boton.disabled = true;
+    try {
+        const datos = solicitudReserva();
+        const r = await Swal.fire({title:'Confirmar reserva',icon:'question',showCancelButton:true,
+            text:'Duración estimada común. Tenés 15 minutos para pagar el anticipo y retirar. El uso comienza al retirar cada bicicleta.',
+            confirmButtonText:'Reservar',cancelButtonText:'Volver'});
+        if (!r.isConfirmed) return;
+        const {data} = await axios.post('/api/alquileres', datos);
+        await Swal.fire('Reserva creada', `Alquiler #${data.id}. Continuá con anticipo y retiro desde Mis viajes.`, 'success');
+        window.location.assign('mis_alquileres.html');
+    } catch (e) { await errorReserva(e); }
+    finally { creandoReserva = false; boton.disabled = false; }
+}
+async function errorReserva(e) {
+    if (manejarErrorSesion(e)) return;
+    const dato = e.response?.data;
+    await Swal.fire('No se pudo reservar', typeof dato === 'string' ? dato
+        : Array.isArray(dato?.validationErrors) ? dato.validationErrors.map(v => String(v).replace(/^[^:]+:\s*/, '')).join(' ')
+        : e.message || 'Intentá nuevamente.', 'error');
+}

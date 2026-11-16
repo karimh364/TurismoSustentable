@@ -114,7 +114,7 @@ const VistaAlquileres = (() => {
         `;
     }
 
-    function bicicletas(alquiler, moneda = 'USD') {
+    function bicicletas(alquiler, moneda = 'USD', accionesDetalle = () => '') {
         if (!nuevo(alquiler)) {
             return `
                 <strong>${texto(alquiler.codigoBicicleta)}</strong>
@@ -154,6 +154,7 @@ const VistaAlquileres = (() => {
                 ${detalle.fallaReportada
                     ? '<div>Falla reportada</div>'
                     : ''}
+                ${accionesDetalle(detalle)}
             </li>
         `).join('');
 
@@ -166,7 +167,7 @@ const VistaAlquileres = (() => {
                     alquiler.cotizacionArsPorUsd
                 )} ARS/USD
             </div>
-            <details class="mt-2">
+            <details class="mt-2" data-alquiler-detalles="${id(alquiler.id)}">
                 <summary>${alquiler.detalles.length} bicicleta(s)</summary>
                 <ul class="mt-2 text-start">${unidades}</ul>
             </details>

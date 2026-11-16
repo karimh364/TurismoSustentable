@@ -4,6 +4,7 @@ import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.dto.SaldoSimuladoDTO;
 import DSII.TurismoSustentable.services.PagoService;
+import DSII.TurismoSustentable.services.ReembolsoService;
 import DSII.TurismoSustentable.dto.ResultadoAnticipoDTO;
 import DSII.TurismoSustentable.dto.ResultadoAdicionalDTO;
 import DSII.TurismoSustentable.dto.LiquidacionAlquilerDTO;
@@ -69,6 +70,9 @@ class PagoControllerTest {
 
     @MockBean
     private PagoService pagoService;
+
+    @MockBean
+    private ReembolsoService reembolsoService;
 
     @MockBean
     private UserDetailsService userDetailsService;

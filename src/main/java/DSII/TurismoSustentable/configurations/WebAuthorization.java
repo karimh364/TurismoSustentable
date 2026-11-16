@@ -62,10 +62,8 @@ public class WebAuthorization {
                 ).permitAll()
 
                 // 3. PÁGINAS PRIVADAS
-                .antMatchers(
-                        "/alquiler.html",
-                        "/mis_alquileres.html"
-                ).hasAnyAuthority("ADMIN", "CLIENTE")
+                .antMatchers("/alquiler.html").hasAuthority("CLIENTE")
+                .antMatchers("/mis_alquileres.html").hasAnyAuthority("ADMIN", "CLIENTE")
 
                 .antMatchers(
                         "/admin.html"
@@ -84,13 +82,17 @@ public class WebAuthorization {
                         "/api/pagos/saldo-simulado"
                 ).hasAuthority("CLIENTE")
 
+                .antMatchers(HttpMethod.GET, "/api/pagos/reembolsos/*")
+                .hasAnyAuthority("CLIENTE", "ADMIN")
+
                 // Pagos propios de anticipos y adicionales: requieren CLIENTE.
                 .antMatchers(
                         HttpMethod.POST,
                         "/api/pagos/anticipo/*",
                         "/api/pagos/anticipo/*/resolver",
                         "/api/pagos/adicional/*",
-                        "/api/pagos/adicional/*/resolver"
+                        "/api/pagos/adicional/*/resolver",
+                        "/api/pagos/reembolsos/*/resolver"
                 ).hasAuthority("CLIENTE")
 
                 // 5. OPERACIONES PERMITIDAS PARA CLIENTES
@@ -112,7 +114,9 @@ public class WebAuthorization {
                 .antMatchers(
                         HttpMethod.POST,
                         "/api/alquileres",
-                        "/api/alquileres/*/detalles/*/retirar"
+                        "/api/alquileres/*/detalles/*/retirar",
+                        "/api/alquileres/*/detalles/*/cancelar",
+                        "/api/alquileres/*/cancelar"
                 ).hasAuthority("CLIENTE")
 
                 // Devolver no equivale a alquilar: ADMIN puede recibir una unidad ajena.

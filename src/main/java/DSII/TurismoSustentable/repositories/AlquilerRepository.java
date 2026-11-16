@@ -12,6 +12,17 @@ import java.util.List;
 
 public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
 
+    @Query("select a.id from Alquiler a where a.estadoContratacion.codigo in ('RESERVADO','EN_PROGRESO') "
+            + "and a.fechaHoraVencimientoReserva <= :ahora "
+            + "and exists (select d.id from AlquilerDetalle d where d.alquiler.id = a.id "
+            + "and d.estado.codigo in ('RESERVADO','PENDIENTE_RETIRO')) order by a.id")
+    List<Integer> buscarReservasVencidas(@Param("ahora") java.time.LocalDateTime ahora,
+                                        org.springframework.data.domain.Pageable pagina);
+
+    @Query("select a from Alquiler a where a.usuario.id = :usuarioId "
+            + "and a.fechaHoraLiquidacion is not null order by a.id desc")
+    List<Alquiler> buscarLiquidacionesPorUsuario(@Param("usuarioId") Integer usuarioId);
+
     @org.springframework.data.jpa.repository.Lock(javax.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Alquiler a WHERE a.id = :id")
     java.util.Optional<Alquiler> buscarPorIdConBloqueo(

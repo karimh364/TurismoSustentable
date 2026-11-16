@@ -2,6 +2,25 @@
 
 Fecha: 11 de noviembre de 2026.
 
+## Estado vigente al 16/11 — etapa 333
+
+Se completaron por delegación los tres bloques de alquiler/finanzas del
+[reporte 41](41-circuito-alquiler-y-finanzas-simuladas.md), con creación nueva,
+cancelación, vencimiento automático, reintegro simulado y consumidores web
+conectados. 758 unitarias/HTTP, 66 JavaScript y 48 de integración aprobadas,
+incluidos dos circuitos Chromium. R01/R02 avanzan en su recorrido operativo:
+ya no hay productor web del alquiler anterior ni respaldo fijo de cotización.
+
+No se marca migración total cerrada: R03/consumidores de estadísticas y lectura/
+devolución históricas todavía necesitan corte definitivo; R08 mantiene pendientes
+los servicios/ciclo técnico de incidencias y mantenimiento. Deuda y preventiva
+sí se controlan ahora al reservar; las afirmaciones contrarias más abajo son
+la foto histórica del 11/11, no el estado actual. No eliminar sus entidades
+necesarias ni inventar un segundo modelo financiero. R09/producción sigue abierto.
+Sin cambios a Gradle/Playwright ajenos ni nuevo commit/push.
+
+## Antecedentes de revisión (conservar como historial)
+
 Actualización financiera del 15 de noviembre (etapas 278-298): cinco entidades y
 cinco repositorios financieros, precarga, saldo simulado, inicio y resolución del
 anticipo con permisos/HTTP e historiales incorporados. Tanda anterior corroborada:

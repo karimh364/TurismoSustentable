@@ -66,6 +66,7 @@ public class PagoService {
     private final HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
     private final HistorialEstadoReembolsoRepository historialEstadoReembolsoRepository;
     private final LiquidacionAlquilerService liquidacionAlquilerService;
+    private final ReembolsoService reembolsoService;
     private final Clock reloj;
 
     public PagoService(
@@ -81,6 +82,7 @@ public class PagoService {
             HistorialEstadoDetalleRepository historialEstadoDetalleRepository,
             HistorialEstadoReembolsoRepository historialEstadoReembolsoRepository,
             LiquidacionAlquilerService liquidacionAlquilerService,
+            ReembolsoService reembolsoService,
             Clock reloj
     ) {
         this.usuarioRepository = usuarioRepository;
@@ -95,6 +97,7 @@ public class PagoService {
         this.historialEstadoDetalleRepository = historialEstadoDetalleRepository;
         this.historialEstadoReembolsoRepository = historialEstadoReembolsoRepository;
         this.liquidacionAlquilerService = liquidacionAlquilerService;
+        this.reembolsoService = reembolsoService;
         this.reloj = reloj;
     }
 
@@ -662,6 +665,7 @@ public class PagoService {
                     detalles,
                     fechaRespuesta
             );
+            if (alquiler.getFechaHoraLiquidacion() != null) reembolsoService.registrarPendientesSiCorresponde(alquiler);
         }
 
         // Confirma conjuntamente pago, historiales y cambios relacionados.
@@ -854,6 +858,7 @@ public class PagoService {
     }
 
     private ResultadoAdicionalDTO resultadoAdicional(Alquiler alquiler, Pago pago, String clave) {
+        reembolsoService.registrarPendientesSiCorresponde(alquiler);
         return new ResultadoAdicionalDTO(pago, clave,
                 liquidacionAlquilerService.consultarLiquidacion(alquiler.getId()));
     }

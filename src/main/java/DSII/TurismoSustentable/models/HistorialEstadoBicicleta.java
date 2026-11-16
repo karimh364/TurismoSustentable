@@ -52,11 +52,22 @@ public class HistorialEstadoBicicleta {
             String observaciones,
             LocalDateTime fechaHoraCambio
     ) {
+        this(bicicleta, anterior, nuevo, actor, observaciones, fechaHoraCambio, "USUARIO");
+    }
+
+    public HistorialEstadoBicicleta(Bicicleta bicicleta, EstadoBicicleta anterior,
+            EstadoBicicleta nuevo, Usuario actor, String observaciones,
+            LocalDateTime fechaHoraCambio, String origen) {
+        if ((!"USUARIO".equals(origen) && !"SISTEMA".equals(origen))
+                || ("USUARIO".equals(origen) && actor == null)
+                || ("SISTEMA".equals(origen) && actor != null)) {
+            throw new IllegalArgumentException("El origen y actor de la historia no son coherentes.");
+        }
         this.bicicleta = bicicleta;
         this.estadoAnterior = anterior;
         this.estadoNuevo = nuevo;
-        this.actorUsuario = java.util.Objects.requireNonNull(actor);
-        this.origen = "USUARIO";
+        this.actorUsuario = actor;
+        this.origen = origen;
         this.fechaHoraCambio = java.util.Objects.requireNonNull(
                 fechaHoraCambio
         );

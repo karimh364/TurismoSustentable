@@ -290,6 +290,28 @@ public class LiquidacionAlquilerService {
         return crearResumen(alquiler);
     }
 
+    @PreAuthorize("hasAuthority('CLIENTE')")
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List<LiquidacionAlquilerDTO> listarPendientesPropios() {
+        Usuario usuario = obtenerUsuarioConsulta();
+        if (!tieneRolVigente(usuario, "CLIENTE")) throw new AccessDeniedException("Se requiere rol CLIENTE vigente.");
+        List<LiquidacionAlquilerDTO> pendientes = new java.util.ArrayList<>();
+        for (Alquiler alquiler : alquilerRepository.buscarLiquidacionesPorUsuario(usuario.getId())) {
+            LiquidacionAlquilerDTO resumen = crearResumen(alquiler);
+            if (!"SALDADO".equals(resumen.getSituacionFinanciera())) pendientes.add(resumen);
+        }
+        return pendientes;
+    }
+
+    // Uso interno con cabecera bloqueada: scheduler y cierres no inventan una sesión humana.
+    @Transactional(propagation = Propagation.MANDATORY)
+    public LiquidacionAlquilerDTO resumenInterno(Alquiler alquiler) {
+        if (alquiler == null || alquiler.getId() <= 0 || alquiler.getEstadoContratacion() == null) {
+            throw inconsistencia("Falta la cabecera del nuevo circuito.");
+        }
+        return crearResumen(alquiler);
+    }
+
     private LiquidacionAlquilerDTO crearResumen(Alquiler alquiler) {
         BigDecimal pagosAprobados = CERO;
         Map<Integer, BigDecimal> aprobadosPorPago = new HashMap<>();

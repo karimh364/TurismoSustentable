@@ -15,6 +15,12 @@ import java.util.Optional;
 public interface AlquilerDetalleRepository
         extends JpaRepository<AlquilerDetalle, Integer> {
 
+    @Query("select case when count(d) > 0 then true else false end from AlquilerDetalle d "
+            + "where d.bicicleta.id = :bicicletaId and d.id <> :detalleId "
+            + "and d.estado.codigo in ('RESERVADO','PENDIENTE_RETIRO','EN_CURSO')")
+    boolean existeOtraAsignacionVigente(@Param("bicicletaId") Integer bicicletaId,
+                                       @Param("detalleId") Integer detalleId);
+
     @EntityGraph(attributePaths = {
             "bicicleta",
             "tipoBicicletaContratado",

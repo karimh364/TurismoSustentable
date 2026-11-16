@@ -95,6 +95,9 @@ class CrearReservaServiceTest {
     private CorreoService correoService;
 
     @Mock
+    private OrdenMantenimientoRepository ordenMantenimientoRepository;
+
+    @Mock
     private PlatformTransactionManager transactionManager;
 
     @InjectMocks
@@ -168,11 +171,13 @@ class CrearReservaServiceTest {
                 new EstadoBicicleta("DISPONIBLE"), estacion
         );
         bicicleta1.setId(1);
+        bicicleta1.setFechaAlta(AHORA.toLocalDate());
 
         bicicleta2 = new Bicicleta(
                 "QA-02", paseo,
                 new EstadoBicicleta("DISPONIBLE"), estacion
         );
+        bicicleta2.setFechaAlta(AHORA.toLocalDate());
         bicicleta2.setId(2);
 
         SecurityContextHolder.getContext().setAuthentication(

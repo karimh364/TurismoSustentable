@@ -4,6 +4,7 @@ import DSII.TurismoSustentable.dto.ResultadoAnticipoDTO;
 import DSII.TurismoSustentable.dto.ResultadoAdicionalDTO;
 import DSII.TurismoSustentable.dto.SaldoSimuladoDTO;
 import DSII.TurismoSustentable.services.PagoService;
+import DSII.TurismoSustentable.services.ReembolsoService;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class PagoController {
 
     private final PagoService pagoService;
+    private final ReembolsoService reembolsoService;
 
-    public PagoController(PagoService pagoService) {
+    public PagoController(PagoService pagoService, ReembolsoService reembolsoService) {
         this.pagoService = pagoService;
+        this.reembolsoService = reembolsoService;
+    }
+
+    @GetMapping("/reembolsos/{alquilerId}")
+    public ResponseEntity<?> consultarReembolsos(@PathVariable("alquilerId") Integer alquilerId) {
+        try { return ResponseEntity.ok(reembolsoService.consultar(alquilerId)); }
+        catch (ResponseStatusException ex) { return ResponseEntity.status(ex.getStatus()).body(ex.getReason()); }
+    }
+
+    @PostMapping("/reembolsos/{alquilerId}/resolver")
+    public ResponseEntity<?> resolverReembolsos(@PathVariable("alquilerId") Integer alquilerId) {
+        try { return ResponseEntity.ok(reembolsoService.resolver(alquilerId)); }
+        catch (ResponseStatusException ex) { return ResponseEntity.status(ex.getStatus()).body(ex.getReason()); }
     }
 
     @GetMapping("/saldo-simulado")

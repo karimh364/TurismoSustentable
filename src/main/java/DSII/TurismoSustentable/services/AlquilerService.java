@@ -2,8 +2,8 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
-import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
 import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
+import DSII.TurismoSustentable.dto.CancelarDetalleDTO;
 import DSII.TurismoSustentable.models.*;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
@@ -27,7 +27,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Isolation;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
@@ -141,29 +140,13 @@ public class AlquilerService {
     @Autowired
     private LiquidacionAlquilerService liquidacionAlquilerService;
 
+    // La simulación financiera está habilitada únicamente en el perfil refactor.
+    @Autowired(required = false)
+    private ReembolsoService reembolsoService;
+
     @Value("${alquiler.max-bicicletas-por-contratacion:10}")
     private int maxBicicletasPorContratacion;
 
-    private Usuario obtenerUsuarioAutenticadoConBloqueo() {
-        Authentication auth =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null || !auth.isAuthenticated()
-                || auth.getAuthorities().stream().noneMatch(
-                autoridad -> "CLIENTE".equals(autoridad.getAuthority())
-        )) {
-            throw new AccessDeniedException(
-                    "Se requiere una sesión con rol CLIENTE."
-            );
-        }
-
-        return usuarioRepository
-                .buscarActivoPorEmailConBloqueo(auth.getName())
-                .filter(Usuario::isActivo)
-                .orElseThrow(() -> new AccessDeniedException(
-                        "El usuario autenticado no existe o está inactivo."
-                ));
-    }
 
     private void comprobarSinSaldoPendiente(Usuario usuario) {
         if (alquilerRepository.contarAlquileresConSaldoPendiente(
@@ -538,6 +521,11 @@ public class AlquilerService {
                 throw new ConfiguracionSistemaException(
                         "Una bicicleta no tiene un tipo configurado."
                 );
+            }
+
+            if (!ordenMantenimientoRepository.buscarAbiertasPorBicicleta(bicicleta.getId()).isEmpty()
+                    || preventivaVencidaEnDevolucion(bicicleta, LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC))) {
+                throw new IllegalStateException("Una bicicleta requiere mantenimiento preventivo antes de otra reserva.");
             }
 
             bicicletas.add(bicicleta);
@@ -1144,6 +1132,119 @@ public class AlquilerService {
         return new AlquilerDetalleDTO(detalle);
     }
 
+    @PreAuthorize("hasAnyAuthority('CLIENTE','ADMIN')")
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public AlquilerCabeceraDTO cancelarReserva(Integer alquilerId, Integer detalleId,
+                                               CancelarDetalleDTO solicitud, boolean administrativa) {
+        if (alquilerId == null || alquilerId <= 0 || (detalleId != null && detalleId <= 0)) {
+            throw new IllegalArgumentException("Debe indicar un alquiler y detalle válidos.");
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) throw new AccessDeniedException("Debe iniciar sesión.");
+        Usuario actor = usuarioRepository.buscarActivoPorEmailConBloqueo(auth.getName())
+                .filter(Usuario::isActivo).orElseThrow(() -> new AccessDeniedException("La cuenta no está activa."));
+        if (!tieneRolVigenteParaDevolucion(actor, auth, administrativa ? "ADMIN" : "CLIENTE")) {
+            throw new AccessDeniedException("La cuenta no tiene el rol vigente requerido.");
+        }
+        Alquiler alquiler = alquilerRepository.buscarPorIdConBloqueo(alquilerId)
+                .orElseThrow(() -> new EntityNotFoundException("El alquiler no existe."));
+        if (!administrativa && (alquiler.getUsuario() == null || alquiler.getUsuario().getId() != actor.getId())) {
+            throw new AccessDeniedException("No podés cancelar un alquiler ajeno.");
+        }
+        if (alquiler.getEstadoContratacion() == null) throw new IllegalStateException("Este alquiler pertenece al circuito anterior.");
+        if (administrativa && (solicitud == null || !validator.validate(solicitud).isEmpty())) {
+            throw new IllegalArgumentException("Debe indicar un motivo y un estado operativo válidos.");
+        }
+        List<AlquilerDetalle> todos = alquilerDetalleRepository.buscarPorAlquiler(alquilerId);
+        if (detalleId != null) {
+            AlquilerDetalle elegido = todos.stream().filter(d -> detalleId.equals(d.getId())).findFirst()
+                    .orElseThrow(() -> new EntityNotFoundException("El detalle no pertenece a este alquiler."));
+            if (Set.of("CANCELADO","VENCIDO").contains(elegido.getEstado().getCodigo())) {
+                return new AlquilerCabeceraDTO(alquiler, todos);
+            }
+            if (!pendienteDeRetiro(elegido)) throw new IllegalStateException("Una bicicleta retirada debe devolverse; no puede cancelarse.");
+        }
+        LocalDateTime ahora = LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC);
+        comprobarFechasReserva(alquiler, ahora);
+        boolean vencida = !ahora.isBefore(alquiler.getFechaHoraVencimientoReserva());
+        int cambios = terminarPendientes(alquiler, vencida ? null : detalleId,
+                vencida ? null : actor, vencida ? "VENCIDO" : "CANCELADO",
+                vencida ? null : solicitud, !vencida && administrativa, ahora);
+        if (cambios == 0 && todos.stream().anyMatch(d -> "EN_CURSO".equals(d.getEstado().getCodigo()))) {
+            throw new IllegalStateException("No quedan unidades sin retirar; debe devolver las que están en uso.");
+        }
+        return new AlquilerCabeceraDTO(alquiler, alquilerDetalleRepository.buscarPorAlquilerConDatos(alquilerId));
+    }
+
+    // Uso interno del programador; sin endpoint que permita elegir el estado del conjunto.
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public int vencerReserva(Integer alquilerId) {
+        Alquiler alquiler = alquilerRepository.buscarPorIdConBloqueo(alquilerId).orElse(null);
+        if (alquiler == null || alquiler.getEstadoContratacion() == null
+                || !Set.of("RESERVADO","EN_PROGRESO").contains(alquiler.getEstadoContratacion().getCodigo())) return 0;
+        LocalDateTime ahora = LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC);
+        comprobarFechasReserva(alquiler, ahora);
+        if (ahora.isBefore(alquiler.getFechaHoraVencimientoReserva())) return 0;
+        return terminarPendientes(alquiler, null, null, "VENCIDO", null, false, ahora);
+    }
+
+    private void comprobarFechasReserva(Alquiler alquiler, LocalDateTime ahora) {
+        if (alquiler.getFechaHoraCreacion() == null || alquiler.getFechaHoraVencimientoReserva() == null
+                || !alquiler.getFechaHoraVencimientoReserva().equals(alquiler.getFechaHoraCreacion().plusMinutes(15))
+                || ahora.isBefore(alquiler.getFechaHoraCreacion())) {
+            throw new ConfiguracionSistemaException("Las fechas de reserva son inconsistentes.");
+        }
+    }
+
+    private boolean pendienteDeRetiro(AlquilerDetalle detalle) {
+        return detalle.getEstado() != null && Set.of("RESERVADO","PENDIENTE_RETIRO").contains(detalle.getEstado().getCodigo());
+    }
+
+    private int terminarPendientes(Alquiler alquiler, Integer seleccion, Usuario actor, String estado,
+            CancelarDetalleDTO solicitud, boolean administrativa, LocalDateTime ahora) {
+        List<AlquilerDetalle> pendientes = alquilerDetalleRepository.buscarPorAlquiler(alquiler.getId()).stream()
+                .filter(this::pendienteDeRetiro).filter(d -> seleccion == null || seleccion.equals(d.getId()))
+                .sorted(java.util.Comparator.comparing(d -> d.getBicicleta().getId())).collect(java.util.stream.Collectors.toList());
+        if (pendientes.isEmpty()) return 0;
+        EstadoAlquilerDetalle cerrado = estadoAlquilerDetalleRepository.findByCodigo(estado)
+                .orElseThrow(() -> new ConfiguracionSistemaException("Falta el estado de detalle " + estado));
+        for (AlquilerDetalle d : pendientes) {
+            Bicicleta bici = bicicletaRepository.buscarActivaPorIdConBloqueo(d.getBicicleta().getId())
+                    .orElseThrow(() -> new ConfiguracionSistemaException("La bicicleta reservada no está disponible en inventario."));
+            if (d.getFechaHoraRetiro() != null || !"RESERVADA".equals(bici.getEstado().getCodigo())
+                    || bici.getUbicacionActual() == null || alquiler.getUbicacionRetiro() == null
+                    || bici.getUbicacionActual().getId() != alquiler.getUbicacionRetiro().getId()
+                    || alquilerDetalleRepository.existeOtraAsignacionVigente(bici.getId(), d.getId())) {
+                throw new ConfiguracionSistemaException("La reserva no coincide con la asignación actual de la bicicleta.");
+            }
+            String motivo = "VENCIDO".equals(estado) ? "Venció el plazo original de quince minutos sin retiro."
+                    : administrativa ? solicitud.getMotivo() : "Cancelación voluntaria del cliente antes del retiro.";
+            boolean preventiva = preventivaVencidaEnDevolucion(bici, ahora);
+            boolean ordenAbierta = !ordenMantenimientoRepository.buscarAbiertasPorBicicleta(bici.getId()).isEmpty();
+            String destino = administrativa ? solicitud.getEstadoBicicleta()
+                    : preventiva || ordenAbierta ? "MANTENIMIENTO" : "DISPONIBLE";
+            if ("MANTENIMIENTO".equals(destino)) {
+                d.setOrdenMantenimiento(prepararMantenimientoDevolucion(bici, d, administrativa, ahora));
+            }
+            EstadoBicicleta anteriorBici = bici.getEstado();
+            bici.setEstado(estadoBicicleta(destino));
+            EstadoAlquilerDetalle anteriorDetalle = d.getEstado();
+            d.setEstado(cerrado); d.setSubtotalRealUsd(new BigDecimal("0.00"));
+            d.setSubtotalRealArs(new BigDecimal("0.00")); d.setFechaHoraCierreDetalle(ahora);
+            d.setOrigenCierre(actor == null ? "SISTEMA" : administrativa ? "ADMIN" : "CLIENTE");
+            d.setMotivoCierre(motivo);
+            historialEstadoDetalleRepository.save(new HistorialEstadoDetalle(d, anteriorDetalle, cerrado,
+                    actor, actor == null ? "SISTEMA" : "USUARIO", motivo, ahora));
+            if (actor == null) trazabilidadInventario.estadoSistema(bici, anteriorBici, motivo, ahora);
+            else trazabilidadInventario.estado(bici, anteriorBici, actor, motivo, ahora);
+            if (administrativa) trazabilidadInventario.administracion(actor, "ALQUILER_DETALLE", d.getId(),
+                    "CANCELAR", anteriorDetalle.getCodigo(), cerrado.getCodigo() + ";bicicleta=" + destino, motivo);
+        }
+        cerrarUsoDelConjuntoSiCorresponde(alquiler, ahora);
+        alquilerDetalleRepository.flush();
+        return pendientes.size();
+    }
+
     private boolean tieneRolVigenteParaDevolucion(Usuario actor, Authentication auth, String codigo) {
         return auth.getAuthorities().stream().anyMatch(a -> codigo.equals(a.getAuthority()))
                 && actor.getUsuarioRoles().stream().anyMatch(ur ->
@@ -1253,18 +1354,23 @@ public class AlquilerService {
         );
 
         if (todosTerminales) {
+            boolean huboRetiro = detalles.stream().anyMatch(d -> d.getFechaHoraRetiro() != null);
+            String estadoCierre = huboRetiro ? "FINALIZADO"
+                    : detalles.stream().anyMatch(d -> "VENCIDO".equals(d.getEstado().getCodigo())) ? "VENCIDO" : "CANCELADO";
             EstadoAlquiler finalizado = estadoAlquilerRepository
-                    .findByCodigo("FINALIZADO")
+                    .findByCodigo(estadoCierre)
                     .orElseThrow(() -> new ConfiguracionSistemaException(
-                            "Falta el estado FINALIZADO."
+                            "Falta el estado " + estadoCierre + "."
                     ));
 
             alquiler.setEstadoContratacion(finalizado);
             alquiler.setFechaHoraCierre(ahora);
+            if ("CANCELADO".equals(estadoCierre)) alquiler.setFechaHoraCancelacion(ahora);
 
             // Misma transacción y cabecera bloqueada.
             // Si hay revisión económica pendiente, todavía no fija la liquidación.
             liquidacionAlquilerService.liquidarSiCorresponde(alquiler);
+            if (reembolsoService != null) reembolsoService.registrarPendientesSiCorresponde(alquiler);
         }
     }
 
@@ -1410,130 +1516,6 @@ public class AlquilerService {
         }
     }
 
-    // CREAR UN ALQUILER
-    @PreAuthorize("hasAuthority('CLIENTE')")
-    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
-    public AlquilerDTO crearAlquiler(
-            AlquilerRequestDTO alquilerRequest
-    ) throws Exception {
-
-        // 1. Obtener y bloquear la cuenta del cliente autenticado.
-        Usuario usuario = obtenerUsuarioAutenticadoConBloqueo();
-
-        boolean clienteVigente = usuario.getUsuarioRoles().stream()
-                .map(UsuarioRol::getRol)
-                .anyMatch(rol -> "CLIENTE".equals(rol.getCodigo()));
-
-        if (!clienteVigente) {
-            throw new AccessDeniedException(
-                    "La cuenta debe tener rol CLIENTE para contratar."
-            );
-        }
-
-        comprobarSinSaldoPendiente(usuario);
-
-        // 2. Buscar y bloquear la bicicleta durante el alquiler
-        Bicicleta bicicleta = bicicletaRepository
-                .buscarActivaPorIdConBloqueo(
-                        alquilerRequest.getBicicletaId()
-                )
-                .orElseThrow(() ->
-                        new Exception("Bicicleta no encontrada.")
-                );
-
-        // 3. Verificar disponibilidad
-        if (!"DISPONIBLE".equals(bicicleta.getEstado().getCodigo())) {
-            throw new IllegalStateException(
-                    "La bicicleta no está disponible."
-            );
-        }
-
-        // Guardamos la estación antes de sacar la bicicleta
-        Estacion estacionRetiro = bicicleta.getUbicacionActual();
-
-        if (estacionRetiro == null) {
-            throw new IllegalStateException(
-                    "La bicicleta no tiene una estación de retiro asignada."
-            );
-        }
-
-        if (estacionRetiro.isBorradoEstacion()
-                || !estacionRetiro.isEsPublica()) {
-
-            throw new IllegalStateException(
-                    "La bicicleta no está ubicada en una estación pública " +
-                            "habilitada para alquilar."
-            );
-        }
-
-        // 4. Verificar duración
-        if (alquilerRequest.getDuracionEnHoras() <= 0) {
-            throw new IllegalArgumentException(
-                    "La duración debe ser mayor que cero."
-            );
-        }
-
-        // También se valida en el backend el máximo mostrado en el frontend
-        if (alquilerRequest.getDuracionEnHoras() > 24) {
-            throw new IllegalArgumentException(
-                    "La duración máxima del alquiler es de 24 horas."
-            );
-        }
-
-        // 5. Calcular fechas
-        LocalDateTime fechaInicio = LocalDateTime.now();
-
-        LocalDateTime fechaFinEstimada = fechaInicio.plusHours(
-                alquilerRequest.getDuracionEnHoras()
-        );
-
-        // 6. Calcular precio estimado
-        // Mismo bloqueo que la edición de tarifa: la contratación toma un valor consistente.
-        TipoBicicleta tipoContratado = tipoBicicletaRepository
-                .buscarPorIdConBloqueo(bicicleta.getTipo().getId())
-                .orElseThrow(() -> new ConfiguracionSistemaException("Falta el tipo de bicicleta."));
-        BigDecimal precioPorHora = tipoContratado.getPrecioPorHoraUsd();
-        if (precioPorHora == null || precioPorHora.signum() <= 0) {
-            throw new ConfiguracionSistemaException("El tipo de bicicleta no tiene una tarifa válida.");
-        }
-        EstadoBicicleta enUso = estadoBicicleta("EN_USO");
-
-        BigDecimal duracion = BigDecimal.valueOf(
-                alquilerRequest.getDuracionEnHoras()
-        );
-
-        BigDecimal costoEstimado = precioPorHora
-                .multiply(duracion)
-                .setScale(2, RoundingMode.HALF_UP);
-
-        // 7. Crear alquiler
-        Alquiler nuevoAlquiler = new Alquiler(
-                usuario,
-                bicicleta,
-                fechaInicio,
-                fechaFinEstimada,
-                costoEstimado,
-                CodigoEstadoAlquiler.INICIADO,
-                estacionRetiro,
-                null
-        );
-
-        // se guardan tanto la tarifa congelada como el costo estimado inicial
-        nuevoAlquiler.setPrecioPorHoraAplicado(precioPorHora);
-        nuevoAlquiler.setCostoTotal(costoEstimado);
-
-        // 8. Cambiar estado y sacar físicamente la bicicleta de la estación
-        EstadoBicicleta estadoAnterior = bicicleta.getEstado();
-        bicicleta.setEstado(enUso);
-        bicicleta.setUbicacionActual(null);
-        bicicletaRepository.save(bicicleta);
-        trazabilidadInventario.estado(bicicleta, estadoAnterior, usuario, "Inicio de alquiler.");
-
-        // 9. Guardar alquiler
-        Alquiler alquilerGuardado = alquilerRepository.save(nuevoAlquiler);
-        correoService.enviarComprobanteInicio(alquilerGuardado);
-        return new AlquilerDTO(alquilerGuardado);
-    }
 
 
     // BORRAR LÓGICAMENTE UN ALQUILER
@@ -1743,30 +1725,6 @@ public class AlquilerService {
      * OBTENER COTIZACIÓN DEL DÓLAR
      */
     public BigDecimal obtenerCotizacionDolar() {
-
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-
-            String url =
-                    "https://dolarapi.com/v1/dolares/tarjeta";
-
-            Map<?, ?> response =
-                    restTemplate.getForObject(url, Map.class);
-
-            if (response != null && response.get("venta") != null) {
-                return new BigDecimal(
-                        response.get("venta").toString()
-                );
-            }
-
-        } catch (Exception e) {
-            System.err.println(
-                    "Error al obtener la cotización: "
-                            + e.getMessage()
-            );
-        }
-
-        // Valor de respaldo
-        return new BigDecimal("1400");
+        return cotizacionDolarService.obtenerCotizacion().getCotizacionArsPorUsd();
     }
 }

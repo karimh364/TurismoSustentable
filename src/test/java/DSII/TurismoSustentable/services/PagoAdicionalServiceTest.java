@@ -54,6 +54,7 @@ class PagoAdicionalServiceTest {
     @Mock private HistorialEstadoDetalleRepository historiasDetalle;
     @Mock private HistorialEstadoReembolsoRepository historiasReembolso;
     @Mock private LiquidacionAlquilerService liquidaciones;
+    @Mock private ReembolsoService reintegros;
 
     private PagoService servicio;
     private Usuario usuario;
@@ -81,7 +82,7 @@ class PagoAdicionalServiceTest {
 
         servicio = new PagoService(usuarios, pagos, reembolsos, pasarela, alquileres,
                 detalles, estados, historias, estadosDetalle, historiasDetalle,
-                historiasReembolso, liquidaciones,
+                historiasReembolso, liquidaciones, reintegros,
                 Clock.fixed(AHORA.toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
         autenticar("CLIENTE");
     }

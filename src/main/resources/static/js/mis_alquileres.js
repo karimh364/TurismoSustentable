@@ -6,12 +6,22 @@ document.addEventListener("DOMContentLoaded", async function() {
 
     const usuario = await requerirSesion(['ADMIN', 'CLIENTE']);
     if (!usuario) return;
+    const botonSaldo = document.getElementById('consultar-saldo-simulado');
+    if (botonSaldo) botonSaldo.hidden = !rolesDelUsuario(usuario).includes('CLIENTE');
+    if (!rolesDelUsuario(usuario).includes('CLIENTE') && typeof document.querySelectorAll === 'function') {
+        document.querySelectorAll('a[href="alquiler.html"]').forEach(enlace => { enlace.hidden = true; });
+    }
+    OperacionesAlquiler.configurar(usuario, async () => {
+        await cargarAlquileres();
+        if (rolesDelUsuario(usuario).includes('CLIENTE')) await cargarPendientesFinancieros();
+    });
 
     // Cargar los alquileres y nombre de usuario logueado
     await Promise.all([
         cargarNombreUsuario(usuario),
         cargarAlquileres()
     ]);
+    if (rolesDelUsuario(usuario).includes('CLIENTE')) await cargarPendientesFinancieros();
 
     // Listener del Switch de Moneda
     const switchMoneda = document.getElementById('switch-moneda');
@@ -52,6 +62,7 @@ async function cargarAlquileres() {
 }
 
 function renderizarAlquileres() {
+    const abiertos = typeof OperacionesAlquiler === 'undefined' ? [] : OperacionesAlquiler.abiertos();
     const containerActivos = document.getElementById('container-activos');
     const tbodyHistorial = document.getElementById('tbody-historial');
     const mensajeHistorial = document.getElementById('mensaje-historial');
@@ -65,7 +76,7 @@ function renderizarAlquileres() {
         const nuevo = VistaAlquileres.nuevo(alquiler);
         const id = VistaAlquileres.id(alquiler.id);
         const bicicletas = VistaAlquileres.bicicletas(
-            alquiler, monedaActual
+            alquiler, monedaActual, d => typeof OperacionesAlquiler === 'undefined' ? '' : OperacionesAlquiler.accionesDetalle(alquiler, d)
         );
         const importes = VistaAlquileres.importes(
             alquiler, monedaActual
@@ -102,7 +113,7 @@ function renderizarAlquileres() {
                     ` : ''}
                     <div class="my-2">${importes}</div>
                     ${nuevo
-                        ? '<small>Consulta del alquiler.</small>'
+                        ? (typeof OperacionesAlquiler === 'undefined' ? '' : OperacionesAlquiler.acciones(alquiler))
                         : `
                             <button class="btn btn-danger"
                                 onclick="abrirDevolucionAnterior(${id})">
@@ -122,6 +133,7 @@ function renderizarAlquileres() {
                         <span class="badge bg-secondary">
                             ${VistaAlquileres.texto(alquiler.estado)}
                         </span>
+                        ${nuevo && typeof OperacionesAlquiler !== 'undefined' ? OperacionesAlquiler.acciones(alquiler) : ''}
                     </td>
                 </tr>
             `);
@@ -137,6 +149,20 @@ function renderizarAlquileres() {
         mensajeHistorial.textContent = historial.length
             ? ''
             : 'No tenés alquileres cerrados.';
+    }
+    if (typeof OperacionesAlquiler !== 'undefined') OperacionesAlquiler.restaurarAbiertos(abiertos);
+}
+
+async function cargarPendientesFinancieros() {
+    const destino = document.getElementById('pendientes-financieros');
+    if (!destino) return;
+    try {
+        const {data} = await axios.get('/api/alquileres/pendientes-financieros');
+        destino.innerHTML = data.length ? '<h3 class="h5">Saldos y reintegros pendientes (también de alquileres ocultos)</h3>' +
+            data.map(l => `<div>Alquiler #${VistaAlquileres.id(l.alquilerId)} · ${VistaAlquileres.texto(l.situacionFinanciera)}
+                <button class="btn btn-sm btn-outline-success m-1" onclick="OperacionesAlquiler.finanzas(${VistaAlquileres.id(l.alquilerId)})">Consultar / resolver</button></div>`).join('') : '';
+    } catch (e) {
+        if (!manejarErrorSesion(e)) destino.textContent = 'No se pudieron consultar los saldos pendientes.';
     }
 }
 

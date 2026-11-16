@@ -117,7 +117,7 @@ window.addEventListener('pageshow', evento => {
     const pagina = window.location.pathname.split('/').pop();
     const permisos = {
         'admin.html': ['ADMIN'],
-        'alquiler.html': ['ADMIN', 'CLIENTE'],
+        'alquiler.html': ['CLIENTE'],
         'mis_alquileres.html': ['ADMIN', 'CLIENTE']
     };
     if (permisos[pagina]) requerirSesion(permisos[pagina]);

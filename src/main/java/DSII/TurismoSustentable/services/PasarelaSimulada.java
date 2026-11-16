@@ -2,6 +2,7 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.Pago;
+import DSII.TurismoSustentable.models.Reembolso;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -157,6 +158,35 @@ public class PasarelaSimulada {
         return disponible.compareTo(importe) >= 0
                 ? "APROBADO"
                 : "RECHAZADO";
+    }
+
+    public String evaluarReembolso(Reembolso reembolso) {
+        if (reembolso == null || reembolso.getPago() == null || reembolso.getFechaCreacion() == null
+                || reembolso.getPago().getAlquiler() == null || reembolso.getPago().getAlquiler().getUsuario() == null) {
+            throw new ConfiguracionSistemaException("Faltan datos para evaluar el reembolso simulado.");
+        }
+        Pago pago = reembolso.getPago();
+        if (!"SIMULADA".equals(pago.getPlataforma()) || !"PRUEBA".equals(pago.getEntorno())
+                || !"ARS".equals(reembolso.getMoneda())) {
+            throw new ConfiguracionSistemaException("El simulador solo procesa reembolsos SIMULADA/PRUEBA en ARS.");
+        }
+        validarMonto(reembolso.getMontoArs(), false);
+        String prefijo = prefijoCuenta(pago.getAlquiler().getUsuario().getNickname());
+        String modo = propiedades.getProperty(prefijo + "reembolso-resultado", "AUTOMATICO")
+                .trim().toUpperCase(Locale.ROOT);
+        if ("FALLIDO".equals(modo)) return "FALLIDO";
+        if ("EN_PROCESO".equals(modo)) {
+            LocalDateTime ahora = LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC);
+            if (ahora.isBefore(reembolso.getFechaCreacion())) {
+                throw new ConfiguracionSistemaException("La fecha del reembolso está en el futuro.");
+            }
+            if (Duration.between(reembolso.getFechaCreacion(), ahora).getSeconds() < leerDemora(prefijo)) {
+                return "EN_PROCESO";
+            }
+        } else if (!"AUTOMATICO".equals(modo)) {
+            throw new ConfiguracionSistemaException("El resultado de reembolso simulado no es válido.");
+        }
+        return "CONFIRMADO";
     }
 
     private String prefijoCuenta(String nickname) {

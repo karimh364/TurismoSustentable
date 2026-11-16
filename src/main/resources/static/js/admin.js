@@ -4,9 +4,13 @@ let listaEstaciones = []; // Para llenar selects
 document.addEventListener("DOMContentLoaded",
     async () => {
 
-        if (!await requerirSesion(['ADMIN'])) {
+        const usuario = await requerirSesion(['ADMIN']);
+        if (!usuario) {
             return;
         }
+        OperacionesAlquiler.configurar(usuario, async () => {
+            await Promise.all([cargarAlquileres(), cargarBicicletas(), cargarEstaciones()]);
+        }, true);
 
         cargarTodo();
     }
@@ -541,8 +545,11 @@ async function editarTarifaTipo() {
 // 4. GESTIÓN DE ALQUILERES
 // ==========================================
 async function cargarAlquileres() {
+    const abiertos = typeof OperacionesAlquiler === 'undefined' ? [] : OperacionesAlquiler.abiertos();
     const tbody = document.getElementById('tabla-alquileres-body');
     if (!tbody) return;
+    // Solo esta tabla: desplegar unidades no cambia el ancho de las columnas.
+    if (typeof tbody.closest === 'function') tbody.closest('table').style.tableLayout = 'fixed';
 
     try {
         const res = await axios.get(
@@ -561,7 +568,7 @@ async function cargarAlquileres() {
                 <tr>
                     <td>${id}</td>
                     <td>ID: ${VistaAlquileres.texto(alquiler.usuarioId)}</td>
-                    <td>${VistaAlquileres.bicicletas(alquiler)}</td>
+                    <td>${VistaAlquileres.bicicletas(alquiler, 'USD', d => typeof OperacionesAlquiler === 'undefined' ? '' : OperacionesAlquiler.accionesDetalle(alquiler, d, true))}</td>
                     <td>
                         <span class="badge bg-secondary">
                             ${VistaAlquileres.texto(alquiler.estado)}
@@ -592,13 +599,14 @@ async function cargarAlquileres() {
                                     Finalizar
                                 </button>
                             `
-                            : '<span class="text-muted">Solo consulta</span>'}
+                            : (nuevo && typeof OperacionesAlquiler !== 'undefined' ? OperacionesAlquiler.acciones(alquiler, true) : '<span class="text-muted">Solo consulta</span>')}
                     </td>
                 </tr>`;
         });
 
         tbody.innerHTML = filas.join('')
             || '<tr><td colspan="8">No hay alquileres visibles.</td></tr>';
+        if (typeof OperacionesAlquiler !== 'undefined') OperacionesAlquiler.restaurarAbiertos(abiertos);
 
     } catch (error) {
         if (manejarErrorSesion(error)) return;
