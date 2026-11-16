@@ -146,6 +146,14 @@ public class HistorialIncidencia {
         this.valoresNuevos = valoresNuevos;
     }
 
+    public HistorialIncidencia(Incidencia incidencia, String accion, String estadoAnterior,
+            String estadoNuevo, Usuario actorUsuario, String origen, String observaciones,
+            String valoresAnteriores, String valoresNuevos, LocalDateTime fecha) {
+        this(incidencia, accion, estadoAnterior, estadoNuevo, actorUsuario, origen,
+                observaciones, valoresAnteriores, valoresNuevos);
+        this.fechaHoraCambio = Objects.requireNonNull(fecha, "La fecha del evento es obligatoria.");
+    }
+
     private static String normalizarCodigo(String valor) {
         return valor == null
                 ? null

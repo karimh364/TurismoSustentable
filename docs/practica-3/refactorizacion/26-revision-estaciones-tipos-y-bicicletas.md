@@ -237,7 +237,8 @@ Los comentarios de ambos Mermaid se actualizan con la regla, no se ejecuta SQL.
 
 ## 9. RN-INV-03 Baja y eliminación por pérdida definitiva
 
-Fecha de aprobación: 8 de noviembre de 2026. Implementación pendiente de incidencias.
+Fecha de aprobación: 8 de noviembre de 2026. Implementación conectada el 16/11,
+etapa 336; ver [reporte 43](43-incidencias-durante-el-alquiler.md).
 
 ### Alcance y diferencia con EXTRAVIADA
 
@@ -291,8 +292,9 @@ La eventual revisión excepcional no pertenece al recorrido normal aprobado.
 - No se agregan tablas, estados o columnas en esta aprobación: siguen las
   29 entidades/55 relaciones del DERv5. La prueba de la causa deberá usar
   incidencias, su detalle, los historiales y la auditoría existentes en el diseño.
-- Se implementará al conectar incidencias. Hoy el servicio de inventario
-  conserva el bloqueo de EXTRAVIADA; no se agrega una excepción sin respaldo.
+- Desde la etapa 336, IncidenciaService comprueba ese respaldo y ejecuta la
+  baja/eliminación por pérdida. Inventario deriva a Gestión de pérdida y conserva
+  su bloqueo de EXTRAVIADA para cambios libres o retiradas físicas ficticias.
 - Verificar: reporte sin validación no permite baja; viaje activo no se
   libera; baja por pérdida confirmada no exige Taller; eliminación posterior
   requiere su respaldo; no aparece ocupación ni salida ficticia; versiones,

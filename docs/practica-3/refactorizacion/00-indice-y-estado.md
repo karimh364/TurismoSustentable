@@ -2,13 +2,34 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 334. Mantenimiento de punta a punta implementado:
+Estado más reciente: etapa 336. Incidencias durante el alquiler implementadas:
+reporte del titular/ADMIN, revisión/corte, devolución previa con importe provisional,
+recepción/recuperación y mantenimiento, ingreso físico posterior y pérdida definitiva
+respaldada. No agrega entidades/estados ni cambia la política de cobro del DER.
+Verificadas 933 unitarias/HTTP, 103 JavaScript y 78 integración aprobadas,
+incluidos cuatro circuitos Chromium, sin fallos u omisiones en cada tanda.
+Reporte, rutas, alcance y evidencia en
+[43-incidencias-durante-el-alquiler.md](43-incidencias-durante-el-alquiler.md).
+Permanece pendiente el cierre global de migración/legado y despliegue. Las etapas
+335 y 336 aún no tienen commit/push; se conserva el checkpoint funcional 1d75fd1.
+
+Etapa 335. Corrección puntual de la pantalla de mantenimiento:
+estilo coherente, menú plegable, órdenes adaptadas a móvil, carga visible,
+controles temporalmente deshabilitados y fechas/historial legibles. Once pruebas
+Chromium de interfaz, 87 JavaScript y regresión de 845 unitarias/HTTP aprobadas;
+sin cambios de backend, DER o BD.
+Detalle y límites en la actualización de interfaz del
+[reporte 42](42-mantenimiento-operativo-punta-a-punta.md#corrección-puntual-de-interfaz--etapa-335).
+El bloque funcional anterior está respaldado en 1d75fd1; esta corrección aún
+no tiene commit/push. Incidencias de viaje y cierre global siguen pendientes.
+
+Etapa 334. Mantenimiento de punta a punta implementado:
 ADMIN gestiona/habilita, TECNICO asignado trabaja, preventiva automática y baja
 transaccional de técnicos con historial/auditoría. Pantalla y navegación conectadas.
 845 unitarias/HTTP, 78 JavaScript y 60 de integración aprobadas; estas últimas
 incluyen tres circuitos Chromium y regresión de alquileres. Detalle y límites:
 [42-mantenimiento-operativo-punta-a-punta.md](42-mantenimiento-operativo-punta-a-punta.md).
-Sin cambios en Gradle/pruebas de la otra materia ni commit/push nuevo.
+Sin cambios en Gradle/pruebas de la otra materia. Guardado y subido en 1d75fd1.
 Incidencias durante el viaje y cierre global de migración siguen pendientes.
 
 Verificación anterior: etapa 333. Los tres bloques autorizados quedaron conectados:

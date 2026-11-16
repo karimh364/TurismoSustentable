@@ -1,5 +1,40 @@
 # Implementación de entidades
 
+## Etapa 336 — Incidencias durante el alquiler de punta a punta (16/11/2026)
+
+Implementación expresamente autorizada de RN-INC-01/RN-INV-03/RN-TRZ-01.
+IncidenciaService, seis DTO de entrada/salida, controlador, pantalla y navegación.
+Reportar no cierra/congela; ADMIN valida un corte o descarta con motivo. DEVUELTO
+y recepción real se conservan cuando la devolución precede a la revisión; la
+liquidación espera todos los asuntos económicos. Cierre excepcional no inventa
+devolución, no altera otras unidades y usa tarifa/cotización congeladas.
+Recepción real y posterior ingreso a estación con cupo, MANTENIMIENTO/revisión
+técnica, pérdida definitiva y eliminación con respaldo sin salida ficticia.
+Historial/auditoría, propiedad, roles vigentes, versiones, reintentos y rollback.
+933 unitarias/HTTP, 103 JavaScript y 78 SQL aprobadas, incluidos cuatro recorridos
+Chromium reales, cero fallos/errores/omisiones. Ajuste puntual del fetch de cuenta
+evita precargar cabeceras antes de bloquearlas; su condición y carrera están probadas.
+Sin tablas/estados nuevos, cambios a Gradle o tests de la otra materia, ni Git de
+escritura. Alcance, conexiones y evidencia final en
+[43-incidencias-durante-el-alquiler.md](43-incidencias-durante-el-alquiler.md).
+Se conserva intacta la corrección 335 aún sin commit. El cierre global del legado
+y despliegue siguen pendientes; no se declara finalizado todo el DER.
+
+## Etapa 335 — Corrección acotada de interfaz de mantenimiento (16/11/2026)
+
+Por aprobación expresa, solo mantenimiento.html, su JS y CSS delimitado al módulo:
+cabecera/navegación coherentes, menú móvil, tabla estable y tarjetas pequeñas,
+mensajes de carga, bloqueo visible durante operaciones, etiquetas españolas,
+fechas locales y auditoría técnica como detalle secundario. Foco de teclado y
+detalles abiertos se conservan al volver de diálogos/actualizar. No cambia reglas,
+permisos, endpoints, entidades ni estados del DER. Once escenarios Chromium de
+interfaz, 87 JavaScript y 845 unitarias/HTTP aprobados sin fallos u omisiones.
+Ver actualización del
+[reporte 42](42-mantenimiento-operativo-punta-a-punta.md#corrección-puntual-de-interfaz--etapa-335).
+No se inició Spring ni se ejecutó MySQL; sin tocar Gradle, tests de la otra materia
+o los tres PNG del usuario. Sin commit/push de esta corrección. El mantenimiento
+funcional de etapa 334 está respaldado en 1d75fd1.
+
 ## Etapa 334 — Mantenimiento de punta a punta (16/11/2026)
 
 Implementación autorizada y delimitada al mantenimiento. MantenimientoService,

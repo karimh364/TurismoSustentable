@@ -106,6 +106,14 @@ class MantenimientoServiceTest {
         var d=new CrearOrdenMantenimientoDTO();d.setBicicletaId(20);d.setTipo("PREVENTIVO");d.setMotivo("Revisión");
         assertCodigo(409,()->servicio.crear(d));verifyNoInteractions(historias);
     }
+    @Test void noIniciaTrabajoDeUnaIncidenciaSinRecepcionFisica(){
+        bici.setUbicacionActual(null);sesion(tec,"TECNICO");
+        assertCodigo(409,()->servicio.operar(10,"iniciar",comando()));verifyNoInteractions(historias);
+    }
+    @Test void recepcionRealFueraDeEstacionPermiteTrabajarPeroNoHabilitar(){
+        bici.setUbicacionActual(null);sesion(tec,"TECNICO");when(incidencias.contarRecepcionesDeOrden(10)).thenReturn(1L);
+        assertEquals("EN_PROCESO",servicio.operar(10,"iniciar",comando()).estado);
+    }
     @Test void iniciarPausarYReanudarConservaPrimerInicio(){
         sesion(tec,"TECNICO");servicio.operar(10,"iniciar",comando());
         LocalDateTime inicio=orden.getFechaInicio();assertEquals(ahora,inicio);

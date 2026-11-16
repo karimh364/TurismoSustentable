@@ -77,6 +77,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    // La cuenta se bloquea antes que la cabecera. No precargar alquileres EAGER:
+    // podrían quedar en el contexto con una versión anterior mientras esperamos su bloqueo.
+    @EntityGraph(type=EntityGraph.EntityGraphType.FETCH,attributePaths={"persona"})
     @Query("select u from Usuario u " +
             "where u.email = :email and u.activo = true")
     Optional<Usuario> buscarActivoPorEmailConBloqueo(

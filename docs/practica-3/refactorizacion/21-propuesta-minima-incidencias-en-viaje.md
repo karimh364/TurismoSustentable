@@ -1,5 +1,11 @@
 # RN-INC-01 Incidencias durante un viaje
 
+Actualización de implementación, 16/11/2026, etapa 336: circuito mínimo y precisión
+económica conectados a backend, pantallas e historiales. Incluye recuperación y
+pérdida definitiva RN-INV-03. Alcance, límites y pruebas en
+[reporte 43](43-incidencias-durante-el-alquiler.md). Las notas de no implementación
+siguientes describen la propuesta/aprobación histórica, no el estado vigente.
+
 Fecha de propuesta: 28 de octubre de 2026.
 
 Fecha de aprobación de la incorporación del circuito mínimo: 28 de octubre de 2026.

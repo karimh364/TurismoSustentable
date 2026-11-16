@@ -65,6 +65,12 @@ public class WebAuthorization {
                 .antMatchers("/alquiler.html").hasAuthority("CLIENTE")
                 .antMatchers("/mis_alquileres.html").hasAnyAuthority("ADMIN", "CLIENTE")
                 .antMatchers("/mantenimiento.html").hasAnyAuthority("ADMIN","TECNICO")
+                .antMatchers("/incidencias.html").hasAnyAuthority("ADMIN","CLIENTE")
+
+                .antMatchers(HttpMethod.GET,"/api/incidencias","/api/incidencias/*","/api/incidencias/*/historial")
+                .hasAnyAuthority("ADMIN","CLIENTE")
+                .antMatchers(HttpMethod.POST,"/api/incidencias").hasAnyAuthority("ADMIN","CLIENTE")
+                .antMatchers("/api/incidencias/**").hasAuthority("ADMIN")
 
                 .antMatchers(HttpMethod.GET,"/api/mantenimiento/ordenes","/api/mantenimiento/ordenes/**")
                 .hasAnyAuthority("ADMIN","TECNICO")
@@ -231,6 +237,7 @@ public class WebAuthorization {
         }
         String ruta = request.getServletPath();
         return "/admin.html".equals(ruta)
+                || "/incidencias.html".equals(ruta)
                 || "/mantenimiento.html".equals(ruta)
                 || "/alquiler.html".equals(ruta)
                 || "/mis_alquileres.html".equals(ruta);

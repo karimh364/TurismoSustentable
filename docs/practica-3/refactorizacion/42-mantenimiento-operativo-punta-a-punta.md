@@ -202,3 +202,75 @@ consumidores heredados y despliegue siguen pendientes. Los pagos continúan
 simulados. No se hizo commit/push nuevo ni se tocaron los tres PNG o las pruebas
 Playwright de la otra materia. Los intervalos de prueba no certifican la
 seguridad mecánica de bicicletas reales.
+
+## Corrección puntual de interfaz — etapa 335
+
+16/11/2026. Aprobación expresa posterior al checkpoint 1d75fd1. Solo se modifican
+tres archivos de producción: mantenimiento.html, mantenimiento.js y estilos.css.
+Las reglas CSS nuevas están delimitadas por .maintenance-page, sin cambiar la
+presentación de las otras páginas. No se modifica Java principal, base de datos,
+DER, Gradle, pruebas de la otra materia ni los tres PNG existentes del usuario.
+
+- Cabecera verde, marca, iconos, botones y pie coherentes con el panel existente.
+  Navegación plegable; la barra permanece arriba al desplazar pero ocupa su altura
+  real, para no tapar el encabezado cuando el nombre del usuario tiene varias líneas.
+- Tabla de anchos estables en escritorio y presentación por tarjetas con rótulos
+  en pantallas pequeñas. Textos largos se ajustan sin ensanchar la página.
+- Actualizando/Guardando y spinner visibles; botones del módulo deshabilitados
+  durante la operación. Las consultas simultáneas comparten una solicitud.
+  Navegar/cerrar sesión no queda bloqueado por este mecanismo.
+- Confirmaciones en español, acciones explícitas y formularios ajustados a móvil.
+  Cancelar no escribe; error de actualización posterior a un guardado confirmado
+  informa ambas cosas, sin reenviar la escritura ni afirmar que la lista está al día.
+- Estados/eventos con nombres legibles, fechas UTC interpretadas como UTC y
+  mostradas en hora local del navegador (formato de 24 horas). No se alteran las
+  fechas persistidas ni los códigos que se envían al backend.
+- Historial principal legible y snapshots técnicos conservados bajo un detalle
+  desplegable. Etiquetas, textos externos escapados y controles de versión se
+  mantienen. Se preservan los trabajos desplegados al recargar.
+- Acceso por teclado, salto al contenido, foco visible y devolución del foco al
+  botón o a la fila actualizada al cerrar el diálogo. Esto no es una certificación
+  WCAG/Nielsen ni sustituye una revisión global o ensayos con lectores de pantalla.
+
+El criterio para mostrar Habilitar bicicleta no se amplía: el backend sigue
+validando revisión vigente, ubicación y todos los impedimentos antes de habilitar.
+No se prometen autorizaciones por la mera presencia del botón.
+
+### Verificación de esta corrección
+
+- Sintaxis de mantenimiento.js correcta. Las **87 pruebas JavaScript** pasan
+  (78 previas más nueve del ajuste), cero fallos u omisiones.
+- **Once escenarios Chromium aprobados**, cero fallos/errores/omisiones, BUILD
+  SUCCESSFUL 48 s. XML corroborado con timestamp 2026-11-16T14:32:58.760Z.
+  ADMIN y TECNICO en 320, 360, 768 y 1366 px: sin desborde horizontal, menú
+  plegable, encabezado no tapado y acciones por rol. Además: teclado/cancelación,
+  guardado en espera/foco y validación/historial dentro del ancho móvil.
+- MantenimientoVistaWebTest usa los archivos reales y un servidor HTTP local de
+  pruebas, pero las respuestas API están controladas. No arranca Spring, JPA o
+  SQL ni cambia usuarios/datos. Comprueba presentación e interacción, no reemplaza
+  los 60 casos MariaDB de etapa 334 ni afirma una nueva integración SQL.
+- Capturas de las ocho variantes quedan en build/reports/tests/mantenimiento-ux
+  (artefactos locales, no se agregan a Git). Se inspeccionaron escritorio y móvil.
+- La primera tanda detectó una respuesta JSON mal escapada en el nuevo fixture de
+  historial; se corrigió construyéndola con ObjectMapper, sin relajar assertions.
+- Regresión posterior: **845 unitarias/HTTP**, 59 clases, cero fallos/errores/
+  omisiones. BUILD SUCCESSFUL 1 min 3 s; XML desde 2026-11-16T14:34:20.118Z.
+  Se excluyeron expresamente suites MySQL, la vista opt-in y tests de la otra
+  materia. Esta tanda reemplazó el XML de los once Chromium, corroborado antes;
+  las capturas permanecen. Las cantidades corresponden a tandas separadas.
+
+Para repetir únicamente la prueba de interfaz, sin MySQL ni detener la app:
+
+```powershell
+$env:TURISMO_TEST_WEB = 'true'
+try {
+    .\gradlew.bat test --tests "MantenimientoVistaWebTest" --no-daemon
+}
+finally {
+    Remove-Item Env:\TURISMO_TEST_WEB -ErrorAction SilentlyContinue
+}
+```
+
+No hay commit/push de este ajuste. El siguiente bloque funcional continúa siendo
+incidencias durante el alquiler; la revisión global y retiro del legado siguen
+pendientes. No se amplía ese alcance por realizar esta corrección de interfaz.

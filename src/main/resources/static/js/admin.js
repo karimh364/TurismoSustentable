@@ -342,7 +342,11 @@ async function cargarBicicletas() {
                         () => operarBicicleta(b.id, objetivo));
                     boton('Dar de baja', 'btn-outline-danger', () => operarBicicleta(b.id, 'DE_BAJA'));
                 }
-                boton('Eliminar', 'btn-danger', () => borrarBici(b.id));
+                if (b.estado === 'EXTRAVIADA' || (b.estado === 'DE_BAJA' && b.estacionId === null)) {
+                    boton('Gestionar pérdida', 'btn-outline-danger', () => { window.location.href = 'incidencias.html?bicicletaId=' + b.id; });
+                } else {
+                    boton('Eliminar', 'btn-danger', () => borrarBici(b.id));
+                }
             }
         });
     } catch (e) { errorInventario(e); }

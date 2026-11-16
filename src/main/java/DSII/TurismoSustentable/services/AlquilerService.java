@@ -111,6 +111,9 @@ public class AlquilerService {
     private IncidenciaRepository incidenciaRepository;
 
     @Autowired
+    private IncidenciaService incidenciaService;
+
+    @Autowired
     private OrdenMantenimientoRepository ordenMantenimientoRepository;
 
     @Autowired
@@ -1114,6 +1117,10 @@ public class AlquilerService {
         }
         bicicleta.setUbicacionActual(destino);
         bicicleta.setEstado(estadoDestino);
+
+        if (!incidencias.isEmpty()) {
+            incidenciaService.registrarDevolucion(detalle, actor, ahora);
+        }
 
         String condiciones = "Devolución " + (ahora.isAfter(detalle.getFechaHoraDevolucionEstimada())
                 ? "con demora" : "dentro del tiempo estimado")

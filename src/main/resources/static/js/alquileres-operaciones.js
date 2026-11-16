@@ -23,6 +23,7 @@ const OperacionesAlquiler = (() => {
         }
         if (admin && pendiente) html += boton('Cancelar por operación/seguridad', 'cancelarAdmin', a.id, d.id);
         if (d.estado === 'EN_CURSO' && (admin || propio(a))) html += boton('Devolver', 'devolver', a.id, d.id);
+        if (d.estado === 'EN_CURSO' && (admin || propio(a))) html += `<a class="btn btn-sm btn-outline-danger m-1" href="incidencias.html?alquilerId=${id(a.id)}&detalleId=${id(d.id)}">Reportar incidencia</a>`;
         return html;
     }
     function acciones(a, admin = false) {

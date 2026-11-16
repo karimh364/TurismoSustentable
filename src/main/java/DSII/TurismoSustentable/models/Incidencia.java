@@ -238,6 +238,11 @@ public class Incidencia {
         this.fechaHoraHechoInformada = fechaHoraHechoInformada;
     }
 
+    // Se fija al crear desde el Clock del backend; la columna no es actualizable.
+    public void setFechaHoraRegistro(LocalDateTime fechaHoraRegistro) {
+        this.fechaHoraRegistro = java.util.Objects.requireNonNull(fechaHoraRegistro);
+    }
+
     public void setFechaHoraDecision(LocalDateTime fechaHoraDecision) {
         this.fechaHoraDecision = fechaHoraDecision;
     }

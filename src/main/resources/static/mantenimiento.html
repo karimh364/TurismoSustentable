@@ -4,35 +4,79 @@
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mantenimiento - Turismo Sustentable</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="css/estilos.css">
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-dark bg-dark"><div class="container">
-    <a class="navbar-brand" href="index.html">Turismo Sustentable</a>
-    <div class="d-flex align-items-center gap-3">
-        <a id="volver-admin" href="admin.html" class="btn btn-outline-light btn-sm" hidden>Panel ADMIN</a>
-        <span id="navbar-username" class="text-white"></span>
-        <button class="btn btn-outline-light btn-sm" onclick="logout()">Cerrar sesión</button>
+<body class="maintenance-page admin-page bg-light d-flex flex-column min-vh-100">
+<a href="#contenido-mantenimiento" class="maintenance-skip visually-hidden-focusable btn btn-light">Saltar al contenido</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow" aria-label="Navegación principal">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html" aria-label="Turismo Sustentable - Inicio">
+            <i class="fas fa-bicycle text-success" aria-hidden="true"></i>
+            <span class="d-none d-sm-inline">Turismo Sustentable</span>
+        </a>
+        <button type="button" class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Abrir o cerrar el menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+                <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link active" href="mantenimiento.html" aria-current="page">Mantenimiento</a></li>
+                <li class="nav-item" id="volver-admin" hidden><a class="nav-link" href="admin.html">Panel de administración</a></li>
+                <li class="nav-item"><span class="nav-link text-white-50">Bienvenido/a, <span id="navbar-username" class="navbar-username fw-bold text-white"></span></span></li>
+                <li class="nav-item"><button type="button" class="btn btn-outline-light btn-sm px-3" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1" aria-hidden="true"></i>Cerrar sesión</button></li>
+            </ul>
+        </div>
     </div>
-</div></nav>
-<main class="container py-4">
-    <h1>Mantenimiento</h1>
-    <p id="alcance-mantenimiento"></p>
-    <div class="alert alert-info">Finalizar una orden no habilita automáticamente la bicicleta. ADMIN debe autorizar su vuelta al servicio con una revisión favorable vigente.</div>
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <button class="btn btn-outline-success" onclick="Mantenimiento.cargar()">Actualizar órdenes</button>
-        <button id="crear-orden" class="btn btn-success" onclick="Mantenimiento.crear()" hidden>Crear orden</button>
-        <button id="configurar-preventivo" class="btn btn-outline-primary" onclick="Mantenimiento.intervalos()" hidden>Intervalos preventivos</button>
+</nav>
+<header class="bg-success text-white shadow maintenance-header">
+    <div class="container py-4">
+        <span id="rol-mantenimiento" class="badge rounded-pill bg-light text-success mb-2">Área operativa</span>
+        <h1 id="titulo-mantenimiento" class="fw-bold mb-2">Gestión de mantenimiento</h1>
+        <p id="alcance-mantenimiento" class="mb-0 opacity-75">Comprobando el acceso…</p>
     </div>
-    <div id="mensaje-mantenimiento" class="my-2" role="status"></div>
-    <div class="table-responsive">
-        <table class="table table-striped align-middle bg-white">
-            <thead><tr><th>Orden / bicicleta</th><th>Tipo / estado</th><th>Técnico</th><th>Ubicación física</th><th>Trabajo y resultado</th><th>Acciones</th></tr></thead>
-            <tbody id="ordenes-body"><tr><td colspan="6">Cargando…</td></tr></tbody>
-        </table>
+</header>
+<main id="contenido-mantenimiento" class="container py-4 flex-grow-1" tabindex="-1" aria-labelledby="titulo-mantenimiento">
+    <div class="alert alert-info" role="note">
+        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+        Finalizar una orden no habilita automáticamente la bicicleta. Administración debe autorizar su vuelta al servicio con una revisión favorable vigente.
     </div>
+    <section id="panel-ordenes" class="card border-0 shadow-sm" aria-labelledby="titulo-ordenes" aria-busy="false">
+        <div class="card-body">
+            <h2 id="titulo-ordenes" class="h4 mb-3">Órdenes de mantenimiento</h2>
+            <div class="maintenance-toolbar d-flex flex-column flex-sm-row flex-wrap gap-2">
+                <button id="actualizar-ordenes" type="button" class="btn btn-outline-success" data-mant-busy onclick="Mantenimiento.cargar()">
+                    <i class="fas fa-sync-alt me-1" aria-hidden="true"></i>Actualizar órdenes</button>
+                <button id="crear-orden" type="button" class="btn btn-success" data-mant-busy onclick="Mantenimiento.crear()" hidden>
+                    <i class="fas fa-plus me-1" aria-hidden="true"></i>Crear orden</button>
+                <button id="configurar-preventivo" type="button" class="btn btn-outline-primary" data-mant-busy onclick="Mantenimiento.intervalos()" hidden>
+                    <i class="fas fa-calendar-check me-1" aria-hidden="true"></i>Intervalos preventivos</button>
+            </div>
+            <div class="d-flex align-items-center gap-2 mt-3 maintenance-status">
+                <span id="carga-mantenimiento" class="spinner-border spinner-border-sm text-success" aria-hidden="true" hidden></span>
+                <span id="mensaje-mantenimiento" role="status" aria-live="polite" aria-atomic="true"></span>
+            </div>
+            <p id="ayuda-fechas" class="small text-muted mb-0">Las fechas se muestran en la hora local de tu navegador.</p>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle bg-white maintenance-table" role="table" aria-describedby="ayuda-fechas">
+                <caption class="visually-hidden">Órdenes de mantenimiento y acciones permitidas para tu cuenta.</caption>
+                <thead class="table-dark" role="rowgroup"><tr role="row">
+                    <th scope="col">Orden / bicicleta</th><th scope="col">Tipo / estado</th><th scope="col">Técnico</th>
+                    <th scope="col">Ubicación física</th><th scope="col">Trabajo y resultado</th><th scope="col">Acciones</th>
+                </tr></thead>
+                <tbody id="ordenes-body" role="rowgroup"><tr><td colspan="6">Cargando…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
 </main>
+<footer class="bg-dark text-white text-center py-3 mt-auto"><div class="container">
+    <p class="mb-0">&copy; 2026 Turismo Sustentable Río Grande.</p>
+</div></footer>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="js/auth.js"></script>

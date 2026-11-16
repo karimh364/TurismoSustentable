@@ -2,6 +2,29 @@
 
 Fecha: 11 de noviembre de 2026.
 
+## Estado vigente — etapa 336 (16/11)
+
+RN-INC-01 y RN-INV-03 conectadas de punta a punta con los modelos existentes:
+reporte, revisión/corte, recepción, recuperación, mantenimiento, liquidación y
+pérdida definitiva respaldada. R08 deja de tener pendiente ese circuito mínimo
+de incidencias, con 933 unitarias/HTTP, 103 JavaScript y 78 SQL aprobadas (cuatro
+recorridos Chromium). No se declaran resueltos por extensión el retiro del legado,
+estadísticas/consumidores pendientes o R09/producción. Reporte y evidencia:
+[43-incidencias-durante-el-alquiler.md](43-incidencias-durante-el-alquiler.md).
+Sin tablas, estados, cambios de política financiera, Gradle o pruebas de otra
+materia. Las notas siguientes siguen siendo antecedentes cronológicos.
+
+## Estado vigente — etapa 335 (16/11)
+
+Corrección puntual de presentación de mantenimiento aprobada y aplicada, sin
+alterar el DER, backend, permisos o reglas. Once escenarios de interfaz Chromium,
+87 JavaScript y regresión de 845 unitarias/HTTP aprobados. Navegación móvil, órdenes sin desborde, foco, carga,
+textos y fechas legibles; alcance y límites en la actualización del
+[reporte 42](42-mantenimiento-operativo-punta-a-punta.md#corrección-puntual-de-interfaz--etapa-335).
+No se declara certificación de accesibilidad ni revisión global de pantallas.
+La integración SQL de etapa 334 conserva su evidencia histórica; no se repitió
+MySQL para esta corrección visual. Incidencias de viaje y cierre global pendientes.
+
 ## Estado vigente — etapa 334 (16/11)
 
 Mantenimiento operativo completado y conectado con inventario, baja de técnicos,

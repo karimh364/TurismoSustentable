@@ -144,3 +144,61 @@ body.modal-open .fixed-top {
         width: 100%;
     }
 }
+
+/* Ajuste acotado del módulo de mantenimiento; no cambia las otras pantallas. */
+.incidence-page .card-body { overflow-wrap: anywhere; }
+.incidence-page .card .btn { min-height: 44px; }
+.incidence-page .card .btn, .incidence-page .maintenance-toolbar .btn { white-space: normal; }
+.maintenance-page .maintenance-skip { position: fixed; top: .5rem; left: .5rem; z-index: 1100; }
+.maintenance-page :focus-visible { outline: 3px solid #0b5ed7; outline-offset: 3px; }
+.maintenance-page #navbarNav .navbar-username { min-width: 0; max-width: 16rem; overflow-wrap: anywhere; }
+.maintenance-page .navbar-toggler,
+.maintenance-page .maintenance-toolbar .btn,
+.maintenance-page .maintenance-actions .btn { min-height: 44px; }
+.maintenance-page .maintenance-status { min-height: 1.75rem; }
+.maintenance-page .maintenance-table { table-layout: fixed; width: 100%; }
+.maintenance-page .maintenance-table th:nth-child(1) { width: 15%; }
+.maintenance-page .maintenance-table th:nth-child(2) { width: 13%; }
+.maintenance-page .maintenance-table th:nth-child(3) { width: 14%; }
+.maintenance-page .maintenance-table th:nth-child(4) { width: 15%; }
+.maintenance-page .maintenance-table th:nth-child(5) { width: 22%; }
+.maintenance-page .maintenance-table th:nth-child(6) { width: 21%; }
+.maintenance-page .maintenance-table td { padding: .9rem .75rem; vertical-align: top; overflow-wrap: anywhere; }
+.maintenance-page .maintenance-actions { display: flex; flex-direction: column; gap: .5rem; }
+.maintenance-page .maintenance-actions .btn { white-space: normal; }
+.maintenance-page .maintenance-work-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.maintenance-page .maintenance-table summary { cursor: pointer; }
+.maintenance-page .maintenance-dialog { max-width: calc(100vw - 2rem); }
+.maintenance-page .maintenance-dialog .swal2-html-container { text-align: left; overflow-wrap: anywhere; }
+.maintenance-page .maintenance-dialog label { display: block; font-weight: 600; margin-top: .5rem; }
+.maintenance-page .maintenance-dialog .swal2-textarea,
+.maintenance-page .maintenance-dialog .swal2-input,
+.maintenance-page .maintenance-dialog .swal2-select,
+.maintenance-page .maintenance-dialog .form-select {
+    display: block; box-sizing: border-box; width: 100%; min-width: 0; margin: .4rem 0 1rem;
+}
+.maintenance-page .maintenance-dialog .swal2-textarea { min-height: 6rem; height: auto; resize: vertical; }
+.maintenance-page .maintenance-dialog .swal2-actions { gap: .5rem; padding: 0 1rem; }
+.maintenance-page .maintenance-audit { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .8rem; }
+@media (max-width: 767.98px) {
+    .maintenance-page #navbarNav .navbar-username { display: block; max-width: none; }
+    .maintenance-page .maintenance-table,
+    .maintenance-page .maintenance-table tbody,
+    .maintenance-page .maintenance-table tr { display: block; width: 100%; }
+    .maintenance-page .maintenance-table thead {
+        position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip-path: inset(50%); white-space: nowrap;
+    }
+    .maintenance-page .maintenance-table tbody { padding: 0 .75rem .75rem; }
+    .maintenance-page .maintenance-table tr {
+        margin-bottom: .75rem; border: 1px solid #dee2e6; border-radius: .75rem; overflow: hidden;
+    }
+    .maintenance-page .maintenance-table td[data-label] {
+        display: grid; grid-template-columns: minmax(0, 34%) minmax(0, 1fr); gap: .6rem; border: 0; padding: .65rem .75rem;
+    }
+    .maintenance-page .maintenance-table td[data-label]::before { content: attr(data-label); font-weight: 600; color: #495057; }
+    .maintenance-page .maintenance-cell { min-width: 0; }
+    .maintenance-page .maintenance-table td[colspan] { display: block; border: 0; }
+    .maintenance-page .maintenance-dialog .swal2-actions { flex-direction: column; align-items: stretch; }
+    .maintenance-page .maintenance-dialog .swal2-actions button { min-height: 44px; margin: 0; }
+}

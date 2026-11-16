@@ -1,5 +1,11 @@
 # Propuesta unificada de estados y transiciones
 
+Actualización 16/11/2026, etapa 336: RN-INC-01 y la pérdida definitiva RN-INV-03
+quedan conectadas según el [reporte 43](43-incidencias-durante-el-alquiler.md).
+No se agregan estados al diccionario. Se conservan corte económico y recepción
+física separados, mantenimiento y liquidación con sus reglas aprobadas. Las notas
+antiguas de implementación pendiente se interpretan como antecedentes.
+
 Nota de vigencia, 11 de noviembre de 2026: las reglas aprobadas de este
 documento se mantienen. Sus notas antiguas de "no implementado" no describen
 por sí solas el avance actual, que es parcial. Consultar el

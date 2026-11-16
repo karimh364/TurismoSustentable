@@ -73,4 +73,9 @@ public interface BicicletaRepository extends JpaRepository<Bicicleta, Integer> {
     Optional<Bicicleta> buscarActivaPorIdConBloqueo(
             @Param("id") Integer id
     );
+
+    // La incidencia conserva la identidad de una eliminada para sus reintentos/historia.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select b from Bicicleta b where b.id=:id")
+    Optional<Bicicleta> buscarPorIdConBloqueo(@Param("id") Integer id);
 }

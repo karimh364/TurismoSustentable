@@ -118,6 +118,7 @@ window.addEventListener('pageshow', evento => {
     const permisos = {
         'admin.html': ['ADMIN'],
         'mantenimiento.html': ['ADMIN','TECNICO'],
+        'incidencias.html': ['ADMIN','CLIENTE'],
         'alquiler.html': ['CLIENTE'],
         'mis_alquileres.html': ['ADMIN', 'CLIENTE']
     };

@@ -47,6 +47,7 @@ class DevolucionAlquilerServiceTest {
     @Mock private EstadoAlquilerDetalleRepository estadoDetalleRepository;
     @Mock private EstadoBicicletaRepository estadoBicicletaRepository;
     @Mock private IncidenciaRepository incidenciaRepository;
+    @Mock private IncidenciaService incidenciaService;
     @Mock private OrdenMantenimientoRepository ordenRepository;
     @Mock private TipoMantenimientoRepository tipoOrdenRepository;
     @Mock private EstadoOrdenMantenimientoRepository estadoOrdenRepository;

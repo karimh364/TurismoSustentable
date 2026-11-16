@@ -108,6 +108,9 @@ public class MantenimientoService {
         if("habilitar".equals(accion)) return habilitar(o,b,actor,dto,ahora);
         sinAlquiler(b);
         if(!"MANTENIMIENTO".equals(b.getEstado().getCodigo())) throw conflicto("La bicicleta no está en mantenimiento.");
+        if(tecnica && !"pausar".equals(accion) && b.getUbicacionActual()==null
+                && incidencias.contarRecepcionesDeOrden(o.getId())==0)
+            throw conflicto("Primero debe registrarse la recepción física de la bicicleta; una orden creada no prueba que haya sido recuperada.");
         String previo=datos(o); EstadoOrdenMantenimiento anterior=o.getEstado();
         String estado=anterior.getCodigo();
         switch(accion) {
