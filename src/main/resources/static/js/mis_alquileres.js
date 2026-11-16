@@ -28,21 +28,20 @@ document.addEventListener("DOMContentLoaded", async function() {
 
 // Formateador de moneda para el historial
 function formatearPrecioHistorial(precioUSD, precioARS) {
-    if (precioUSD == null) return "0.00";
-
-    if (monedaActual === 'ARS') {
-        // Trae directamente el valor congelado en pesos.
-        return 'AR$ ' + (precioARS || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 });
-    } else {
-        // Trae directamente el valor original en dólares.
-        return 'US$ ' + parseFloat(precioUSD).toFixed(2);
-    }
+    return VistaAlquileres.importe(
+        precioUSD,
+        precioARS,
+        monedaActual
+    );
 }
 
 // CARGA Y RENDERIZADO DE ALQUILERES
 async function cargarAlquileres() {
     try {
         const response = await axios.get('/api/alquileres');
+        if (!Array.isArray(response.data)) {
+            throw new Error('Respuesta de alquileres inválida.');
+        }
         listaAlquileres = response.data;
         renderizarAlquileres();
     } catch (error) {
@@ -55,53 +54,113 @@ async function cargarAlquileres() {
 function renderizarAlquileres() {
     const containerActivos = document.getElementById('container-activos');
     const tbodyHistorial = document.getElementById('tbody-historial');
+    const mensajeHistorial = document.getElementById('mensaje-historial');
 
     if (!containerActivos || !tbodyHistorial) return;
 
-    containerActivos.innerHTML = '';
-    tbodyHistorial.innerHTML = '';
-    let hayActivos = false;
+    const activos = [];
+    const historial = [];
 
-    listaAlquileres.forEach(alq => {
-        if (alq.estado === 'INICIADO') {
-            hayActivos = true;
-            containerActivos.innerHTML += `
-                <div class="alert alert-success d-flex flex-column flex-md-row justify-content-between align-items-md-center shadow-sm" role="alert">
-                    <div class="mb-3 mb-md-0">
-                        <h4 class="alert-heading fw-bold"><i class="fas fa-bicycle"></i> ${alq.codigoBicicleta}</h4>
-                        <p class="mb-1"><i class="fas fa-play-circle"></i> Iniciado el: ${new Date(alq.fechaInicio).toLocaleString('es-AR')}</p>
-                        <p class="mb-0 small text-muted"><i class="fas fa-map-marker-alt"></i> Retirada en: ${alq.ubicacionRetiro}</p>
+    listaAlquileres.forEach(alquiler => {
+        const nuevo = VistaAlquileres.nuevo(alquiler);
+        const id = VistaAlquileres.id(alquiler.id);
+        const bicicletas = VistaAlquileres.bicicletas(
+            alquiler, monedaActual
+        );
+        const importes = VistaAlquileres.importes(
+            alquiler, monedaActual
+        );
+
+        const inicio = VistaAlquileres.fecha(
+            nuevo ? alquiler.fechaHoraCreacion : alquiler.fechaInicio,
+            nuevo
+        );
+
+        const fin = VistaAlquileres.fecha(
+            nuevo ? alquiler.fechaHoraCierre : alquiler.fechaFin,
+            nuevo
+        );
+
+        if (VistaAlquileres.activo(alquiler)) {
+            activos.push(`
+                <article class="alert alert-success text-start shadow-sm">
+                    <h5>
+                        Alquiler #${id}
+                        · ${VistaAlquileres.texto(alquiler.estado)}
+                    </h5>
+                    ${bicicletas}
+                    <div class="mt-2">
+                        ${nuevo ? 'Creado' : 'Inicio'}: ${inicio}
                     </div>
-                    <button class="btn btn-danger fw-bold shadow px-4 py-2 rounded-pill" onclick="abrirModalDevolucion(${alq.id}, '${alq.codigoBicicleta}', '${alq.fechaInicio}')">
-                        <i class="fas fa-stop-circle"></i> DEVOLVER AHORA
-                    </button>
-                </div>
-            `;
+                    ${nuevo ? `
+                        <div>Vencimiento de reserva:
+                            ${VistaAlquileres.fecha(
+                                alquiler.fechaHoraVencimientoReserva,
+                                true
+                            )}
+                        </div>
+                    ` : ''}
+                    <div class="my-2">${importes}</div>
+                    ${nuevo
+                        ? '<small>Consulta del alquiler.</small>'
+                        : `
+                            <button class="btn btn-danger"
+                                onclick="abrirDevolucionAnterior(${id})">
+                                Devolver bicicleta
+                            </button>
+                        `}
+                </article>
+            `);
         } else {
-            // Historial con moneda dinámica
-            const precioMostrado = formatearPrecioHistorial(alq.costoTotal, alq.costoTotalArs);
-            tbodyHistorial.innerHTML += `
+            historial.push(`
                 <tr>
-                    <td><span class="badge bg-light text-dark border"> ${alq.codigoBicicleta}</span></td>
-                    <td class="small">${new Date(alq.fechaInicio).toLocaleString('es-AR')}</td>
-                    <td class="small">${new Date(alq.fechaFin).toLocaleString('es-AR')}</td>
-                    <td class="fw-bold text-success">${precioMostrado}</td>
-                    <td><span class="badge bg-secondary">${alq.estado}</span></td>
+                    <td>${bicicletas}</td>
+                    <td class="small">${inicio}</td>
+                    <td class="small">${fin}</td>
+                    <td>${importes}</td>
+                    <td>
+                        <span class="badge bg-secondary">
+                            ${VistaAlquileres.texto(alquiler.estado)}
+                        </span>
+                    </td>
                 </tr>
-            `;
+            `);
         }
     });
 
-    if (!hayActivos) {
-        containerActivos.innerHTML = '<p class="text-muted mb-0">No tenés viajes en curso.</p>';
+    containerActivos.innerHTML = activos.join('')
+        || '<p class="mb-0">No tenés reservas ni alquileres en curso.</p>';
+
+    tbodyHistorial.innerHTML = historial.join('');
+
+    if (mensajeHistorial) {
+        mensajeHistorial.textContent = historial.length
+            ? ''
+            : 'No tenés alquileres cerrados.';
+    }
+}
+
+async function abrirDevolucionAnterior(id) {
+    const alquiler = listaAlquileres.find(
+        elemento => elemento.id === id
+    );
+
+    if (!alquiler
+            || VistaAlquileres.nuevo(alquiler)
+            || alquiler.estado !== 'INICIADO') {
+        await Swal.fire(
+            'Acción no disponible',
+            'Recargá los alquileres antes de continuar.',
+            'warning'
+        );
+        return;
     }
 
-    const mensajeHistorial = document.getElementById('mensaje-historial');
-    if (tbodyHistorial.innerHTML === '') {
-        mensajeHistorial.textContent = 'Aun no tenés historial de viajes.';
-    } else {
-        mensajeHistorial.textContent = '';
-    }
+    await abrirModalDevolucion(
+        alquiler.id,
+        alquiler.codigoBicicleta,
+        alquiler.fechaInicio
+    );
 }
 
 // LÓGICA DEL MODAL DE DEVOLUCIÓN

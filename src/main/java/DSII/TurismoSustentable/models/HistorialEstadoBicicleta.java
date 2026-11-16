@@ -27,14 +27,39 @@ public class HistorialEstadoBicicleta {
     private String observaciones;
 
     protected HistorialEstadoBicicleta() {}
-    public HistorialEstadoBicicleta(Bicicleta bicicleta, EstadoBicicleta anterior,
-                                    EstadoBicicleta nuevo, Usuario actor, String observaciones) {
+    public HistorialEstadoBicicleta(
+            Bicicleta bicicleta,
+            EstadoBicicleta anterior,
+            EstadoBicicleta nuevo,
+            Usuario actor,
+            String observaciones
+    ) {
+        this(
+                bicicleta,
+                anterior,
+                nuevo,
+                actor,
+                observaciones,
+                LocalDateTime.now()
+        );
+    }
+
+    public HistorialEstadoBicicleta(
+            Bicicleta bicicleta,
+            EstadoBicicleta anterior,
+            EstadoBicicleta nuevo,
+            Usuario actor,
+            String observaciones,
+            LocalDateTime fechaHoraCambio
+    ) {
         this.bicicleta = bicicleta;
         this.estadoAnterior = anterior;
         this.estadoNuevo = nuevo;
         this.actorUsuario = java.util.Objects.requireNonNull(actor);
         this.origen = "USUARIO";
-        this.fechaHoraCambio = LocalDateTime.now();
+        this.fechaHoraCambio = java.util.Objects.requireNonNull(
+                fechaHoraCambio
+        );
         this.observaciones = observaciones;
     }
     public Integer getId() { return id; }

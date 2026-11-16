@@ -1,17 +1,313 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 11 de noviembre de 2026.
+Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 254 del documento 37. Limpieza R04, errores HTTP R05
-y permiso visual CLIENTE de R06 verificados: 204 pruebas Java aprobadas y tres
-MySQL omitidas intencionalmente; 22 pruebas Node aprobadas y check sin error.
-No se reejecutaron por el asistente. Referencia de seguimiento:
+Estado más reciente: etapa 332 del documento 37, usuario confirma compilación y
+todas las pruebas aprobadas. Última tanda corroborada en XML: 34 SQL aprobadas,
+cero fallos/errores/omisiones, 16/11 a las 04:48 de Argentina. Incluye cinco casos
+nuevos del adicional: deuda oculta saldada permite reservar, rechazo, pendiente,
+concurrencia y rollback. Diez fuentes coinciden con etapa 331 y son anteriores
+al reporte. Unitarias/HTTP informadas aprobadas por el usuario; sus XML fueron
+reemplazados por la última ejecución SQL, no se inventa otro total corroborado.
+Sin correcciones Java por esta salida. Reintegros y frontend siguen pendientes.
+
+Verificación anterior: etapa 330 del documento 37, parte 5 HTTP del usuario
+corroborada en siete XML: 154 pruebas aprobadas, cero fallos/errores/omisiones,
+16/11 a las 04:13 de Argentina. ConsultaAlquilerControllerTest tiene 43 casos,
+incluidos los 17 nuevos de liquidación. Los cinco contextos MVC afectados,
+seguridad y servicio financiero pasan; fuentes idénticas a etapa 329 y anteriores
+al reporte. No requiere corrección Java. Solo revisión y seguimiento MD por el
+asistente, sin volver a ejecutar tests/app/SQL o escribir Git.
+
+Verificación anterior: etapa 327 del documento 37, parte 5 del usuario corroborada
+en XML: 29 pruebas SQL aprobadas, cero fallos/errores/omisiones, 16/11 a las 03:57
+de Argentina. Incluye seis escenarios nuevos de liquidación/deuda/transacciones,
+caso reforzado de revisión económica y regresión de los recorridos existentes.
+Fuente idéntica a la implementada en etapa 326 y anterior al reporte; no requiere
+corrección Java. Consulta financiera HTTP, adicionales, ejecución de reembolsos y
+conexión frontend siguen pendientes; no equivale a DER/circuito completo cerrado.
+Asistente solo revisa evidencia y actualiza MD, sin ejecutar pruebas/app/SQL o Git.
+
+Verificación anterior: etapa 324 del documento 37, parte 9 del usuario corroborada
+en ocho XML: 176 pruebas aprobadas sin fallos/errores/omisiones, 16/11 a las 03:19
+de Argentina. Incluye deuda en ambos productores, HTTP 409 y delegación del cierre,
+además de liquidación/consulta y regresión. No se requiere corrección por esta salida.
+Alcance unitario/MVC con repositorios/servicios simulados según caso; consulta SQL
+y conexión real de liquidación/deuda siguen sin ejercitarse en esta tanda.
+Próximo bloque: ejecución segura de reembolsos simulados; consumidor frontend y
+restantes operaciones/corte del legado pendientes. R01/R02 continúan abiertos.
+
+Implementación anterior: etapa 323 del documento 37, conexión de liquidación y bloqueo
+por deuda incorporados por delegación expresa en los ocho archivos propuestos.
+Liquidación al cerrar el conjunto en la misma transacción; deuda consultada al
+crear por ambos productores, con cuenta bloqueada y CLIENTE vigente. HTTP 409 y
+regresión adaptados, incluida expectativa SQL de cierre con costos/fecha únicos.
+Revisión estática delimitada por hashes, sin compilar, ejecutar tests/app/SQL ni
+escribir Git. Parte 9 reservada al usuario; nueva consulta SQL y conexión real
+siguen pendientes de verificación. No equivale a circuito financiero terminado.
+
+Preparación anterior: etapa 322 del documento 37, instrucciones manuales preparadas
+para conectar liquidación al cierre backend y control de deuda en creación nueva
+y anterior. Incluye consulta SQL derivada sin filtrar borrados, bloqueo de cuenta,
+HTTP 409 y adaptaciones/pruebas de regresión, incluida expectativa SQL del cierre.
+NO incorporado ni ejecutado todavía por el asistente. Pruebas reales del bloqueo
+de deuda y de la conexión seguirán después; no se declara circuito cerrado.
+
+Verificación anterior: etapa 321 del documento 37, comprobación del usuario
+corroborada en cinco XML: 137 pruebas aprobadas sin fallos/errores/omisiones,
+16/11 a las 02:43 de Argentina. LiquidacionAlquilerServiceTest incorpora 37
+casos; otras 100 de devolución, retiro, anticipo y autorización son regresión.
+Verifica lógica de liquidación/consulta con repositorios simulados, no sus
+transacciones o locks reales. Sin corrección Java requerida por esta salida.
+Siguiente: conectar liquidación automática y control de deuda de forma coordinada,
+consulta HTTP y comprobación real; aún no está activada desde devolución.
+
+Preparación anterior: etapa 320 del documento 37, instrucciones manuales de
+LiquidacionAlquilerServiceTest preparadas, todavía no creado ni ejecutado.
+JUnit 5/Mockito y Clock fijo, sin Spring/SQL: suma de subtotales/centavos,
+reintento, pendientes, cierres, resumen de dinero confirmado y permisos frescos.
+No activa liquidación, deuda o endpoints. Validación real de transacciones y
+concurrencia queda para la integración posterior a su conexión al circuito.
+
+Verificación anterior: etapa 319 del documento 37, LiquidacionAlquilerService creado
+manualmente y revisado completo. Package, siete dependencias, constructor,
+liquidación interna MANDATORY, consulta autorizada y auxiliares presentes como
+se propuso; solo diferencias de formato. Usuario informa compileJava exitoso en
+2 s; archivo .class posterior a la fuente corroborado, sin repetir compilación.
+Sin conexiones desde otros servicios/controladores todavía. Siguiente: pruebas
+específicas antes de activar liquidación y control de deuda; no circuito cerrado.
+
+Preparación anterior: etapa 318 del documento 37, instrucciones manuales del
+servicio LiquidacionAlquilerService preparadas: liquidación interna transaccional
+del conjunto y consulta autorizada que consume LiquidacionAlquilerDTO. Todavía
+no creado, compilado ni conectado a devolución/controlador. Sin cambio productivo
+por el asistente. Pruebas y conexión backend con control de deuda siguen pendientes;
+no se da por implementado el circuito financiero por entregar esta clase.
+
+Verificación anterior: etapa 317 del documento 37, LiquidacionAlquilerDTO creado
+manualmente por el usuario y revisado: ruta/package correctos, once campos final,
+constructor y asignaciones completos, once getters y moneda ARS, sin setters ni
+anotaciones JPA. CompileJava exitoso en 2 s informado por el usuario; no repetido
+por el asistente. DTO de salida correcto, todavía sin servicio/controlador consumidor
+ni pruebas de liquidación. No se cambia Java por esta revisión.
+
+Preparación anterior: etapa 316 del documento 37, preparación manual de la respuesta
+LiquidacionAlquilerDTO tras releer RN-ALQ-02/08 y DER v5. Situación financiera
+calculada, sin otra entidad, enum o columna. Instrucciones del DTO entregadas,
+todavía no creado ni conectado al servicio/controlador; no hay operación de
+liquidación implementada por este paso. Suma definitiva, revisiones económicas,
+idempotencia, bloqueo por deuda y movimientos posteriores siguen pendientes.
+
+Verificación anterior: etapa 315 del documento 37, parte 4 ejecutada por el usuario
+y corroborada en XML: 23 pruebas SQL aprobadas, cero fallos/errores/omisiones,
+16/11 a las 01:54 de Argentina. Seis casos nuevos de devolución y diecisiete
+anteriores aprobados en esta tanda. Se verifican recepción/costos/ocupación e
+historias, orden correctiva única en reintentos concurrentes, preventiva,
+rollback tras flush, rechazos de destino y revisión económica pendiente.
+No equivale a circuito completo ni frontend: sigue liquidación conjunta,
+vencimientos/cancelaciones y conexión en pantallas. Sin corrección Java por esta salida.
+
+Implementación anterior: etapa 314 del documento 37, seis pruebas SQL de devolución
+incorporadas por delegación expresa en AlquilerMysqlIntegrationTest. Recuento
+estático: 23 casos. Los diecisiete anteriores y todos sus auxiliares/configuración
+se conservan sin cambios. Único archivo src modificado: ese test; producción,
+Gradle, frontend y perfiles intactos. Compilación/ejecución pendientes del usuario
+(parte 4); no se presenta todavía ningún resultado SQL nuevo como aprobado.
+
+Preparación anterior: etapa 313 del documento 37, instrucciones manuales preparadas
+para seis pruebas SQL de devolución en AlquilerMysqlIntegrationTest, conservando
+sus diecisiete casos anteriores. Todavía NO incorporadas ni ejecutadas por el
+asistente. No se modifica producción ni se inicia app/base. Se mantiene ejecución
+optativa y advertencia create-drop sobre turismo_sustentable, con app detenida.
+
+Verificación anterior: etapa 312 del documento 37, comprobación del usuario
+corroborada en diez XML: 182 pruebas aprobadas, cero fallos/errores/omisiones,
+16/11 a las 01:37 de Argentina. Devolución: 33 unitarias y 20 MVC; regresión:
+129 de retiro, reserva, anticipo, autorización, flujo anterior y modelos de
+mantenimiento. Se acredita esta tanda con repositorios/servicio simulados según
+el test, no concurrencia/rollback SQL real de la devolución ni navegador.
+Siguiente paso: integración SQL propia de devolución; después liquidación
+conjunta y conexión del circuito, sin considerar cerrado el bloque de alquileres.
+
+Implementación anterior: etapa 311 del documento 37, devolución individual implementada
+por delegación expresa: DTO de entrada, operación transaccional, permiso CLIENTE
+propietario/ADMIN vigente, recepción en estación pública con capacidad, costo por
+uso congelado, historias y enlace a una orden abierta cuando requiere revisión.
+Pruebas unitarias/MVC de esa implementación verificadas ahora en etapa 312.
+No se compila ni se consulta la base por el asistente. Frontend, liquidación conjunta, vencimientos,
+cancelaciones e integración SQL de esta devolución siguen pendientes; no se cierra
+el circuito ni se retira prematuramente el flujo anterior.
+
+Verificación anterior: etapa 310 del documento 37, parte 4 ejecutada por el usuario
+y corroborada en XML: diecisiete pruebas SQL aprobadas, cero fallos, errores u
+omisiones, el 16/11 a las 01:14 de Argentina. Log confirma MariaDB103Dialect y
+conector MariaDB 3.0.10. Los tres fallos temporales anteriores desaparecen sin
+relajar assertions ni truncar fechas. Retiro backend verificado en los escenarios
+unitarios/MVC anteriores y cinco SQL nuevos, no circuito completo ni navegador.
+Avisos DDL iniciales corresponden a DROP FK de tablas inexistentes con create-drop;
+1062/1452 son rechazos deliberados de su prueba de restricciones.
+Última verificación: etapa 305, RetiroAlquilerControllerTest
+incorporado manualmente y sus 18 casos MVC aprobados. Diez XML corroborados del
+16/11 a las 00:08 de Argentina: 208 tests, cero fallos, errores u omisiones,
+incluidos los 190 anteriores. Filtros/controlador/JSON/advice reales y servicio
+simulado; integración MySQL del retiro todavía pendiente. Comprobación previa:
+etapa 303, RetiroAlquilerServiceTest creado
+por el usuario y sus 26 casos aprobados. Nueve XML corroborados del 15/11 a las
+23:56 de Argentina: 190 pruebas aprobadas, cero fallos, errores u omisiones,
+incluyendo las 164 de regresión anterior. Se verifica lógica del retiro en
+unitarios con repositorios/trazabilidad simulados; HTTP y MySQL propios pendientes.
+Comprobación previa: etapa 301, parte 5 de retiro ejecutada
+por el usuario: BUILD SUCCESSFUL en 16 s y ocho XML corroborados, 164 pruebas
+aprobadas sin fallos, errores u omisiones. Acredita compilación/regresión anterior,
+no casos específicos del método retirarBicicleta recién incorporado. Siguiente
+paso: pruebas específicas del retiro y luego persistencia/HTTP e integración
+del circuito. Advertencias de IDs inválidos pertenecen a escenarios 400 esperados.
+Tanda MySQL anterior: parte 5 de etapa 298 ejecutada por el
+usuario y corroborada en XML: doce pruebas aprobadas, cero fallos, errores u
+omisiones, el 15/11 a las 22:10 de Argentina. Incluye los cinco casos financieros
+nuevos y los siete anteriores. Errores SQL 1062/1452 provocados deliberadamente
+para comprobar UK/FK: sus rechazos son resultados esperados. Inicio y resolución
+del anticipo también cuentan con la tanda anterior de 141 unitarios/MVC aprobados.
+Checkpoint del bloque probado
+creado localmente: ab05fb3, sin push. Compatibilidad temporal de lectura
+ANTERIOR/DETALLES aprobada; consultas, servicio, controladores y presentación
+conectados por delegación puntual. Regresión anterior de lectura corroborada:
+94 casos Java aprobados, sin fallos, errores u omisiones. Consulta MVC incluye los 14
+casos nuevos de listado (26 en total); consulta de servicio conserva 26 casos.
+Última parte 3 Node: 52 casos aprobados sin fallos u omisiones, según salida
+aportada; incluye los 15 nuevos de presentación sobre scripts reales. No es
+validación visual en navegador. MySQL: siete casos aprobados, cero omitidos,
+corroborados en XML de ejecución opt-in posterior. Primera tanda manual aprobada
+según confirmación del usuario: sesión, permisos y listados vacíos. También
+confirma la reserva sintética id 1 en ambas pantallas, detalles, importes y
+cambio de moneda. Detecta dos incidencias visuales: reajuste horizontal de la
+tabla ADMIN al desplegar y pérdida de apertura al cambiar moneda en Mis alquileres.
+Sin correcciones visuales aplicadas. Prueba entre cuentas aprobada según el usuario:
+qa.otro solo CLIENTE obtiene lista vacía y 403 al consultar el alquiler 1 ajeno;
+la sesión válida se conserva. Salida SQL del cierre sintético: ambos detalles
+VENCIDO con reales cero y sin retiro/devolución; bicicletas DISPONIBLE en estación 1.
+Cabecera corroborada con salida aportada: VENCIDO, estimados 18/27540, finales
+cero y cierre informado. Usuario confirma historial personal y listado ADMIN
+coincidentes. Tanda manual de lectura terminada en ese alcance; no prueba el
+circuito operativo ni vencimiento automático. Se retoma la base financiera manual.
+Retiro de compatibilidad obligatorio al reemplazar alta/devolución anteriores.
+Pruebas HTTP de ambos GET aprobadas en alcance MVC con servicio simulado.
+Integración MySQL verifica filtros/orden y permisos del servicio real en los
+escenarios preparados; no es una auditoría exhaustiva o prueba visual.
+ListadoAlquileres.test.cjs aprobado en entorno simulado junto con las suites
+existentes de inventario (15) y sesión (22). No se agregan reglas o entidades.
+AlquilerMysqlIntegrationTest: cuatro casos nuevos y los tres anteriores aprobados
+en ejecución separada de la regresión de 94 casos. Mantener opt-in, create-drop
+y aplicación detenida al repetirlos. No se ejecuta SQL adicional en esta revisión.
+Objetivo ratificado para el parcial del 16 de noviembre: todo el DER funcional,
+circuito completo de ser posible; el final requiere proyecto completo y nube.
+Esquema de simulación con saldo ficticio aprobado el 15 de noviembre: proveedor
+separado del dominio, movimientos persistidos y sin tarjetas locales. No recorta
+reglas financieras. Saldo inicial predeterminado ARS 1000000 ficticios aprobado
+para pruebas; usuario exige también cuentas con menos saldo y cero.
+Base financiera incorporada manualmente por el usuario y revisada: EstadoPago,
+Pago, Reembolso y ambos historiales, con sus cinco repositorios. Sin diferencias
+estructurales respecto del bloque del DER ni getters faltantes. compileJava
+exitoso informado; diez class presentes con major 55 (Java 11). Sin arranque,
+pruebas nuevas ni validación SQL/JPA ejecutados por el asistente. Mermaid y TXT
+siguen idénticos y alineados con la simulación aprobada. Consulta de saldo propio
+implementada y probada; escrituras de operaciones financieras todavía pendientes.
+Precarga aplicada por delegación puntual: EstadoPagoRepository incorporado al
+cargador y cinco códigos aprobados creados solo si faltan. Test existente ampliado
+con mock y dos casos, conservando íntegros los doce anteriores. Parte 3 ejecutada
+por el usuario y corroborada en XML: 14 aprobados, cero fallos, errores u omisiones
+(2026-11-15T19:45:06.636Z). No se acredita aún carga real en MySQL: es unitario
+con Mockito. Asistente no ejecutó Gradle, aplicación o SQL. Próximo paso: servicio
+de pagos simulados, sin agregar saldo a Usuario o una tabla de billetera.
+PasarelaSimulada, su test y propiedades locales incorporados por el usuario y
+revisados sin correcciones. Ejecución anterior corroborada en ambos XML:
+10 casos de pasarela + 14 de catálogos, 24 aprobados, cero fallos/errores/omisiones
+(2026-11-15T20:19:55.686Z y 20:19:56.995Z). Valida respuestas, saldo cero sin
+fallback y perfiles de pruebas; no carga real de MySQL ni cobros persistidos.
+RECHAZADO por insuficiencia, PENDIENTE/CANCELADO por configuración de backend;
+CREADO es inicial local. Adaptador sin escrituras; persistencia y transacciones
+de cobros/reembolsos siguen pendientes.
+Implementada primera operación de PagoService: GET /api/pagos/saldo-simulado, solo
+CLIENTE vigente y para la identidad de sesión, perfil refactor. Saldo inicial
+menos pagos APROBADO más reembolsos CONFIRMADO SIMULADA/PRUEBA en ARS, sin excluir
+alquileres ocultos. Cinco archivos nuevos (DTO/servicio/controller y dos tests)
+y una regla exacta de WebAuthorization aplicados manualmente y revisados sin
+correcciones necesarias. Ejecución anterior: 59 aprobados, cero fallos, errores u
+omisiones, corroborados en los cinco XML del 15/11, 22:07:33-38 UTC: servicio 9,
+controller 5, pasarela 10, catálogos 14 y autorización 21. Mockito/MVC, sin MySQL
+real ni prueba de concurrencia o cobro. El inicio local está implementado;
+la resolución del proveedor y sus efectos todavía están pendientes.
+Implementado manualmente el inicio del anticipo: ResultadoAnticipoDTO, ampliación de
+PagoService y PagoController y regla POST CLIENTE. Registra solo CREADO y su
+historial inicial, con monto derivado de detalles RESERVADO y clave UUID acotada
+por cliente/finalidad. Cuatro archivos revisados sin errores de pegado o ubicación,
+con getters, dependencias, transacción y permisos previstos. Dieciséis pruebas
+unitarias en InicioAnticipoServiceTest y nueve MVC nuevas en PagoControllerTest,
+conservando las cinco del GET, implementadas y aprobadas. Última ejecución del
+15/11 a 22:58:12-18 UTC: inicio 16, saldo 9, controller 14, pasarela 10, catálogos
+14 y autorización 21: 84 casos aprobados, sin fallos, errores u omisiones.
+Sin pruebas reales nuevas de MySQL/concurrencia/rollback. Advertencia menor de
+genéricos por respuesta secuencial de Mockito; no impide compilar o pasar tests.
+El inicio local no cobra por sí mismo. Importe cero se informa sin crear pago ni
+fingir aprobación; su retiro sigue pendiente. Sin modificar productores antiguos.
+Aplicado POST /api/pagos/anticipo/{alquilerId}/resolver con la misma clave UUID,
+CLIENTE propietario y bloqueo usuario/cabecera/pago. CREADO local incompatible se
+cancela sin envío; PENDIENTE se concilia aun tras vencer/cerrar. Respuesta simulada
+e historial en transacción; APROBADO vigente habilita solo detalles RESERVADO,
+sin inicio de uso. Aprobación no habilitable sin uso registra obligación de
+reembolso PENDIENTE, sin acreditar todavía dinero devuelto. Nuevas dependencias
+son repositorios existentes; constructor de su test explícito también se ajusta.
+Fecha explícita en historial de detalle y su llamada de reserva para coherencia UTC,
+conservando constructor anterior. Aplicados solo los seis archivos previstos;
+revisión estática sin cambios ajenos. Usuario ejecutó parte 5: BUILD SUCCESSFUL
+en 10 s. Ocho XML del 15/11 a 23:28:17-22 UTC: 112 aprobados sin fallos,
+errores u omisiones (los 84 anteriores más historial de detalle 7 y reserva 21).
+No son pruebas del resolver ni de persistencia/concurrencia real MySQL. El
+asistente no ejecutó Gradle, aplicación o SQL. Tests específicos del resolver
+ejecutados por el usuario y corroborados en etapa 295. Creados ResolverAnticipoServiceTest (20 ejecuciones) y
+nueve casos MVC del POST resolver, conservando los catorce actuales. Revisados
+estáticamente y con alcance de archivos corroborado. Regresión dirigida del
+15/11 a 23:59:43-48 UTC: 141 aprobados, sin fallos, errores u omisiones. Incluye
+20 casos de resolver y 23 HTTP de pagos. Sin cambios de producción, Gradle,
+SQL o datos nuevos; no acredita bloqueo/rollback reales. Caso
+sin importe sigue identificado sin pago; su retiro se conectará sin inventar cobro.
+Último recorrido MySQL/manual probado: lectura/listados de alquileres (271/277).
+Base financiera y proveedor, saldo, inicio y resolución simulados probados en
+unitarios/MVC (278-295) y los cinco escenarios financieros MySQL de etapa 298.
+Aplicada ampliación de AlquilerMysqlIntegrationTest existente, conservando
+sus siete casos, con cinco de pago, idempotencia/concurrencia, rollback de unidad
+de trabajo, aprobación tardía/reembolso pendiente y restricciones UK/FK de PAGO.
+Servicios/repositorios/pasarela reales; cotización existente simulada y Clock de
+test controlado. Doce casos opt-in aprobados y corroborados en XML. Usa turismo_sustentable
+con create-drop: app detenida, MySQL activo y datos descartables; no crea otra BD
+ni agrega tablas/servicios nuevos. No se ejecuta Gradle, aplicación, SQL o escrituras Git por
+el asistente. El test es una comprobación conservable, no código productivo
+provisional. CargaCatalogosRefactor precarga catálogos reales solo en ese perfil;
+su consolidación de nombre/perfil se evaluará al cerrar la migración, sin
+duplicar cargadores. PasarelaSimulada es el proveedor de prueba aprobado,
+no la integración definitiva con Mercado Pago.
+Retiro por detalle aplicado en etapa 300: POST propio CLIENTE, bloqueos y
+cobertura de anticipo, fecha UTC común, EN_CURSO/EN_USO, ubicación actual nula y
+cabecera EN_PROGRESO. Cero requerido sin pago ficticio; reintento en EN_CURSO sin
+duplicación. Compilación/regresión verificadas en etapa 301 y 26 pruebas unitarias
+específicas aprobadas en etapa 303; 18 casos del endpoint aprobados en etapa 305.
+Persistencia/concurrencia y rollback del retiro comprobados en etapa 310 mediante
+los cinco casos nuevos de la clase SQL, junto con sus doce anteriores aprobados.
+Siguiente bloque operativo: devolución individual. Continúan frontend, pruebas y
+reemplazo coordinado del productor HTTP anterior, manteniendo pendientes los
+demás circuitos del DER. Presencia de entidades no equivale a funcionalidades cerradas.
+No confundirlo con alta/devolución nuevas.
+Cambios recientes de Gradle/Playwright del usuario se conservan; todos
+los tests Java están configurados para JDK 17 y main declara compatibilidad 11.
+Regresión anterior: 204 Java aprobadas, tres MySQL omitidas y 22 Node aprobadas.
+Referencia de seguimiento:
 [revisión de coherencia y pendientes de cierre](40-revision-coherencia-migracion-der-v5.md).
 El documento 37 conserva la bitácora; las notas de etapas anteriores no son
 estados actuales ni invalidan reglas aprobadas posteriores.
 
-- DER vigente: 29 entidades/55 relaciones; Mermaid y TXT idénticos. 24 entidades
-  con clase Java; no es un porcentaje funcional ni de conformidad total de campos.
+- DER vigente: 29 entidades/55 relaciones; Mermaid y TXT idénticos. 29 entidades
+  con clase Java; presencia de clases no implica circuito funcional ni auditoría
+  integral de todos los campos o consumidores existentes.
 - Reserva interna, consulta por ID y protección de borrado implementadas en el
   alcance probado. Alta/devolución HTTP, listados, estadísticas y controles de
   inventario aún mezclan consumidores antiguos. No activar creación nueva por HTTP.

@@ -1,7 +1,9 @@
 package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerDTO;
+import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
+import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
 import DSII.TurismoSustentable.models.*;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
@@ -9,6 +11,13 @@ import DSII.TurismoSustentable.repositories.EstacionRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.repositories.TipoBicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstadoBicicletaRepository;
+import DSII.TurismoSustentable.repositories.PagoRepository;
+import DSII.TurismoSustentable.repositories.ReembolsoRepository;
+import DSII.TurismoSustentable.repositories.IncidenciaRepository;
+import DSII.TurismoSustentable.repositories.OrdenMantenimientoRepository;
+import DSII.TurismoSustentable.repositories.TipoMantenimientoRepository;
+import DSII.TurismoSustentable.repositories.EstadoOrdenMantenimientoRepository;
+import DSII.TurismoSustentable.repositories.HistorialOrdenMantenimientoRepository;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +103,27 @@ public class AlquilerService {
     private HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
 
     @Autowired
+    private PagoRepository pagoRepository;
+
+    @Autowired
+    private ReembolsoRepository reembolsoRepository;
+
+    @Autowired
+    private IncidenciaRepository incidenciaRepository;
+
+    @Autowired
+    private OrdenMantenimientoRepository ordenMantenimientoRepository;
+
+    @Autowired
+    private TipoMantenimientoRepository tipoMantenimientoRepository;
+
+    @Autowired
+    private EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository;
+
+    @Autowired
+    private HistorialOrdenMantenimientoRepository historialOrdenMantenimientoRepository;
+
+    @Autowired
     private CotizacionDolarService cotizacionDolarService;
 
     @Autowired
@@ -108,8 +138,43 @@ public class AlquilerService {
     @Autowired
     private PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private LiquidacionAlquilerService liquidacionAlquilerService;
+
     @Value("${alquiler.max-bicicletas-por-contratacion:10}")
     private int maxBicicletasPorContratacion;
+
+    private Usuario obtenerUsuarioAutenticadoConBloqueo() {
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()
+                || auth.getAuthorities().stream().noneMatch(
+                autoridad -> "CLIENTE".equals(autoridad.getAuthority())
+        )) {
+            throw new AccessDeniedException(
+                    "Se requiere una sesión con rol CLIENTE."
+            );
+        }
+
+        return usuarioRepository
+                .buscarActivoPorEmailConBloqueo(auth.getName())
+                .filter(Usuario::isActivo)
+                .orElseThrow(() -> new AccessDeniedException(
+                        "El usuario autenticado no existe o está inactivo."
+                ));
+    }
+
+    private void comprobarSinSaldoPendiente(Usuario usuario) {
+        if (alquilerRepository.contarAlquileresConSaldoPendiente(
+                usuario.getId()
+        ) > 0) {
+            throw new IllegalStateException(
+                    "Tenés un saldo pendiente de un alquiler anterior. " +
+                            "Debés pagarlo antes de iniciar otro alquiler."
+            );
+        }
+    }
 
     private EstadoBicicleta estadoBicicleta(String codigo) {
         return estadoBicicletaRepository.findByCodigo(codigo).orElseThrow(() ->
@@ -152,6 +217,135 @@ public class AlquilerService {
                 .anyMatch(autoridad ->
                         "ADMIN".equals(autoridad.getAuthority())
                 );
+    }
+
+    @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
+    @Transactional(
+            readOnly = true,
+            isolation = Isolation.REPEATABLE_READ
+    )
+    public List<Object> listarMisAlquileres() {
+
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        boolean autorizado = usuario.getUsuarioRoles().stream()
+                .map(UsuarioRol::getRol)
+                .anyMatch(rol ->
+                        "CLIENTE".equals(rol.getCodigo())
+                                || "ADMIN".equals(rol.getCodigo())
+                );
+
+        if (!autorizado) {
+            throw new AccessDeniedException(
+                    "La cuenta no tiene permiso para consultar alquileres."
+            );
+        }
+
+        return prepararListado(
+                alquilerRepository.buscarVisiblesPorUsuarioConDatos(
+                        usuario.getId()
+                )
+        );
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN')")
+    @Transactional(
+            readOnly = true,
+            isolation = Isolation.REPEATABLE_READ
+    )
+    public List<Object> listarAlquileresAdministracion() {
+
+        Usuario usuario = obtenerUsuarioAutenticado();
+
+        boolean administradorVigente =
+                usuario.getUsuarioRoles().stream()
+                        .map(UsuarioRol::getRol)
+                        .anyMatch(rol ->
+                                "ADMIN".equals(rol.getCodigo())
+                        );
+
+        if (!administradorVigente) {
+            throw new AccessDeniedException(
+                    "La consulta requiere rol ADMIN vigente."
+            );
+        }
+
+        return prepararListado(
+                alquilerRepository.buscarVisiblesAdministracionConDatos()
+        );
+    }
+
+    /*
+     * Compatibilidad temporal de lectura.
+     * Retirar la rama ANTERIOR al reemplazar sus productores y consumidores.
+     * No convierte registros antiguos ni inventa detalles o cotizaciones.
+     */
+    private List<Object> prepararListado(List<Alquiler> alquileres) {
+
+        List<Integer> idsConDetalles = new ArrayList<>();
+
+        for (Alquiler alquiler : alquileres) {
+            if (alquiler.getEstadoContratacion() != null) {
+                idsConDetalles.add(alquiler.getId());
+            }
+        }
+
+        Map<Integer, List<AlquilerDetalle>> detallesPorAlquiler =
+                new TreeMap<>();
+
+        // Evitar una consulta IN con una colección vacía.
+        if (!idsConDetalles.isEmpty()) {
+
+            List<AlquilerDetalle> detalles =
+                    alquilerDetalleRepository.buscarPorAlquileresConDatos(
+                            idsConDetalles
+                    );
+
+            for (AlquilerDetalle detalle : detalles) {
+                detallesPorAlquiler.computeIfAbsent(
+                        detalle.getAlquiler().getId(),
+                        id -> new ArrayList<>()
+                ).add(detalle);
+            }
+        }
+
+        List<Object> resultado = new ArrayList<>();
+
+        for (Alquiler alquiler : alquileres) {
+
+            if (alquiler.getEstadoContratacion() != null) {
+
+                List<AlquilerDetalle> detalles =
+                        detallesPorAlquiler.get(alquiler.getId());
+
+                if (detalles == null || detalles.isEmpty()) {
+                    throw new ConfiguracionSistemaException(
+                            "El alquiler con ID "
+                                    + alquiler.getId()
+                                    + " no tiene detalles registrados."
+                    );
+                }
+
+                resultado.add(
+                        new AlquilerCabeceraDTO(alquiler, detalles)
+                );
+
+            } else {
+
+                if (alquiler.getEstado() == null
+                        || alquiler.getBicicleta() == null) {
+                    throw new ConfiguracionSistemaException(
+                            "El alquiler anterior con ID "
+                                    + alquiler.getId()
+                                    + " tiene datos incompletos."
+                    );
+                }
+
+                resultado.add(new AlquilerDTO(alquiler));
+            }
+        }
+
+        return resultado;
     }
 
     @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
@@ -304,6 +498,8 @@ public class AlquilerService {
                     "La cuenta debe tener rol CLIENTE para contratar."
             );
         }
+
+        comprobarSinSaldoPendiente(usuario);
 
         List<Bicicleta> bicicletas = new ArrayList<>();
         Set<Integer> tipoIds = new TreeSet<>();
@@ -501,7 +697,8 @@ public class AlquilerService {
                             estadoDetalleReserva,
                             usuario,
                             "USUARIO",
-                            "Reserva creada."
+                            "Reserva creada.",
+                            ahora
                     )
             );
 
@@ -526,6 +723,693 @@ public class AlquilerService {
         return cabeceraGuardada.getId();
     }
 
+    @PreAuthorize("hasAuthority('CLIENTE')")
+    @Transactional(
+            isolation = Isolation.READ_COMMITTED,
+            rollbackFor = Exception.class
+    )
+    public AlquilerDetalleDTO retirarBicicleta(
+            Integer alquilerId,
+            Integer detalleId
+    ) {
+        if (alquilerId == null || alquilerId <= 0
+                || detalleId == null || detalleId <= 0) {
+            throw new IllegalArgumentException(
+                    "Los identificadores del alquiler y la bicicleta "
+                            + "del alquiler deben ser válidos."
+            );
+        }
+
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || !auth.isAuthenticated()
+                || auth.getAuthorities().stream().noneMatch(
+                autoridad -> "CLIENTE".equals(autoridad.getAuthority())
+        )) {
+            throw new AccessDeniedException(
+                    "Se requiere una sesión con rol CLIENTE."
+            );
+        }
+
+        // Mismo orden inicial de bloqueo que las operaciones de pago.
+        Usuario usuario = usuarioRepository
+                .buscarActivoPorEmailConBloqueo(auth.getName())
+                .filter(Usuario::isActivo)
+                .filter(cuenta -> cuenta.getUsuarioRoles().stream()
+                        .anyMatch(asignacion ->
+                                asignacion.getRol() != null
+                                        && "CLIENTE".equals(
+                                        asignacion.getRol().getCodigo()
+                                )
+                        )
+                )
+                .orElseThrow(() -> new AccessDeniedException(
+                        "La cuenta está inactiva o no tiene rol CLIENTE vigente."
+                ));
+
+        Alquiler alquiler = alquilerRepository
+                .buscarPorIdConBloqueo(alquilerId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "El alquiler no existe."
+                ));
+
+        if (alquiler.getUsuario() == null
+                || alquiler.getUsuario().getId() != usuario.getId()) {
+            throw new AccessDeniedException(
+                    "No podés retirar bicicletas de un alquiler ajeno."
+            );
+        }
+
+        if (alquiler.isBorradoAlquiler()
+                || alquiler.getEstadoContratacion() == null
+                || !Set.of("RESERVADO", "EN_PROGRESO").contains(
+                alquiler.getEstadoContratacion().getCodigo()
+        )) {
+            throw new IllegalStateException(
+                    "El alquiler no admite retiros."
+            );
+        }
+
+        AlquilerDetalle detalle = alquilerDetalleRepository
+                .buscarPorAlquilerYDetalleConBloqueo(
+                        alquilerId,
+                        detalleId
+                )
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "La bicicleta indicada no pertenece a este alquiler."
+                ));
+
+        if (detalle.getEstado() == null) {
+            throw new ConfiguracionSistemaException(
+                    "El detalle no tiene un estado configurado."
+            );
+        }
+
+        String estadoActual = detalle.getEstado().getCodigo();
+
+        // Un reintento no vuelve a iniciar el contador ni agrega historias.
+        if ("EN_CURSO".equals(estadoActual)) {
+            return new AlquilerDetalleDTO(detalle);
+        }
+
+        if (!"RESERVADO".equals(estadoActual)
+                && !"PENDIENTE_RETIRO".equals(estadoActual)) {
+            throw new IllegalStateException(
+                    "Esta bicicleta ya no está pendiente de retiro."
+            );
+        }
+
+        if (detalle.getFechaHoraRetiro() != null
+                || detalle.getFechaHoraDevolucionReal() != null
+                || detalle.getFechaHoraFinUso() != null
+                || detalle.getFechaHoraCierreDetalle() != null
+                || detalle.getDuracionEstimadaSegundos() == null
+                || detalle.getDuracionEstimadaSegundos() <= 0) {
+            throw new ConfiguracionSistemaException(
+                    "Las fechas o la duración del detalle son inconsistentes."
+            );
+        }
+
+        if (detalle.isFallaReportada()
+                || detalle.getOrdenMantenimiento() != null
+                || detalle.getIncidenciaCorte() != null) {
+            throw new IllegalStateException(
+                    "La bicicleta tiene una revisión o incidencia "
+                            + "que impide su retiro."
+            );
+        }
+
+        Bicicleta bicicleta = bicicletaRepository
+                .buscarActivaPorIdConBloqueo(
+                        detalle.getBicicleta().getId()
+                )
+                .orElseThrow(() -> new IllegalStateException(
+                        "La bicicleta no está habilitada para el retiro."
+                ));
+
+        if (bicicleta.getEstado() == null
+                || !"RESERVADA".equals(bicicleta.getEstado().getCodigo())
+                || alquiler.getUbicacionRetiro() == null
+                || bicicleta.getUbicacionActual() == null
+                || bicicleta.getUbicacionActual().getId()
+                != alquiler.getUbicacionRetiro().getId()) {
+            throw new IllegalStateException(
+                    "La bicicleta no está reservada en la estación de origen."
+            );
+        }
+
+        estacionRepository.buscarActivaPorIdConBloqueo(
+                        alquiler.getUbicacionRetiro().getId()
+                )
+                .filter(Estacion::isEsPublica)
+                .orElseThrow(() -> new IllegalStateException(
+                        "La estación de retiro no está habilitada."
+                ));
+
+        BigDecimal anticipoRequerido =
+                comprobarAnticipoParaRetiro(alquiler);
+
+        if ("RESERVADO".equals(estadoActual)
+                && anticipoRequerido.signum() > 0) {
+            throw new IllegalStateException(
+                    "El anticipo todavía no habilitó el retiro."
+            );
+        }
+
+        EstadoAlquilerDetalle pendienteRetiro =
+                estadoAlquilerDetalleRepository
+                        .findByCodigo("PENDIENTE_RETIRO")
+                        .orElseThrow(() -> new ConfiguracionSistemaException(
+                                "Falta el estado PENDIENTE_RETIRO."
+                        ));
+
+        EstadoAlquilerDetalle enCurso =
+                estadoAlquilerDetalleRepository
+                        .findByCodigo("EN_CURSO")
+                        .orElseThrow(() -> new ConfiguracionSistemaException(
+                                "Falta el estado EN_CURSO."
+                        ));
+
+        EstadoAlquiler enProgreso = estadoAlquilerRepository
+                .findByCodigo("EN_PROGRESO")
+                .orElseThrow(() -> new ConfiguracionSistemaException(
+                        "Falta el estado EN_PROGRESO."
+                ));
+
+        EstadoBicicleta enUso = estadoBicicleta("EN_USO");
+
+        // Comprobar el plazo después de adquirir bloqueos y consultar datos.
+        LocalDateTime ahora = LocalDateTime.ofInstant(
+                reloj.instant(),
+                ZoneOffset.UTC
+        );
+
+        LocalDateTime creacion = alquiler.getFechaHoraCreacion();
+        LocalDateTime vencimiento =
+                alquiler.getFechaHoraVencimientoReserva();
+
+        if (creacion == null || vencimiento == null
+                || !vencimiento.equals(creacion.plusMinutes(15))
+                || ahora.isBefore(creacion)) {
+            throw new ConfiguracionSistemaException(
+                    "Las fechas de la reserva son inconsistentes."
+            );
+        }
+
+        if (!ahora.isBefore(vencimiento)) {
+            throw new IllegalStateException(
+                    "La reserva venció. Ya no podés retirar esta bicicleta."
+            );
+        }
+
+        EstadoAlquilerDetalle anteriorDetalle = detalle.getEstado();
+
+        // Anticipo requerido cero: habilitar sin inventar un pago aprobado.
+        if ("RESERVADO".equals(estadoActual)) {
+            detalle.setEstado(pendienteRetiro);
+
+            historialEstadoDetalleRepository.save(
+                    new HistorialEstadoDetalle(
+                            detalle,
+                            anteriorDetalle,
+                            pendienteRetiro,
+                            null,
+                            "SISTEMA",
+                            "Retiro habilitado sin pago: anticipo requerido cero.",
+                            ahora
+                    )
+            );
+
+            anteriorDetalle = pendienteRetiro;
+        }
+
+        detalle.setEstado(enCurso);
+        detalle.setFechaHoraRetiro(ahora);
+        detalle.setFechaHoraDevolucionEstimada(
+                ahora.plusSeconds(detalle.getDuracionEstimadaSegundos())
+        );
+
+        EstadoBicicleta anteriorBicicleta = bicicleta.getEstado();
+
+        bicicleta.setEstado(enUso);
+        bicicleta.setUbicacionActual(null);
+
+        alquiler.setEstadoContratacion(enProgreso);
+
+        historialEstadoDetalleRepository.save(
+                new HistorialEstadoDetalle(
+                        detalle,
+                        anteriorDetalle,
+                        enCurso,
+                        usuario,
+                        "USUARIO",
+                        "Retiro confirmado por el cliente propietario.",
+                        ahora
+                )
+        );
+
+        trazabilidadInventario.estado(
+                bicicleta,
+                anteriorBicicleta,
+                usuario,
+                "Retiro del alquiler " + alquilerId
+                        + ", detalle " + detalleId + ".",
+                ahora
+        );
+
+        // Las entidades consultadas están administradas por JPA.
+        // Flush persiste conjuntamente sus cambios y las historias.
+        alquilerDetalleRepository.flush();
+
+        return new AlquilerDetalleDTO(detalle);
+    }
+
+    @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public AlquilerDetalleDTO devolverBicicleta(
+            Integer alquilerId, Integer detalleId, DevolverBicicletaDTO solicitud
+    ) {
+        if (alquilerId == null || alquilerId <= 0 || detalleId == null || detalleId <= 0
+                || solicitud == null) {
+            throw new IllegalArgumentException("Debe identificar el alquiler, su bicicleta y la devolución.");
+        }
+        Set<ConstraintViolation<DevolverBicicletaDTO>> errores = validator.validate(solicitud);
+        if (!errores.isEmpty()) {
+            throw new IllegalArgumentException(errores.stream().map(ConstraintViolation::getMessage)
+                    .sorted().collect(java.util.stream.Collectors.joining(" ")));
+        }
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new AccessDeniedException("Debe iniciar sesión para devolver una bicicleta.");
+        }
+        Usuario actor = usuarioRepository.buscarActivoPorEmailConBloqueo(auth.getName())
+                .filter(Usuario::isActivo)
+                .orElseThrow(() -> new AccessDeniedException("La cuenta no está activa."));
+        // El permiso debe existir tanto en la sesión como en los roles vigentes de la BD.
+        boolean esAdmin = tieneRolVigenteParaDevolucion(actor, auth, "ADMIN");
+        boolean esCliente = tieneRolVigenteParaDevolucion(actor, auth, "CLIENTE");
+        if (!esAdmin && !esCliente) {
+            throw new AccessDeniedException("No tiene permiso vigente para devolver bicicletas.");
+        }
+
+        // Mismo orden que retiro: usuario -> cabecera -> detalle -> bicicleta -> estación.
+        Alquiler alquiler = alquilerRepository.buscarPorIdConBloqueo(alquilerId)
+                .orElseThrow(() -> new EntityNotFoundException("El alquiler no existe."));
+        if (!esAdmin && (alquiler.getUsuario() == null
+                || alquiler.getUsuario().getId() != actor.getId())) {
+            throw new AccessDeniedException("No podés devolver bicicletas de un alquiler ajeno.");
+        }
+        if (alquiler.isBorradoAlquiler() || alquiler.getEstadoContratacion() == null) {
+            throw new IllegalStateException("El alquiler no admite esta devolución por detalle.");
+        }
+        AlquilerDetalle detalle = alquilerDetalleRepository
+                .buscarPorAlquilerYDetalleConBloqueo(alquilerId, detalleId)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "La bicicleta indicada no pertenece a este alquiler."));
+        if (detalle.getEstado() == null) {
+            throw new ConfiguracionSistemaException("El detalle no tiene estado configurado.");
+        }
+
+        // No tocar otra vez la bici: podría haberse alquilado de nuevo o trasladado.
+        if ("DEVUELTO".equals(detalle.getEstado().getCodigo())) {
+            if (detalle.getEstacionDevolucion() == null
+                    || detalle.getEstacionDevolucion().getId() != solicitud.getEstacionDevolucionId()) {
+                throw new IllegalStateException("La devolución ya fue registrada en otra estación.");
+            }
+            if (Boolean.TRUE.equals(solicitud.getFallaReportada())
+                    && (!detalle.isFallaReportada()
+                    || !Objects.equals(solicitud.getDescripcionFalla(), detalle.getDescripcionFalla()))) {
+                throw new IllegalStateException("La devolución ya fue registrada. Un reintento no puede agregar ni reemplazar su reporte.");
+            }
+            return new AlquilerDetalleDTO(detalle);
+        }
+        if (!"EN_PROGRESO".equals(alquiler.getEstadoContratacion().getCodigo())
+                || !"EN_CURSO".equals(detalle.getEstado().getCodigo())) {
+            throw new IllegalStateException("Solo puede devolverse una bicicleta que está en uso.");
+        }
+        if (alquiler.getFechaHoraLiquidacion() != null || alquiler.getCostoFinalArs() != null
+                || alquiler.getCostoFinalUsd() != null || alquiler.getFechaHoraCierre() != null
+                || detalle.getFechaHoraRetiro() == null || detalle.getFechaHoraDevolucionEstimada() == null
+                || detalle.getFechaHoraDevolucionReal() != null || detalle.getFechaHoraFinUso() != null
+                || detalle.getFechaHoraCierreDetalle() != null) {
+            throw new ConfiguracionSistemaException("El alquiler presenta fechas o importes incompatibles con un uso abierto.");
+        }
+        if (detalle.getPrecioPorHoraAplicadoUsd() == null
+                || detalle.getPrecioPorHoraAplicadoUsd().compareTo(new BigDecimal("0.01")) < 0
+                || alquiler.getCotizacionArsPorUsd() == null || alquiler.getCotizacionArsPorUsd().signum() <= 0) {
+            throw new ConfiguracionSistemaException("Faltan los valores congelados del alquiler.");
+        }
+
+        Bicicleta bicicleta = bicicletaRepository.buscarActivaPorIdConBloqueo(detalle.getBicicleta().getId())
+                .orElseThrow(() -> new IllegalStateException("La bicicleta no está habilitada para esta devolución."));
+        if (bicicleta.getEstado() == null || !"EN_USO".equals(bicicleta.getEstado().getCodigo())
+                || bicicleta.getUbicacionActual() != null) {
+            throw new IllegalStateException("La bicicleta no figura en uso y fuera de estación.");
+        }
+        Estacion destino = estacionRepository.buscarActivaPorIdConBloqueo(solicitud.getEstacionDevolucionId())
+                .filter(Estacion::isEsPublica)
+                .orElseThrow(() -> new IllegalStateException("La estación de devolución no está habilitada para clientes."));
+        if (bicicletaRepository.countByUbicacionActual(destino) >= destino.getCapacidad()) {
+            throw new IllegalStateException("La estación de devolución no tiene espacios libres.");
+        }
+
+        List<Incidencia> incidencias = incidenciaRepository.findByAlquilerDetalleIdOrderByIdAsc(detalleId);
+        boolean revisionEconomicaPendiente = incidencias.stream().anyMatch(i ->
+                "PENDIENTE".equals(i.getEstadoRevision()) && i.isRequiereRevisionEconomica());
+        LocalDateTime ahora = LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC);
+        if (ahora.isBefore(detalle.getFechaHoraRetiro())
+                || detalle.getFechaHoraDevolucionEstimada().isBefore(detalle.getFechaHoraRetiro())) {
+            throw new ConfiguracionSistemaException("Las fechas registradas del uso son inconsistentes.");
+        }
+        LocalDateTime finUso = finUsoEnDevolucion(detalle, ahora);
+        BigDecimal subtotalUsd = null;
+        BigDecimal subtotalArs = null;
+        if (!revisionEconomicaPendiente) {
+            long segundos = calculadoraAlquiler.calcularSegundosCompletos(detalle.getFechaHoraRetiro(), finUso);
+            subtotalUsd = calculadoraAlquiler.calcularSubtotalUsd(detalle.getPrecioPorHoraAplicadoUsd(), segundos);
+            subtotalArs = calculadoraAlquiler.calcularSubtotalArs(detalle.getPrecioPorHoraAplicadoUsd(), segundos,
+                    alquiler.getCotizacionArsPorUsd());
+            if (subtotalUsd.precision() - subtotalUsd.scale() > 18
+                    || subtotalArs.precision() - subtotalArs.scale() > 18) {
+                throw new ConfiguracionSistemaException("El subtotal de uso excede la capacidad monetaria del detalle.");
+            }
+        }
+
+        EstadoAlquilerDetalle devuelto = estadoAlquilerDetalleRepository.findByCodigo("DEVUELTO")
+                .orElseThrow(() -> new ConfiguracionSistemaException("Falta el estado DEVUELTO."));
+        boolean nuevaFalla = Boolean.TRUE.equals(solicitud.getFallaReportada()) && !detalle.isFallaReportada();
+        boolean requiereRevision = detalle.isFallaReportada() || nuevaFalla || !incidencias.isEmpty();
+        OrdenMantenimiento orden = prepararMantenimientoDevolucion(bicicleta, detalle, requiereRevision, ahora);
+        EstadoBicicleta estadoDestino = estadoBicicleta(orden == null ? "DISPONIBLE" : "MANTENIMIENTO");
+        EstadoAlquilerDetalle anteriorDetalle = detalle.getEstado();
+        EstadoBicicleta anteriorBicicleta = bicicleta.getEstado();
+
+        detalle.setEstado(devuelto);
+        detalle.setEstacionDevolucion(destino);
+        detalle.setFechaHoraDevolucionReal(ahora);
+        detalle.setFechaHoraFinUso(finUso);
+        detalle.setFechaHoraCierreDetalle(ahora);
+        detalle.setSubtotalRealUsd(subtotalUsd);
+        detalle.setSubtotalRealArs(subtotalArs);
+        detalle.setOrigenCierre(esAdmin ? "ADMIN" : "CLIENTE");
+        detalle.setMotivoCierre("Devolución física confirmada" + (esAdmin ? " por ADMIN." : " por el titular."));
+        if (nuevaFalla) {
+            detalle.setFallaReportada(true);
+            detalle.setDescripcionFalla(solicitud.getDescripcionFalla());
+            detalle.setFechaReporteFalla(ahora);
+            detalle.setReportadoPor(actor);
+        }
+        if (orden != null) {
+            detalle.setOrdenMantenimiento(orden);
+        }
+        bicicleta.setUbicacionActual(destino);
+        bicicleta.setEstado(estadoDestino);
+
+        String condiciones = "Devolución " + (ahora.isAfter(detalle.getFechaHoraDevolucionEstimada())
+                ? "con demora" : "dentro del tiempo estimado")
+                + (detalle.isFallaReportada() ? "; falla reportada" : "; sin falla reportada")
+                + "; estación " + destino.getId()
+                + (revisionEconomicaPendiente ? "; importe pendiente de revisión económica." : "; costo por uso real.");
+        historialEstadoDetalleRepository.save(new HistorialEstadoDetalle(
+                detalle, anteriorDetalle, devuelto, actor, "USUARIO", condiciones, ahora));
+        trazabilidadInventario.estado(bicicleta, anteriorBicicleta, actor,
+                "Devolución del alquiler " + alquilerId + ", detalle " + detalleId + ". " + condiciones, ahora);
+
+        cerrarUsoDelConjuntoSiCorresponde(alquiler, ahora);
+        // La liquidación se decide al cerrar el conjunto.
+        // Devolver no genera cobros ni reembolsos.
+        alquilerDetalleRepository.flush();
+        return new AlquilerDetalleDTO(detalle);
+    }
+
+    private boolean tieneRolVigenteParaDevolucion(Usuario actor, Authentication auth, String codigo) {
+        return auth.getAuthorities().stream().anyMatch(a -> codigo.equals(a.getAuthority()))
+                && actor.getUsuarioRoles().stream().anyMatch(ur ->
+                ur.getRol() != null && codigo.equals(ur.getRol().getCodigo()));
+    }
+
+    private LocalDateTime finUsoEnDevolucion(AlquilerDetalle detalle, LocalDateTime recepcion) {
+        Incidencia corte = detalle.getIncidenciaCorte();
+        if (corte == null) {
+            return recepcion;
+        }
+        LocalDateTime fecha = corte.getFechaHoraCorteValidado();
+        if (!"VALIDADA".equals(corte.getEstadoRevision()) || corte.getAlquilerDetalle() == null
+                || !Objects.equals(corte.getAlquilerDetalle().getId(), detalle.getId())
+                || fecha == null || corte.getFechaHoraRegistro() == null || corte.getFechaHoraDecision() == null
+                || corte.getResueltoPor() == null || fecha.isBefore(detalle.getFechaHoraRetiro())
+                || fecha.isAfter(corte.getFechaHoraRegistro())
+                || corte.getFechaHoraRegistro().isAfter(corte.getFechaHoraDecision())
+                || corte.getFechaHoraDecision().isAfter(recepcion)) {
+            throw new ConfiguracionSistemaException("El corte de uso no tiene una decisión válida para este detalle.");
+        }
+        return fecha;
+    }
+
+    private OrdenMantenimiento prepararMantenimientoDevolucion(
+            Bicicleta bicicleta, AlquilerDetalle detalle, boolean revisionCorrectiva, LocalDateTime ahora
+    ) {
+        List<OrdenMantenimiento> abiertas = ordenMantenimientoRepository.buscarAbiertasPorBicicleta(bicicleta.getId());
+        if (abiertas.size() > 1) {
+            throw new ConfiguracionSistemaException("La bicicleta tiene más de una orden abierta.");
+        }
+        boolean preventivaVencida = preventivaVencidaEnDevolucion(bicicleta, ahora);
+        if (abiertas.isEmpty() && !revisionCorrectiva && !preventivaVencida) {
+            return null;
+        }
+        OrdenMantenimiento orden;
+        String accion;
+        if (abiertas.isEmpty()) {
+            String tipo = revisionCorrectiva ? "CORRECTIVO" : "PREVENTIVO";
+            TipoMantenimiento tipoOrden = tipoMantenimientoRepository.findByCodigo(tipo)
+                    .orElseThrow(() -> new ConfiguracionSistemaException("Falta el tipo de mantenimiento " + tipo));
+            EstadoOrdenMantenimiento creada = estadoOrdenMantenimientoRepository.findByCodigo("CREADA")
+                    .orElseThrow(() -> new ConfiguracionSistemaException("Falta el estado de orden CREADA."));
+            orden = ordenMantenimientoRepository.save(new OrdenMantenimiento(bicicleta, tipoOrden, creada, ahora));
+            accion = "CREAR";
+        } else {
+            orden = abiertas.get(0);
+            accion = "VINCULAR_DEVOLUCION";
+        }
+        // La orden la genera/vincula el sistema; el actor humano del reporte se conserva en el detalle.
+        historialOrdenMantenimientoRepository.save(new HistorialOrdenMantenimiento(
+                orden, accion, null, "CREAR".equals(accion) ? orden.getEstado() : null,
+                null, "SISTEMA", "Devolución del detalle " + detalle.getId()
+                + (revisionCorrectiva ? "; requiere revisión por reporte o incidencia." : "; preventiva vencida.")
+                + (preventivaVencida ? " La necesidad preventiva permanece pendiente." : ""),
+                null, "detalle_id=" + detalle.getId(), ahora));
+        return orden;
+    }
+
+    private boolean preventivaVencidaEnDevolucion(Bicicleta bicicleta, LocalDateTime ahora) {
+        Integer meses = bicicleta.getTipo() == null ? null : bicicleta.getTipo().getIntervaloPreventivoMeses();
+        if (meses == null || meses <= 0) {
+            throw new ConfiguracionSistemaException("Falta un intervalo preventivo válido para el tipo de bicicleta.");
+        }
+        LocalDateTime ultima = ordenMantenimientoRepository.buscarUltimaPreventivaApta(bicicleta.getId());
+        if (ultima != null && ultima.isAfter(ahora)) {
+            throw new ConfiguracionSistemaException("La última preventiva no puede estar en el futuro.");
+        }
+        java.time.LocalDate referencia = ultima == null ? bicicleta.getFechaAlta() : ultima.toLocalDate();
+        if (referencia == null) {
+            return true; // Sin referencia fiable, revisión inicial antes de otro alquiler.
+        }
+        if (referencia.isAfter(ahora.toLocalDate())) {
+            throw new ConfiguracionSistemaException("La referencia preventiva no puede estar en el futuro.");
+        }
+        // Fecha calendario UTC, coherente con el Clock del nuevo circuito; plusMonths ajusta fin de mes.
+        return !ahora.toLocalDate().isBefore(referencia.plusMonths(meses));
+    }
+
+    private void cerrarUsoDelConjuntoSiCorresponde(
+            Alquiler alquiler,
+            LocalDateTime ahora
+    ) {
+        List<AlquilerDetalle> detalles =
+                alquilerDetalleRepository.buscarPorAlquiler(alquiler.getId());
+
+        Set<String> terminales = Set.of(
+                "DEVUELTO", "CANCELADO", "VENCIDO", "CERRADO_POR_INCIDENCIA"
+        );
+
+        Set<String> conocidos = Set.of(
+                "RESERVADO", "PENDIENTE_RETIRO", "EN_CURSO",
+                "DEVUELTO", "CANCELADO", "VENCIDO", "CERRADO_POR_INCIDENCIA"
+        );
+
+        if (detalles.isEmpty() || detalles.stream().anyMatch(
+                detalle -> detalle.getEstado() == null
+                        || !conocidos.contains(detalle.getEstado().getCodigo())
+        )) {
+            throw new ConfiguracionSistemaException(
+                    "No se puede determinar el estado del conjunto."
+            );
+        }
+
+        boolean todosTerminales = detalles.stream().allMatch(
+                detalle -> terminales.contains(detalle.getEstado().getCodigo())
+        );
+
+        if (todosTerminales) {
+            EstadoAlquiler finalizado = estadoAlquilerRepository
+                    .findByCodigo("FINALIZADO")
+                    .orElseThrow(() -> new ConfiguracionSistemaException(
+                            "Falta el estado FINALIZADO."
+                    ));
+
+            alquiler.setEstadoContratacion(finalizado);
+            alquiler.setFechaHoraCierre(ahora);
+
+            // Misma transacción y cabecera bloqueada.
+            // Si hay revisión económica pendiente, todavía no fija la liquidación.
+            liquidacionAlquilerService.liquidarSiCorresponde(alquiler);
+        }
+    }
+
+    private BigDecimal comprobarAnticipoParaRetiro(Alquiler alquiler) {
+        List<AlquilerDetalle> detalles = alquilerDetalleRepository
+                .buscarPorAlquilerConDatos(alquiler.getId());
+
+        if (detalles.isEmpty()) {
+            throw new ConfiguracionSistemaException(
+                    "El alquiler no tiene detalles."
+            );
+        }
+
+        BigDecimal requerido = new BigDecimal("0.00");
+
+        for (AlquilerDetalle unidad : detalles) {
+            String estado = unidad.getEstado() == null
+                    ? null
+                    : unidad.getEstado().getCodigo();
+
+            if (estado == null || !Set.of(
+                    "RESERVADO", "PENDIENTE_RETIRO", "EN_CURSO",
+                    "DEVUELTO", "CANCELADO", "VENCIDO",
+                    "CERRADO_POR_INCIDENCIA"
+            ).contains(estado)) {
+                throw new ConfiguracionSistemaException(
+                        "Un detalle tiene un estado inválido."
+                );
+            }
+
+            if (!"CANCELADO".equals(estado) && !"VENCIDO".equals(estado)) {
+                requerido = requerido.add(
+                        importeValidoParaRetiro(
+                                unidad.getSubtotalEstimadoArs()
+                        )
+                );
+            }
+        }
+
+        BigDecimal disponible = new BigDecimal("0.00");
+        LocalDateTime referencia = LocalDateTime.ofInstant(
+                reloj.instant(),
+                ZoneOffset.UTC
+        );
+
+        for (Pago pago : pagoRepository
+                .findByAlquilerIdOrderByIdAsc(alquiler.getId())) {
+            if (!"ANTICIPO".equals(pago.getFinalidad())) {
+                continue;
+            }
+
+            String estado = pago.getEstadoPago() == null
+                    ? null
+                    : pago.getEstadoPago().getCodigo();
+
+            if (estado == null || !Set.of(
+                    "CREADO", "PENDIENTE", "APROBADO",
+                    "RECHAZADO", "CANCELADO"
+            ).contains(estado)) {
+                throw new ConfiguracionSistemaException(
+                        "Un anticipo tiene un estado inválido."
+                );
+            }
+
+            if (!"APROBADO".equals(estado)) {
+                continue;
+            }
+
+            BigDecimal neto = importeValidoParaRetiro(pago.getMontoArs());
+
+            if (neto.signum() == 0 || !"ARS".equals(pago.getMoneda())
+                    || pago.getFechaCreacion() == null
+                    || pago.getFechaConfirmacion() == null
+                    || pago.getFechaConfirmacion().isBefore(
+                    pago.getFechaCreacion()
+            )
+                    || pago.getFechaConfirmacion().isAfter(referencia)) {
+                throw new ConfiguracionSistemaException(
+                        "Un anticipo aprobado tiene datos inconsistentes."
+                );
+            }
+
+            for (Reembolso reembolso : reembolsoRepository
+                    .findByPagoIdOrderByIdAsc(pago.getId())) {
+                String estadoReembolso = reembolso.getEstado();
+
+                if (estadoReembolso == null || !Set.of(
+                        "PENDIENTE", "EN_PROCESO", "CONFIRMADO", "FALLIDO"
+                ).contains(estadoReembolso)) {
+                    throw new ConfiguracionSistemaException(
+                            "Un reembolso tiene un estado inválido."
+                    );
+                }
+
+                if (!"FALLIDO".equals(estadoReembolso)) {
+                    BigDecimal importe = importeValidoParaRetiro(
+                            reembolso.getMontoArs()
+                    );
+
+                    if (importe.signum() == 0
+                            || !"ARS".equals(reembolso.getMoneda())) {
+                        throw new ConfiguracionSistemaException(
+                                "Un reembolso tiene un importe inválido."
+                        );
+                    }
+
+                    // No reutilizar dinero ya devuelto o comprometido.
+                    neto = neto.subtract(importe);
+                }
+            }
+
+            if (neto.signum() < 0) {
+                throw new ConfiguracionSistemaException(
+                        "Los reembolsos comprometidos superan el anticipo."
+                );
+            }
+
+            disponible = disponible.add(neto);
+        }
+
+        if (disponible.compareTo(requerido) < 0) {
+            throw new IllegalStateException(
+                    "El anticipo confirmado no cubre las bicicletas del alquiler."
+            );
+        }
+
+        return requerido;
+    }
+
+    private BigDecimal importeValidoParaRetiro(BigDecimal importe) {
+        if (importe == null || importe.signum() < 0) {
+            throw new ConfiguracionSistemaException(
+                    "Hay un importe de alquiler inválido."
+            );
+        }
+
+        try {
+            return importe.setScale(2, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException ex) {
+            throw new ConfiguracionSistemaException(
+                    "Un importe tiene decimales incompatibles."
+            );
+        }
+    }
+
     // CREAR UN ALQUILER
     @PreAuthorize("hasAuthority('CLIENTE')")
     @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
@@ -533,8 +1417,8 @@ public class AlquilerService {
             AlquilerRequestDTO alquilerRequest
     ) throws Exception {
 
-        // 1. Obtener el usuario de la sesión
-        Usuario usuario = obtenerUsuarioAutenticado();
+        // 1. Obtener y bloquear la cuenta del cliente autenticado.
+        Usuario usuario = obtenerUsuarioAutenticadoConBloqueo();
 
         boolean clienteVigente = usuario.getUsuarioRoles().stream()
                 .map(UsuarioRol::getRol)
@@ -545,6 +1429,8 @@ public class AlquilerService {
                     "La cuenta debe tener rol CLIENTE para contratar."
             );
         }
+
+        comprobarSinSaldoPendiente(usuario);
 
         // 2. Buscar y bloquear la bicicleta durante el alquiler
         Bicicleta bicicleta = bicicletaRepository

@@ -1,4 +1,4 @@
-%% DER v5 de trabajo - actualizado el 8 de noviembre de 2026.
+%% DER v5 de trabajo - actualizado el 15 de noviembre de 2026.
 %% Base: DERv4.txt original de 21 entidades y reglas aprobadas RN-*.
 %% Modelo logico de 29 entidades; trazabilidad RN-TRZ-01 incorporada con aprobacion.
 %% No es SQL ni esquema fisico definitivo; los demas pendientes se conservan.
@@ -15,7 +15,9 @@
 %% RN-ALQ-11: un origen por cabecera; seleccion de 1 a 10 unidades al confirmar.
 %% Maximo configurable en servidor; seleccion fija, con cancelaciones aprobadas permitidas.
 %% RN-PAG-03: cancelar durante un pago enviado no modifica su importe; conciliar resultado.
-%% RN-PAG-05: Checkout Pro externo; sin perfiles ni tarjetas guardadas en este modelo.
+%% RN-PAG-05: integracion final con Checkout Pro externo; sin perfiles ni tarjetas guardadas.
+%% Decision 2026-11-15: simulacion local aprobada para el parcial; plataforma SIMULADA solo en PRUEBA.
+%% Saldo ficticio basado en movimientos persistidos; no agrega tabla de billetera ni saldo en USUARIO.
 %% Decision 2026-11-02: AUDITORIA_SISTEMA exclusiva de acciones administrativas ADMIN.
 %% Los historiales de dominio conservan sus actores humanos y procesos SISTEMA.
 %% RN-TRZ-01: HISTORIAL_INCIDENCIA y ampliacion/renombre del historial de orden.
@@ -363,8 +365,8 @@ erDiagram
         string moneda "ARS"
         datetime fecha_creacion
         datetime fecha_confirmacion "Opcional hasta validacion"
-        string plataforma "MERCADOPAGO; unica pasarela del alcance aprobado"
-        string entorno "PRUEBA o PRODUCCION; separar datos y credenciales al integrar"
+        string plataforma "SIMULADA para parcial local; MERCADOPAGO al integrar"
+        string entorno "SIMULADA solo PRUEBA; MERCADOPAGO PRUEBA o PRODUCCION"
         string referencia_externa "Opcional; unicidad compuesta segun proveedor"
         string clave_idempotencia UK "Un intento no se cobra dos veces al reenviarlo"
         int version

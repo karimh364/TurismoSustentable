@@ -636,6 +636,31 @@ class CrearReservaServiceTest {
         verifyNoInteractions(correoService, trazabilidadInventario);
     }
 
+    @Test
+    void deudaImpideReservarAntesDeBloquearBicicletas() {
+        prepararUsuario();
+
+        when(alquilerRepository.contarAlquileresConSaldoPendiente(
+                usuario.getId()
+        )).thenReturn(1L);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> servicio.crearReserva(
+                        solicitud(List.of(1), 1, 2700)
+                )
+        );
+
+        comprobarSinEscrituras();
+
+        verifyNoInteractions(
+                bicicletaRepository,
+                estacionRepository,
+                tipoBicicletaRepository
+        );
+        verify(transactionManager).rollback(transaccion);
+    }
+
     private void prepararUsuario() {
         when(usuarioRepository.findByEmail(EMAIL))
                 .thenReturn(Optional.of(usuario));
@@ -729,8 +754,13 @@ class CrearReservaServiceTest {
     }
 
     private void comprobarSinEscrituras() {
+        // Se permite la lectura nueva de deuda, pero ninguna otra operación
+        // sobre alquileres cuando el caso debe fallar sin escrituras.
+        verify(alquilerRepository, atMostOnce())
+                .contarAlquileresConSaldoPendiente(anyInt());
+        verifyNoMoreInteractions(alquilerRepository);
+
         verifyNoInteractions(
-                alquilerRepository,
                 alquilerDetalleRepository,
                 historialEstadoDetalleRepository,
                 trazabilidadInventario,

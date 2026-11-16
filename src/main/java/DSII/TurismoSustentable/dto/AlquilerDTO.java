@@ -62,4 +62,9 @@ public class AlquilerDTO {
     public BigDecimal getCostoTotalArs() {
         return costoTotalArs;
     }
+
+    // Compatibilidad temporal; se retira junto con este DTO.
+    public String getModelo() {
+        return "ANTERIOR";
+    }
 }

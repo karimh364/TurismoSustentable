@@ -2,6 +2,41 @@
 
 Fecha: 28 de octubre de 2026.
 
+Actualización de alcance, 15 de noviembre de 2026: el usuario admite para el
+parcial del 16 una simulación local de pagos con dinero ficticio como alternativa
+a integrar Mercado Pago, y plantea una cuenta de pruebas con saldo. No se recorta
+el circuito financiero del DER. Las restricciones inferiores describen la
+decisión anterior y la integración final prevista; no deben interpretarse como
+rechazo de esta alternativa nueva para el parcial. Detalles del simulador, saldo
+inicial, persistencia y marca de plataforma pendientes de concretar. No es una
+integración de Mercado Pago ni autoriza cobros reales. Sin cambios Java o DER.
+
+Confirmación posterior del 15 de noviembre: el usuario aprueba el esquema de
+simulación con saldo ficticio, movimientos persistidos y proveedor intercambiable,
+sin tarjetas locales o saldo como atributo de USUARIO. Aún no está implementado;
+valores de prueba y detalles técnicos se concretarán al desarrollar el bloque.
+
+Decisión posterior del 15 de noviembre: aprobado saldo inicial predeterminado de
+ARS 1000000 ficticios por cliente, con perfiles de pruebas que permitan menos
+saldo o cero. Propuestos valores configurables por nickname de QA, exclusivamente
+en refactor; no crear cuentas automáticamente ni agregar saldo a USUARIO o tablas.
+Saldo inicial no equivale a disponible: este se calculará con movimientos
+persistidos. No usar cambios de configuración como recargas de cuentas con historia.
+Insuficiencia permite probar RECHAZADO, no todos los estados: CREADO pertenece
+al registro local, PENDIENTE y CANCELADO requieren escenarios controlados del
+proveedor simulado. Propuesta técnica: demora de prueba de 20 s para PENDIENTE;
+después, una nueva evaluación del backend devuelve aprobación o rechazo según
+fondos. El reloj por sí solo no escribe un cambio ni implementa un scheduler.
+No exponer al visitante un parámetro para forzar APROBADO u otro estado.
+Este adaptador no sustituye servicios transaccionales, permisos o integración real.
+Implementación posterior (etapa 283): usuario crea PasarelaSimulada, su test y
+propiedades propuestas. Revisión de los tres archivos sin correcciones. Ejecución
+unitaria corroborada en XML: diez casos de pasarela y catorce de catálogos aprobados,
+sin fallos, errores u omisiones. El componente devuelve resultados sin modificar
+Pago, Alquiler o historiales; no tiene repositorios ni endpoints. Servicio financiero,
+saldo desde movimientos, autorización, persistencia y pruebas de integración siguen
+pendientes. No equivale a Mercado Pago integrado ni a tener cobros funcionando.
+
 Estado actualizado al 1 de noviembre de 2026: Mercado Pago es la única pasarela del alcance y la experiencia elegida es Checkout Pro con pantalla externa, según RN-PAG-05 del documento 32. No se pedirán ni administrarán tarjetas desde Turismo Sustentable y se descartaron las dos entidades de medios guardados. Quedan la variante de API y detalles de integración/pruebas. Un adaptador local se conserva solo como antecedente propuesto, no como pasarela autorizada para esta versión. No se crearon cuentas, aplicaciones, credenciales ni código de integración; no se hicieron cobros o reembolsos.
 
 ## 1. Qué resuelve cada componente

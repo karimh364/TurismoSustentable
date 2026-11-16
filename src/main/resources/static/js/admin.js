@@ -541,35 +541,77 @@ async function editarTarifaTipo() {
 // 4. GESTIÓN DE ALQUILERES
 // ==========================================
 async function cargarAlquileres() {
+    const tbody = document.getElementById('tabla-alquileres-body');
+    if (!tbody) return;
+
     try {
-        // Como ADMIN, este endpoint debería devolver TODOS
-        // Si tu controlador filtra por usuario logueado, tendrás que crear un endpoint
-        // nuevo en AdminController o modificar AlquilerController para que si es ADMIN devuelva todos.
-        // ASUMO que por ahora devuelve los tuyos (admin).
-        
-        const res = await axios.get('/api/admin/estadisticas/alquileres-todos');
-        const tbody = document.getElementById('tabla-alquileres-body');
-        tbody.innerHTML = '';
-        res.data.forEach(a => {
-            tbody.innerHTML += `
+        const res = await axios.get(
+            '/api/admin/estadisticas/alquileres-todos'
+        );
+
+        if (!Array.isArray(res.data)) {
+            throw new Error('Respuesta de alquileres inválida.');
+        }
+
+        const filas = res.data.map(alquiler => {
+            const nuevo = VistaAlquileres.nuevo(alquiler);
+            const id = VistaAlquileres.id(alquiler.id);
+
+            return `
                 <tr>
-                    <td>${a.id}</td>
-                    <td>ID: ${a.usuarioId}</td>
-                    <td>${a.codigoBicicleta}</td>
-                    <td><span class="badge bg-${a.estado === 'INICIADO' ? 'success' : 'secondary'}">${a.estado}</span></td>
-                    <td>${new Date(a.fechaInicio).toLocaleDateString()}</td>
-                    <td>${a.fechaFin ? new Date(a.fechaFin).toLocaleDateString() : '-'}</td>
-                    <td>$${a.costoTotal}</td>
+                    <td>${id}</td>
+                    <td>ID: ${VistaAlquileres.texto(alquiler.usuarioId)}</td>
+                    <td>${VistaAlquileres.bicicletas(alquiler)}</td>
                     <td>
-                        ${a.estado === 'INICIADO' ? 
-                        `<button class="btn btn-sm btn-danger" onclick="finalizarAlquilerAdmin(${a.id})">Finalizar</button>` : 
-                        '<i class="fas fa-check text-success"></i>'}
+                        <span class="badge bg-secondary">
+                            ${VistaAlquileres.texto(alquiler.estado)}
+                        </span>
+                    </td>
+                    <td>${VistaAlquileres.fecha(
+                        nuevo
+                            ? alquiler.fechaHoraCreacion
+                            : alquiler.fechaInicio,
+                        nuevo
+                    )}</td>
+                    <td>${VistaAlquileres.fecha(
+                        nuevo
+                            ? alquiler.fechaHoraCierre
+                            : alquiler.fechaFin,
+                        nuevo
+                    )}</td>
+                    <td>
+                        ${VistaAlquileres.importes(alquiler, 'USD')}
+                        <hr class="my-1">
+                        ${VistaAlquileres.importes(alquiler, 'ARS')}
+                    </td>
+                    <td>
+                        ${!nuevo && alquiler.estado === 'INICIADO'
+                            ? `
+                                <button class="btn btn-sm btn-danger"
+                                    onclick="finalizarAlquilerAdmin(${id})">
+                                    Finalizar
+                                </button>
+                            `
+                            : '<span class="text-muted">Solo consulta</span>'}
                     </td>
                 </tr>`;
         });
-    } catch (e) {
-        if (manejarErrorSesion(e)) return;
-        console.error(e);
+
+        tbody.innerHTML = filas.join('')
+            || '<tr><td colspan="8">No hay alquileres visibles.</td></tr>';
+
+    } catch (error) {
+        if (manejarErrorSesion(error)) return;
+
+        console.error(error);
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8">
+                    No se pudieron cargar los alquileres.
+                    Intentá nuevamente.
+                </td>
+            </tr>
+        `;
     }
 }
 

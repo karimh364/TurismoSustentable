@@ -72,6 +72,26 @@ public class HistorialEstadoDetalle {
             String origen,
             String observaciones
     ) {
+        this(
+                alquilerDetalle,
+                estadoAnterior,
+                estadoNuevo,
+                actorUsuario,
+                origen,
+                observaciones,
+                LocalDateTime.now()
+        );
+    }
+
+    public HistorialEstadoDetalle(
+            AlquilerDetalle alquilerDetalle,
+            EstadoAlquilerDetalle estadoAnterior,
+            EstadoAlquilerDetalle estadoNuevo,
+            Usuario actorUsuario,
+            String origen,
+            String observaciones,
+            LocalDateTime fechaHoraCambio
+    ) {
         this.alquilerDetalle = Objects.requireNonNull(
                 alquilerDetalle,
                 "El detalle del alquiler es obligatorio."
@@ -112,7 +132,10 @@ public class HistorialEstadoDetalle {
 
         this.estadoAnterior = estadoAnterior;
         this.actorUsuario = actorUsuario;
-        this.fechaHoraCambio = LocalDateTime.now();
+        this.fechaHoraCambio = Objects.requireNonNull(
+                fechaHoraCambio,
+                "La fecha del cambio es obligatoria."
+        );
         this.observaciones = observaciones == null
                 ? null
                 : observaciones.trim();

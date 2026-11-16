@@ -55,7 +55,7 @@
     <div class="container mt-5 pt-5">
         <!-- ENCABEZADO Y SWITCH DE MONEDA -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-            <h2 class="fw-bold mb-3 mb-md-0"><i class="fas fa-history text-success"></i> Mi Historial de Viajes</h2>
+            <h2 class="fw-bold mb-3 mb-md-0"><i class="fas fa-history text-success"></i> Mis alquileres</h2>
             <div class="d-flex align-items-center bg-white p-2 px-3 rounded shadow-sm">
                 <label class="form-label fw-bold text-muted mb-0 me-2">Moneda:</label>
                 <div class="form-check form-switch fs-5 mb-0">
@@ -67,7 +67,7 @@
 
         <div class="card shadow-sm border-0 mb-5">
             <div class="card-header bg-success text-white fw-bold">
-                <i class="fas fa-stopwatch"></i> En Curso (Activos)
+                <i class="fas fa-stopwatch"></i> Reservas y alquileres en curso
             </div>
             <div class="card-body">
                 <div id="container-activos" class="text-center text-muted py-3">Cargando...</div>
@@ -76,17 +76,17 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-header bg-secondary text-white fw-bold">
-                <i class="fas fa-check-double"></i> Finalizados
+                <i class="fas fa-check-double"></i> Historial de alquileres
             </div>
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                         <tr>
-                            <th>Bicicleta</th>
-                            <th>Inicio</th>
-                            <th>Fin</th>
-                            <th>Costo Total</th>
+                            <th>Bicicleta(s)</th>
+                            <th>Registro / inicio</th>
+                            <th>Cierre / fin</th>
+                            <th>Importes</th>
                             <th>Estado</th>
                         </tr>
                         </thead>
@@ -145,6 +145,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script src="js/auth.js"></script>
+    <script src="js/alquileres-vista.js"></script>
     <script src="js/mis_alquileres.js"></script>
 
 </body>

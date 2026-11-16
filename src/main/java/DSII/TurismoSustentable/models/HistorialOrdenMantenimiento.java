@@ -93,6 +93,22 @@ public class HistorialOrdenMantenimiento {
             String valoresAnteriores,
             String valoresNuevos
     ) {
+        this(ordenMantenimiento, accion, estadoAnterior, estadoNuevo, actorUsuario,
+                origen, observaciones, valoresAnteriores, valoresNuevos, LocalDateTime.now());
+    }
+
+    public HistorialOrdenMantenimiento(
+            OrdenMantenimiento ordenMantenimiento,
+            String accion,
+            EstadoOrdenMantenimiento estadoAnterior,
+            EstadoOrdenMantenimiento estadoNuevo,
+            Usuario actorUsuario,
+            String origen,
+            String observaciones,
+            String valoresAnteriores,
+            String valoresNuevos,
+            LocalDateTime fechaHoraCambio
+    ) {
         this.ordenMantenimiento = Objects.requireNonNull(
                 ordenMantenimiento,
                 "La orden de mantenimiento es obligatoria."
@@ -134,7 +150,7 @@ public class HistorialOrdenMantenimiento {
         this.estadoAnterior = estadoAnterior;
         this.estadoNuevo = estadoNuevo;
         this.actorUsuario = actorUsuario;
-        this.fechaHoraCambio = LocalDateTime.now();
+        this.fechaHoraCambio = Objects.requireNonNull(fechaHoraCambio);
         this.observaciones = observaciones == null
                 ? null
                 : observaciones.trim();

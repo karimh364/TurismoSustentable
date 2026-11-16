@@ -7,6 +7,7 @@ import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.services.AlquilerService;
+import DSII.TurismoSustentable.services.LiquidacionAlquilerService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,9 @@ class BorradoAlquilerControllerTest {
 
     @MockBean
     private AlquilerService alquilerService;
+
+    @MockBean
+    private LiquidacionAlquilerService liquidacionAlquilerService;
 
     @MockBean
     private AlquilerRepository alquilerRepository;

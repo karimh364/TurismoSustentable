@@ -3,16 +3,19 @@ package DSII.TurismoSustentable.controllers;
 import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
+import DSII.TurismoSustentable.dto.AlquilerDTO;
+import DSII.TurismoSustentable.dto.LiquidacionAlquilerDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
 import DSII.TurismoSustentable.models.*;
-import DSII.TurismoSustentable.repositories.AlquilerRepository;
-import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.services.AlquilerService;
+import DSII.TurismoSustentable.services.EstadisticasService;
+import DSII.TurismoSustentable.services.LiquidacionAlquilerService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,17 +38,31 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AlquilerController.class)
+@WebMvcTest({
+        AlquilerController.class,
+        AdminController.class
+})
 @ContextConfiguration(classes = {
         AlquilerController.class,
+        AdminController.class,
         WebAuthorization.class,
         SecurityConfig.class,
         GlobalExceptionHandler.class
 })
 class ConsultaAlquilerControllerTest {
+
+    private static final String LISTADO_PROPIO =
+            "/api/alquileres";
+
+    private static final String LISTADO_ADMIN =
+            "/api/admin/estadisticas/alquileres-todos";
+
+    private static final String CONSULTA_LIQUIDACION =
+            "/api/alquileres/50/liquidacion";
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,20 +71,17 @@ class ConsultaAlquilerControllerTest {
     private AlquilerService alquilerService;
 
     @MockBean
-    private AlquilerRepository alquilerRepository;
+    private LiquidacionAlquilerService liquidacionAlquilerService;
 
     @MockBean
-    private UsuarioRepository usuarioRepository;
+    private EstadisticasService estadisticasService;
 
     @MockBean
     private UserDetailsService userDetailsService;
 
     @AfterEach
-    void consultaDelegaSinAccederDirectamenteARepositorios() {
-        verifyNoInteractions(
-                alquilerRepository,
-                usuarioRepository
-        );
+    void consultasNoEjecutanEstadisticas() {
+        verifyNoInteractions(estadisticasService);
     }
 
     @Test
@@ -191,6 +206,513 @@ class ConsultaAlquilerControllerTest {
                 ));
 
         verify(alquilerService).obtenerAlquiler(50);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {LISTADO_PROPIO, LISTADO_ADMIN})
+    void listadosSinSesionResponden401(String ruta)
+            throws Exception {
+
+        mockMvc.perform(get(ruta))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(alquilerService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            LISTADO_PROPIO + ",CLIENTE,200",
+            LISTADO_PROPIO + ",ADMIN,200",
+            LISTADO_PROPIO + ",TECNICO,403",
+            LISTADO_ADMIN + ",CLIENTE,403",
+            LISTADO_ADMIN + ",ADMIN,200",
+            LISTADO_ADMIN + ",TECNICO,403"
+    })
+    void listadosRespetanPermisosDeRol(
+            String ruta,
+            String rol,
+            int estadoEsperado
+    ) throws Exception {
+
+        if (estadoEsperado == 200) {
+            prepararRespuestaListado(ruta, List.of());
+        }
+
+        var resultado = mockMvc.perform(
+                        get(ruta)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .with(user("qa.listados").authorities(
+                                        new SimpleGrantedAuthority(rol)
+                                ))
+                )
+                .andExpect(status().is(estadoEsperado));
+
+        if (estadoEsperado == 200) {
+            resultado
+                    .andExpect(content().contentTypeCompatibleWith(
+                            MediaType.APPLICATION_JSON
+                    ))
+                    .andExpect(content().json("[]"));
+
+            verificarConsultaListado(ruta);
+        } else {
+            verifyNoInteractions(alquilerService);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {LISTADO_PROPIO, LISTADO_ADMIN})
+    @WithMockUser(authorities = {"ADMIN", "CLIENTE"})
+    void listadosSerializanAmbosModelosConAmbosRoles(
+            String ruta
+    ) throws Exception {
+
+        prepararRespuestaListado(
+                ruta,
+                List.of(crearRespuesta(), crearRespuestaAnterior())
+        );
+
+        mockMvc.perform(
+                        get(ruta).accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ))
+                .andExpect(jsonPath("$.length()").value(2))
+
+                // Modelo del DER v5: cabecera con detalles.
+                .andExpect(jsonPath("$[0].modelo").value("DETALLES"))
+                .andExpect(jsonPath("$[0].id").value(50))
+                .andExpect(jsonPath("$[0].estado").value("RESERVADO"))
+                .andExpect(jsonPath("$[0].cotizacionArsPorUsd")
+                        .value(1530.0))
+                .andExpect(jsonPath("$[0].costoEstimadoArs")
+                        .value(22950.0))
+                .andExpect(jsonPath("$[0].costoFinalUsd")
+                        .value(nullValue()))
+                .andExpect(jsonPath("$[0].fechaHoraLiquidacion")
+                        .value(nullValue()))
+                .andExpect(jsonPath("$[0].detalles.length()").value(1))
+                .andExpect(jsonPath(
+                        "$[0].detalles[0].precioPorHoraAplicadoUsd"
+                ).value(10.0))
+                .andExpect(jsonPath(
+                        "$[0].detalles[0].fechaHoraRetiro"
+                ).value(nullValue()))
+
+                // No serializar entidades completas.
+                .andExpect(jsonPath("$[0].usuario").doesNotExist())
+                .andExpect(jsonPath("$[0].detalles[0].bicicleta")
+                        .doesNotExist())
+
+                // Compatibilidad temporal sin fabricar detalles.
+                .andExpect(jsonPath("$[1].modelo").value("ANTERIOR"))
+                .andExpect(jsonPath("$[1].id").value(40))
+                .andExpect(jsonPath("$[1].codigoBicicleta")
+                        .value("QA-ANT-02"))
+                .andExpect(jsonPath("$[1].costoTotal").value(12.34))
+                .andExpect(jsonPath("$[1].costoTotalArs")
+                        .value(18880.2))
+                .andExpect(jsonPath("$[1].detalles").doesNotExist());
+
+        verificarConsultaListado(ruta);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            LISTADO_PROPIO + ",true",
+            LISTADO_ADMIN + ",true",
+            LISTADO_PROPIO + ",false",
+            LISTADO_ADMIN + ",false"
+    })
+    @WithMockUser(authorities = "ADMIN")
+    void fallosDeListadoConservanSuEstado(
+            String ruta,
+            boolean denegacion
+    ) throws Exception {
+
+        RuntimeException fallo = denegacion
+                ? new AccessDeniedException("Permiso retirado.")
+                : new ConfiguracionSistemaException(
+                        "DETALLE_INTERNO_NO_PUBLICAR"
+                );
+
+        if (LISTADO_PROPIO.equals(ruta)) {
+            when(alquilerService.listarMisAlquileres())
+                    .thenThrow(fallo);
+        } else {
+            when(alquilerService.listarAlquileresAdministracion())
+                    .thenThrow(fallo);
+        }
+
+        var resultado = mockMvc.perform(get(ruta))
+                .andExpect(status().is(denegacion ? 403 : 500));
+
+        if (!denegacion) {
+            resultado.andExpect(content().string(
+                    "No se pudo completar la operación por un problema interno. "
+                            + "Intentá nuevamente más tarde."
+            ));
+        }
+
+        verificarConsultaListado(ruta);
+    }
+
+    @Test
+    void liquidacionSinSesionResponde401() throws Exception {
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(
+                liquidacionAlquilerService,
+                alquilerService
+        );
+    }
+
+    @Test
+    @WithMockUser(authorities = "TECNICO")
+    void liquidacionTecnicoSinOtrosRolesResponde403() throws Exception {
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(
+                liquidacionAlquilerService,
+                alquilerService
+        );
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "CLIENTE,false",
+            "ADMIN,false",
+            "ADMIN,true"
+    })
+    void liquidacionPermiteRolesDeLectura(
+            String rol,
+            boolean ambosRoles
+    ) throws Exception {
+
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenReturn(crearRespuestaLiquidacion("SALDADO"));
+
+        List<SimpleGrantedAuthority> autoridades = ambosRoles
+                ? List.of(
+                        new SimpleGrantedAuthority("ADMIN"),
+                        new SimpleGrantedAuthority("CLIENTE")
+                )
+                : List.of(new SimpleGrantedAuthority(rol));
+
+        mockMvc.perform(
+                        get(CONSULTA_LIQUIDACION)
+                                .accept(MediaType.APPLICATION_JSON)
+                                .with(user("qa.finanzas")
+                                        .authorities(autoridades))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.alquilerId").value(50))
+                .andExpect(jsonPath("$.situacionFinanciera")
+                        .value("SALDADO"))
+                .andExpect(jsonPath("$.moneda").value("ARS"));
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "SIN_LIQUIDAR",
+            "SALDO_PENDIENTE",
+            "REEMBOLSO_PENDIENTE",
+            "SALDADO"
+    })
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionSerializaLasSituacionesSinInventarImportes(
+            String situacion
+    ) throws Exception {
+
+        LiquidacionAlquilerDTO respuesta =
+                crearRespuestaLiquidacion(situacion);
+
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenReturn(respuesta);
+
+        var resultado = mockMvc.perform(
+                        get(CONSULTA_LIQUIDACION)
+                                .accept(MediaType.APPLICATION_JSON)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON
+                ))
+                .andExpect(jsonPath("$.alquilerId").value(50))
+                .andExpect(jsonPath("$.version").value(3))
+                .andExpect(jsonPath("$.situacionFinanciera")
+                        .value(situacion))
+                .andExpect(jsonPath("$.moneda").value("ARS"))
+                .andExpect(jsonPath("$.pagosAprobadosArs")
+                        .value(20655.0))
+                .andExpect(jsonPath("$.reembolsosConfirmadosArs")
+                        .value(0.0))
+                .andExpect(jsonPath("$.netoConfirmadoArs")
+                        .value(20655.0))
+
+                // No devolver entidades completas ni datos privados.
+                .andExpect(jsonPath("$.usuario").doesNotExist())
+                .andExpect(jsonPath("$.password").doesNotExist())
+                .andExpect(jsonPath("$.alquiler").doesNotExist())
+                .andExpect(jsonPath("$.pagos").doesNotExist());
+
+        if ("SIN_LIQUIDAR".equals(situacion)) {
+            resultado
+                    .andExpect(jsonPath("$.fechaHoraLiquidacion")
+                            .value(nullValue()))
+                    .andExpect(jsonPath("$.costoFinalUsd")
+                            .value(nullValue()))
+                    .andExpect(jsonPath("$.costoFinalArs")
+                            .value(nullValue()))
+                    .andExpect(jsonPath("$.saldoPendienteArs")
+                            .value(nullValue()))
+                    .andExpect(jsonPath("$.reembolsoPendienteArs")
+                            .value(nullValue()));
+        } else {
+            resultado
+                    .andExpect(jsonPath("$.fechaHoraLiquidacion")
+                            .value("2026-11-16T07:30:45"))
+                    .andExpect(jsonPath("$.costoFinalUsd")
+                            .value(respuesta.getCostoFinalUsd()
+                                    .doubleValue()))
+                    .andExpect(jsonPath("$.costoFinalArs")
+                            .value(respuesta.getCostoFinalArs()
+                                    .doubleValue()))
+                    .andExpect(jsonPath("$.saldoPendienteArs")
+                            .value(respuesta.getSaldoPendienteArs()
+                                    .doubleValue()))
+                    .andExpect(jsonPath("$.reembolsoPendienteArs")
+                            .value(respuesta.getReembolsoPendienteArs()
+                                    .doubleValue()));
+        }
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionDenegadaPorElServicioConserva403() throws Exception {
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenThrow(new AccessDeniedException(
+                        "No podés consultar la liquidación de un alquiler ajeno."
+                ));
+
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isForbidden());
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionInexistenteResponde404() throws Exception {
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenThrow(new EntityNotFoundException(
+                        "El alquiler no existe."
+                ));
+
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("El alquiler no existe."));
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionConIdNoPositivoResponde400(int id) throws Exception {
+        when(liquidacionAlquilerService.consultarLiquidacion(id))
+                .thenThrow(new IllegalArgumentException(
+                        "Debe indicar un alquiler válido."
+                ));
+
+        mockMvc.perform(
+                        get("/api/alquileres/{id}/liquidacion", id)
+                )
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(
+                        "Debe indicar un alquiler válido."
+                ));
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(id);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"abc", "2147483648"})
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionConIdNoConvertibleResponde400(String id)
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/alquileres/{id}/liquidacion", id)
+                )
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(
+                liquidacionAlquilerService,
+                alquilerService
+        );
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void liquidacionDelCircuitoAnteriorResponde409() throws Exception {
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenThrow(new IllegalStateException(
+                        "Este alquiler pertenece al circuito anterior."
+                ));
+
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(
+                        "Este alquiler pertenece al circuito anterior."
+                ));
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void liquidacionConFalloInternoResponde500SinExponerDetalles()
+            throws Exception {
+
+        when(liquidacionAlquilerService.consultarLiquidacion(50))
+                .thenThrow(new ConfiguracionSistemaException(
+                        "DETALLE_INTERNO_NO_PUBLICAR"
+                ));
+
+        mockMvc.perform(get(CONSULTA_LIQUIDACION))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(
+                        "No se pudo completar la operación por un problema interno. "
+                                + "Intentá nuevamente más tarde."
+                ));
+
+        verify(liquidacionAlquilerService, only())
+                .consultarLiquidacion(50);
+        verifyNoInteractions(alquilerService);
+    }
+
+    private LiquidacionAlquilerDTO crearRespuestaLiquidacion(
+            String situacion
+    ) {
+        BigDecimal costoUsd = null;
+        BigDecimal costoArs = null;
+        BigDecimal saldo = null;
+        BigDecimal reembolso = null;
+
+        switch (situacion) {
+            case "SIN_LIQUIDAR":
+                break;
+
+            case "SALDO_PENDIENTE":
+                costoUsd = new BigDecimal("18.00");
+                costoArs = new BigDecimal("27540.00");
+                saldo = new BigDecimal("6885.00");
+                reembolso = new BigDecimal("0.00");
+                break;
+
+            case "REEMBOLSO_PENDIENTE":
+                costoUsd = new BigDecimal("9.00");
+                costoArs = new BigDecimal("13770.00");
+                saldo = new BigDecimal("0.00");
+                reembolso = new BigDecimal("6885.00");
+                break;
+
+            case "SALDADO":
+                costoUsd = new BigDecimal("13.50");
+                costoArs = new BigDecimal("20655.00");
+                saldo = new BigDecimal("0.00");
+                reembolso = new BigDecimal("0.00");
+                break;
+
+            default:
+                throw new IllegalArgumentException(
+                        "Situación de prueba desconocida."
+                );
+        }
+
+        return new LiquidacionAlquilerDTO(
+                50,
+                3,
+                situacion,
+                costoArs == null
+                        ? null
+                        : LocalDateTime.of(2026, 11, 16, 7, 30, 45),
+                costoUsd,
+                costoArs,
+                new BigDecimal("20655.00"),
+                new BigDecimal("0.00"),
+                new BigDecimal("20655.00"),
+                saldo,
+                reembolso
+        );
+    }
+
+    private void prepararRespuestaListado(
+            String ruta,
+            List<Object> respuesta
+    ) {
+        if (LISTADO_PROPIO.equals(ruta)) {
+            when(alquilerService.listarMisAlquileres())
+                    .thenReturn(respuesta);
+        } else {
+            when(alquilerService.listarAlquileresAdministracion())
+                    .thenReturn(respuesta);
+        }
+    }
+
+    private void verificarConsultaListado(String ruta) {
+        if (LISTADO_PROPIO.equals(ruta)) {
+            verify(alquilerService).listarMisAlquileres();
+        } else {
+            verify(alquilerService).listarAlquileresAdministracion();
+        }
+
+        verifyNoMoreInteractions(alquilerService);
+    }
+
+    private AlquilerDTO crearRespuestaAnterior() {
+        Usuario usuario = new Usuario();
+        usuario.setId(1);
+
+        Bicicleta bicicleta = new Bicicleta();
+        bicicleta.setId(2);
+        bicicleta.setCodigoBicicleta("QA-ANT-02");
+
+        LocalDateTime inicio =
+                LocalDateTime.of(2026, 11, 9, 10, 0);
+
+        Alquiler alquiler = new Alquiler();
+        alquiler.setId(40);
+        alquiler.setUsuario(usuario);
+        alquiler.setBicicleta(bicicleta);
+        alquiler.setEstado(CodigoEstadoAlquiler.FINALIZADO);
+        alquiler.setFechaInicio(inicio);
+        alquiler.setFechaFin(inicio.plusHours(1));
+        alquiler.setCostoTotal(new BigDecimal("12.34"));
+        alquiler.setCostoTotalArs(new BigDecimal("18880.20"));
+
+        return new AlquilerDTO(alquiler);
     }
 
     private void comprobarConsultaPermitida() throws Exception {

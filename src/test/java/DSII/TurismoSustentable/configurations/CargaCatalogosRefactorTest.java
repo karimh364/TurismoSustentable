@@ -33,6 +33,7 @@ class CargaCatalogosRefactorTest {
     @Mock private EstadoAlquilerRepository estadoAlquilerRepository;
     @Mock private EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository;
     @Mock private TipoMantenimientoRepository tipoMantenimientoRepository;
+    @Mock private EstadoPagoRepository estadoPagoRepository;
     @InjectMocks private CargaCatalogosRefactor cargador;
 
     private final Map<String, Pais> paises = new HashMap<>();
@@ -564,6 +565,113 @@ class CargaCatalogosRefactorTest {
                 .delete(any(TipoMantenimiento.class));
         verify(estadoOrdenMantenimientoRepository, never())
                 .delete(any(EstadoOrdenMantenimiento.class));
+    }
+
+    @Test
+    void cargaEstadosPagoAprobadosYValidos() {
+        cargador.run();
+
+        ArgumentCaptor<EstadoPago> captor =
+                ArgumentCaptor.forClass(EstadoPago.class);
+
+        verify(estadoPagoRepository, times(5))
+                .save(captor.capture());
+
+        Set<String> codigos = new HashSet<>();
+
+        try (ValidatorFactory factory =
+                     Validation.buildDefaultValidatorFactory()) {
+
+            for (EstadoPago estado : captor.getAllValues()) {
+                codigos.add(estado.getCodigo());
+
+                assertTrue(
+                        factory.getValidator().validate(estado).isEmpty(),
+                        "El estado cargado debe ser válido."
+                );
+            }
+
+            EstadoPago normalizado = new EstadoPago(" aprobado ");
+
+            assertEquals("APROBADO", normalizado.getCodigo());
+            assertTrue(
+                    factory.getValidator().validate(normalizado).isEmpty()
+            );
+
+            String[] invalidos = {
+                    null,
+                    "",
+                    "   ",
+                    "INVENTADO",
+                    "CONFIRMADO",
+                    "RESERVADO",
+                    "EN_PROCESO",
+                    "X".repeat(21)
+            };
+
+            for (String codigo : invalidos) {
+                assertFalse(
+                        factory.getValidator()
+                                .validate(new EstadoPago(codigo))
+                                .isEmpty(),
+                        "Debería rechazar el código: " + codigo
+                );
+            }
+        }
+
+        assertEquals(
+                Set.of(
+                        "CREADO",
+                        "PENDIENTE",
+                        "APROBADO",
+                        "RECHAZADO",
+                        "CANCELADO"
+                ),
+                codigos
+        );
+    }
+
+    @Test
+    void repetirCargaConservaEstadosPagoExistentes() {
+        Map<String, EstadoPago> estados = new HashMap<>();
+
+        EstadoPago creadoExistente = new EstadoPago("CREADO");
+        estados.put("CREADO", creadoExistente);
+
+        when(estadoPagoRepository.findByCodigo(anyString()))
+                .thenAnswer(invocacion -> Optional.ofNullable(
+                        estados.get(invocacion.getArgument(0))
+                ));
+
+        when(estadoPagoRepository.save(any(EstadoPago.class)))
+                .thenAnswer(invocacion -> {
+                    EstadoPago estado = invocacion.getArgument(0);
+                    estados.put(estado.getCodigo(), estado);
+                    return estado;
+                });
+
+        cargador.run();
+        cargador.run();
+
+        assertEquals(
+                Set.of(
+                        "CREADO",
+                        "PENDIENTE",
+                        "APROBADO",
+                        "RECHAZADO",
+                        "CANCELADO"
+                ),
+                estados.keySet()
+        );
+
+        assertSame(creadoExistente, estados.get("CREADO"));
+
+        // CREADO ya existía: los otros cuatro se guardan una sola vez.
+        verify(estadoPagoRepository, times(4))
+                .save(any(EstadoPago.class));
+
+        verify(estadoPagoRepository, never())
+                .delete(any(EstadoPago.class));
     }
 
 }

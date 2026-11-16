@@ -5,6 +5,7 @@ import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.services.AlquilerService;
+import DSII.TurismoSustentable.services.LiquidacionAlquilerService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ class AutorizacionAlquilerTest {
 
     @MockBean
     private AlquilerService alquilerService;
+
+    @MockBean
+    private LiquidacionAlquilerService liquidacionAlquilerService;
 
     @MockBean
     private AlquilerRepository alquilerRepository;
@@ -103,6 +107,18 @@ class AutorizacionAlquilerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(SOLICITUD))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void deudaDelServicioSeConservaComo409() throws Exception {
+        when(alquilerService.crearAlquiler(any(AlquilerRequestDTO.class)))
+                .thenThrow(new IllegalStateException("Saldo pendiente."));
+
+        mockMvc.perform(post("/api/alquileres")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(SOLICITUD))
+                .andExpect(status().isConflict());
     }
 
     private void comprobarCreacionPermitida() throws Exception {

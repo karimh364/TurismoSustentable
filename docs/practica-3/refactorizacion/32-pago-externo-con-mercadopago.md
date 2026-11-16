@@ -2,6 +2,20 @@
 
 Fecha de aprobación: 1 de noviembre de 2026.
 
+Actualización de alcance, 15 de noviembre de 2026: para el parcial se admite
+evaluar un proveedor local de pagos simulados con dinero ficticio, según la
+aclaración del usuario. Checkout Pro sigue siendo la integración externa prevista
+para el proyecto final. Este documento conserva ese diseño, no describe pagos
+ya implementados ni impide la alternativa nueva para la entrega local. El
+simulador deberá identificarse como tal, conservar pagos/reembolsos/historiales
+y no volver a incorporar tarjetas locales. Su diseño concreto está pendiente;
+no se modificaron entidades o Mermaid por esta aclaración.
+
+Confirmación posterior del 15 de noviembre: esquema local con saldo ficticio
+aprobado para esta etapa, sin afirmar integración de Mercado Pago. Dominio,
+pagos/reembolsos e historiales se conservarán al sustituir el adaptador. Esto
+no acredita todavía implementación ni resultados de pruebas financieras.
+
 Estado: RN-PAG-05 aprobada para la refactorización. El usuario confirmó que el comprador debe pagar en la pantalla de Mercado Pago y elegir allí su medio, sin pedir ni administrar tarjetas dentro de Turismo Sustentable. También aprobó RN-PAG-03 del documento 31, después de distinguir el carrito de un pago ya enviado. No se implementó todavía esta integración ni se realizaron cobros o reembolsos.
 
 ## 1. Alcance aprobado

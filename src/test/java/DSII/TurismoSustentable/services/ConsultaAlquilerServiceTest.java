@@ -1,6 +1,7 @@
 package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
+import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.*;
@@ -535,6 +536,233 @@ class ConsultaAlquilerServiceTest {
         assertNull(segundo.getSubtotalRealUsd());
         assertNull(resultado.getCostoFinalUsd());
         assertNull(resultado.getFechaHoraLiquidacion());
+    }
+
+    @Test
+    void listadoPropioCombinaModelosYAgrupaDetallesSinMezclarlos() {
+        prepararUsuario();
+
+        Alquiler anterior = new Alquiler();
+        anterior.setId(40);
+        anterior.setUsuario(usuario);
+        anterior.setEstado(CodigoEstadoAlquiler.FINALIZADO);
+        anterior.setBicicleta(detalles.get(0).getBicicleta());
+        anterior.setCostoTotal(new BigDecimal("12.34"));
+        anterior.setCostoTotalArs(new BigDecimal("18880.20"));
+
+        Alquiler otraCabecera = new Alquiler();
+        otraCabecera.setId(30);
+        otraCabecera.setUsuario(usuario);
+        otraCabecera.setEstadoContratacion(
+                new EstadoAlquiler("RESERVADO")
+        );
+        otraCabecera.setUbicacionRetiro(estacion);
+
+        AlquilerDetalle otroDetalle = crearDetalle(103, 3);
+        otroDetalle.setAlquiler(otraCabecera);
+
+        when(alquilerRepository.buscarVisiblesPorUsuarioConDatos(1))
+                .thenReturn(List.of(alquiler, anterior, otraCabecera));
+
+        // La consulta devuelve los grupos en otro orden.
+        when(alquilerDetalleRepository.buscarPorAlquileresConDatos(
+                List.of(50, 30)
+        )).thenReturn(List.of(
+                otroDetalle, detalles.get(0), detalles.get(1)
+        ));
+
+        List<Object> resultado = servicio.listarMisAlquileres();
+
+        assertEquals(3, resultado.size());
+        assertTrue(resultado.get(0) instanceof AlquilerCabeceraDTO);
+        assertTrue(resultado.get(1) instanceof AlquilerDTO);
+        assertTrue(resultado.get(2) instanceof AlquilerCabeceraDTO);
+
+        AlquilerCabeceraDTO primero =
+                (AlquilerCabeceraDTO) resultado.get(0);
+        AlquilerDTO antiguo = (AlquilerDTO) resultado.get(1);
+        AlquilerCabeceraDTO tercero =
+                (AlquilerCabeceraDTO) resultado.get(2);
+
+        assertEquals(50, primero.getId());
+        assertEquals("DETALLES", primero.getModelo());
+        assertEquals(
+                List.of(101, 102),
+                primero.getDetalles().stream()
+                        .map(AlquilerDetalleDTO::getId)
+                        .collect(Collectors.toList())
+        );
+
+        // Conserva tarifa y cambio históricos, no el precio actual.
+        assertEquals(
+                new BigDecimal("10.00"),
+                primero.getDetalles().get(0)
+                        .getPrecioPorHoraAplicadoUsd()
+        );
+        assertEquals(
+                new BigDecimal("1530.00"),
+                primero.getCotizacionArsPorUsd()
+        );
+
+        assertEquals(40, antiguo.getId());
+        assertEquals("ANTERIOR", antiguo.getModelo());
+        assertEquals(
+                new BigDecimal("12.34"), antiguo.getCostoTotal()
+        );
+        assertEquals(
+                new BigDecimal("18880.20"), antiguo.getCostoTotalArs()
+        );
+
+        assertEquals(30, tercero.getId());
+        assertEquals(1, tercero.getDetalles().size());
+        assertEquals(
+                Integer.valueOf(103),
+                tercero.getDetalles().get(0).getId()
+        );
+        assertNull(tercero.getCostoFinalUsd());
+
+        verify(alquilerRepository)
+                .buscarVisiblesPorUsuarioConDatos(1);
+        verify(alquilerRepository, never())
+                .buscarVisiblesAdministracionConDatos();
+        verify(alquilerDetalleRepository)
+                .buscarPorAlquileresConDatos(List.of(50, 30));
+        verify(alquilerDetalleRepository, never())
+                .buscarPorAlquilerConDatos(anyInt());
+    }
+
+    @Test
+    void administradorConsultaListadoGeneralConAlquilerAjeno() {
+        asignarRoles("ADMIN");
+        autenticar("ADMIN");
+        prepararUsuario();
+
+        Usuario propietario = new Usuario();
+        propietario.setId(2);
+        alquiler.setUsuario(propietario);
+
+        when(alquilerRepository.buscarVisiblesAdministracionConDatos())
+                .thenReturn(List.of(alquiler));
+        when(alquilerDetalleRepository.buscarPorAlquileresConDatos(
+                List.of(50)
+        )).thenReturn(detalles);
+
+        List<Object> resultado =
+                servicio.listarAlquileresAdministracion();
+
+        assertEquals(1, resultado.size());
+        AlquilerCabeceraDTO cabecera =
+                (AlquilerCabeceraDTO) resultado.get(0);
+        assertEquals(2, cabecera.getUsuarioId());
+        assertEquals(2, cabecera.getDetalles().size());
+
+        verify(alquilerRepository)
+                .buscarVisiblesAdministracionConDatos();
+        verify(alquilerRepository, never())
+                .buscarVisiblesPorUsuarioConDatos(anyInt());
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void listadoVacioNoConsultaDetalles(boolean administrativo) {
+        asignarRoles(administrativo ? "ADMIN" : "CLIENTE");
+        autenticar(administrativo ? "ADMIN" : "CLIENTE");
+        prepararUsuario();
+
+        List<Object> resultado;
+
+        if (administrativo) {
+            when(alquilerRepository
+                    .buscarVisiblesAdministracionConDatos())
+                    .thenReturn(List.of());
+
+            resultado = servicio.listarAlquileresAdministracion();
+        } else {
+            when(alquilerRepository
+                    .buscarVisiblesPorUsuarioConDatos(1))
+                    .thenReturn(List.of());
+
+            resultado = servicio.listarMisAlquileres();
+        }
+
+        assertTrue(resultado.isEmpty());
+        verifyNoInteractions(alquilerDetalleRepository);
+    }
+
+    @Test
+    void listadosRechazanRolesRetiradosAunqueSiganEnLaSesion() {
+        asignarRoles("TECNICO");
+        autenticar("ADMIN", "CLIENTE");
+        prepararUsuario();
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> servicio.listarMisAlquileres()
+        );
+        assertThrows(
+                AccessDeniedException.class,
+                () -> servicio.listarAlquileresAdministracion()
+        );
+
+        verifyNoInteractions(
+                alquilerRepository, alquilerDetalleRepository
+        );
+    }
+
+    @Test
+    void clienteNoPuedeConsultarListadoAdministrativo() {
+        prepararUsuario();
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> servicio.listarAlquileresAdministracion()
+        );
+
+        verifyNoInteractions(
+                alquilerRepository, alquilerDetalleRepository
+        );
+    }
+
+    @Test
+    void listadoRechazaCabeceraNuevaSinDetalles() {
+        prepararUsuario();
+
+        when(alquilerRepository.buscarVisiblesPorUsuarioConDatos(1))
+                .thenReturn(List.of(alquiler));
+        when(alquilerDetalleRepository.buscarPorAlquileresConDatos(
+                List.of(50)
+        )).thenReturn(List.of());
+
+        assertThrows(
+                ConfiguracionSistemaException.class,
+                () -> servicio.listarMisAlquileres()
+        );
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void listadoRechazaRegistroAnteriorIncompleto(
+            boolean faltaEstado
+    ) {
+        prepararUsuario();
+
+        alquiler.setEstadoContratacion(null);
+        alquiler.setEstado(
+                faltaEstado ? null : CodigoEstadoAlquiler.FINALIZADO
+        );
+        alquiler.setBicicleta(
+                faltaEstado ? detalles.get(0).getBicicleta() : null
+        );
+
+        when(alquilerRepository.buscarVisiblesPorUsuarioConDatos(1))
+                .thenReturn(List.of(alquiler));
+
+        assertThrows(
+                ConfiguracionSistemaException.class,
+                () -> servicio.listarMisAlquileres()
+        );
+
+        verifyNoInteractions(alquilerDetalleRepository);
     }
 
     private void prepararUsuario() {

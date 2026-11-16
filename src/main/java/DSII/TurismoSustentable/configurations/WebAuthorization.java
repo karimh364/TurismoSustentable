@@ -78,6 +78,21 @@ public class WebAuthorization {
                         "/api/usuarios/actual"
                 ).hasAnyAuthority("ADMIN", "CLIENTE", "TECNICO")
 
+                // Saldo simulado propio: requiere CLIENTE.
+                .antMatchers(
+                        HttpMethod.GET,
+                        "/api/pagos/saldo-simulado"
+                ).hasAuthority("CLIENTE")
+
+                // Pagos propios de anticipos y adicionales: requieren CLIENTE.
+                .antMatchers(
+                        HttpMethod.POST,
+                        "/api/pagos/anticipo/*",
+                        "/api/pagos/anticipo/*/resolver",
+                        "/api/pagos/adicional/*",
+                        "/api/pagos/adicional/*/resolver"
+                ).hasAuthority("CLIENTE")
+
                 // 5. OPERACIONES PERMITIDAS PARA CLIENTES
                 .antMatchers(
                         HttpMethod.GET,
@@ -86,16 +101,25 @@ public class WebAuthorization {
                         "/api/bicicletas/disponibles"
                 ).hasAnyAuthority("ADMIN", "CLIENTE")
 
-                // Consulta de un alquiler: propiedad comprobada en el servicio.
+                // Consulta del alquiler y su liquidación.
+                // Propiedad, cuenta activa y roles vigentes comprobados en el servicio.
                 .antMatchers(
                         HttpMethod.GET,
-                        "/api/alquileres/*"
+                        "/api/alquileres/*",
+                        "/api/alquileres/*/liquidacion"
                 ).hasAnyAuthority("CLIENTE", "ADMIN")
 
                 .antMatchers(
                         HttpMethod.POST,
-                        "/api/alquileres"
+                        "/api/alquileres",
+                        "/api/alquileres/*/detalles/*/retirar"
                 ).hasAuthority("CLIENTE")
+
+                // Devolver no equivale a alquilar: ADMIN puede recibir una unidad ajena.
+                .antMatchers(
+                        HttpMethod.POST,
+                        "/api/alquileres/*/detalles/*/devolver"
+                ).hasAnyAuthority("CLIENTE", "ADMIN")
 
                 .antMatchers(
                         HttpMethod.PATCH,

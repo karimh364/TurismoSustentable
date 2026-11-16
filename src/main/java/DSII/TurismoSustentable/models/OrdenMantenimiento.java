@@ -96,9 +96,19 @@ public class OrdenMantenimiento {
             TipoMantenimiento tipoMantenimiento,
             EstadoOrdenMantenimiento estado
     ) {
+        this(bicicleta, tipoMantenimiento, estado, LocalDateTime.now());
+    }
+
+    public OrdenMantenimiento(
+            Bicicleta bicicleta,
+            TipoMantenimiento tipoMantenimiento,
+            EstadoOrdenMantenimiento estado,
+            LocalDateTime fechaCreacion
+    ) {
         this.bicicleta = bicicleta;
         this.tipoMantenimiento = tipoMantenimiento;
         this.estado = estado;
+        this.fechaCreacion = java.util.Objects.requireNonNull(fechaCreacion);
     }
 
     public Integer getId() {

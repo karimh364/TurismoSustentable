@@ -114,9 +114,6 @@ class AlquilerServiceTest {
                 )
         );
 
-        when(usuarioRepository.findByEmail(EMAIL))
-                .thenReturn(Optional.of(usuario));
-
         // Evitar cualquier API real, incluso si una regresión deja avanzar.
         lenient().doReturn(BigDecimal.ONE)
                 .when(alquilerService).obtenerCotizacionDolar();
@@ -203,6 +200,7 @@ class AlquilerServiceTest {
 
     @Test
     void inicioUsaTarifaDelTipoYLaCongelaEnElContrato() throws Exception {
+        prepararUsuarioConBloqueo();
         asignarRolesUsuario("ADMIN", "CLIENTE");
         // Una cuenta con dos roles sigue actuando como cliente al contratar su propio viaje.
         SecurityContextHolder.getContext().setAuthentication(
@@ -234,6 +232,7 @@ class AlquilerServiceTest {
 
     @Test
     void rechazaCrearSiClienteFueRetiradoAunqueLaSesionLoConserve() {
+        prepararUsuarioConBloqueo();
         // La sesión del setup conserva CLIENTE, pero la cuenta ya solo tiene ADMIN.
         asignarRolesUsuario("ADMIN");
 
@@ -260,6 +259,39 @@ class AlquilerServiceTest {
         );
 
         verify(alquilerService, never()).obtenerCotizacionDolar();
+    }
+
+    @Test
+    void deudaImpideCrearPorElFlujoAnteriorAntesDeTocarInventario() {
+        prepararUsuarioConBloqueo();
+
+        when(alquilerRepository.contarAlquileresConSaldoPendiente(1))
+                .thenReturn(1L);
+
+        AlquilerRequestDTO solicitud = new AlquilerRequestDTO();
+        solicitud.setBicicletaId(1);
+        solicitud.setDuracionEnHoras(1);
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> alquilerService.crearAlquiler(solicitud)
+        );
+
+        verifyNoInteractions(
+                bicicletaRepository,
+                estacionRepository,
+                tipoBicicletaRepository,
+                estadoBicicletaRepository,
+                correoService,
+                trazabilidadInventario
+        );
+        verify(alquilerRepository, never()).save(any(Alquiler.class));
+        verify(alquilerService, never()).obtenerCotizacionDolar();
+    }
+
+    private void prepararUsuarioConBloqueo() {
+        when(usuarioRepository.buscarActivoPorEmailConBloqueo(EMAIL))
+                .thenReturn(Optional.of(usuario));
     }
 
     private void asignarRolesUsuario(String... codigos) {
@@ -349,6 +381,7 @@ class AlquilerServiceTest {
     }
 
     private void comprobarRetiroRechazado() {
+        prepararUsuarioConBloqueo();
         when(bicicletaRepository.buscarActivaPorIdConBloqueo(1))
                 .thenReturn(Optional.of(bicicleta));
 
@@ -374,16 +407,18 @@ class AlquilerServiceTest {
         assertSame(origen, bicicleta.getUbicacionActual());
         assertFalse(bicicleta.isBorradoBici());
 
-        verify(usuarioRepository).findByEmail(EMAIL);
+        verify(usuarioRepository).buscarActivoPorEmailConBloqueo(EMAIL);
+        verify(alquilerRepository)
+                .contarAlquileresConSaldoPendiente(usuario.getId());
         verify(bicicletaRepository).buscarActivaPorIdConBloqueo(1);
         verify(bicicletaRepository, never()).save(any(Bicicleta.class));
 
         verifyNoMoreInteractions(
                 usuarioRepository,
-                bicicletaRepository
+                bicicletaRepository,
+                alquilerRepository
         );
         verifyNoInteractions(
-                alquilerRepository,
                 estacionRepository,
                 correoService
         );
@@ -392,6 +427,9 @@ class AlquilerServiceTest {
     }
 
     private Alquiler prepararAlquilerEnCurso() {
+        when(usuarioRepository.findByEmail(EMAIL))
+                .thenReturn(Optional.of(usuario));
+
         bicicleta.setEstado(new EstadoBicicleta("EN_USO"));
         bicicleta.setUbicacionActual(null);
 

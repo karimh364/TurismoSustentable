@@ -65,4 +65,66 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
             @Param("id") Integer id
     );
 
+    @EntityGraph(attributePaths = {
+            "usuario",
+            "estadoContratacion",
+            "ubicacionRetiro",
+            "bicicleta",
+            "ubicacionDevolucion"
+    })
+    @Query(
+            "select a from Alquiler a "
+                    + "where a.usuario.id = :usuarioId "
+                    + "and a.borradoAlquiler = false "
+                    + "order by a.id desc"
+    )
+    List<Alquiler> buscarVisiblesPorUsuarioConDatos(
+            @Param("usuarioId") Integer usuarioId
+    );
+
+    @EntityGraph(attributePaths = {
+            "usuario",
+            "estadoContratacion",
+            "ubicacionRetiro",
+            "bicicleta",
+            "ubicacionDevolucion"
+    })
+    @Query(
+            "select a from Alquiler a "
+                    + "where a.borradoAlquiler = false "
+                    + "order by a.id desc"
+    )
+    List<Alquiler> buscarVisiblesAdministracionConDatos();
+
+    @Query(
+            value =
+                    "select count(*) from alquiler a " +
+                    "where a.usuario_id = :usuarioId " +
+                    "and a.estado_alquiler_id is not null " +
+                    "and a.fecha_hora_liquidacion is not null " +
+                    "and a.costo_final_ars > (" +
+                    "coalesce((" +
+                    "select sum(p.monto_ars) " +
+                    "from pago p " +
+                    "join estado_pago ep on ep.id = p.estado_pago_id " +
+                    "where p.alquiler_id = a.id " +
+                    "and ep.codigo = 'APROBADO' " +
+                    "and p.moneda = 'ARS' " +
+                    "and p.fecha_confirmacion is not null" +
+                    "), 0) - " +
+                    "coalesce((" +
+                    "select sum(r.monto_ars) " +
+                    "from reembolso r " +
+                    "join pago p2 on p2.id = r.pago_id " +
+                    "where p2.alquiler_id = a.id " +
+                    "and r.estado = 'CONFIRMADO' " +
+                    "and r.moneda = 'ARS' " +
+                    "and r.fecha_confirmacion is not null" +
+                    "), 0))",
+            nativeQuery = true
+    )
+    long contarAlquileresConSaldoPendiente(
+            @Param("usuarioId") Integer usuarioId
+    );
+
 }

@@ -166,4 +166,8 @@ public class AlquilerCabeceraDTO {
     public List<AlquilerDetalleDTO> getDetalles() {
         return detalles;
     }
+
+    public String getModelo() {
+        return "DETALLES";
+    }
 }

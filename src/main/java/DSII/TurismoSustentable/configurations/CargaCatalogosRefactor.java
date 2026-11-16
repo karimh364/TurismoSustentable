@@ -3,6 +3,7 @@ package DSII.TurismoSustentable.configurations;
 import DSII.TurismoSustentable.models.EstadoAlquiler;
 import DSII.TurismoSustentable.models.EstadoAlquilerDetalle;
 import DSII.TurismoSustentable.models.EstadoBicicleta;
+import DSII.TurismoSustentable.models.EstadoPago;
 import DSII.TurismoSustentable.models.Genero;
 import DSII.TurismoSustentable.models.Pais;
 import DSII.TurismoSustentable.models.Rol;
@@ -11,6 +12,7 @@ import DSII.TurismoSustentable.models.TipoDocumento;
 import DSII.TurismoSustentable.repositories.EstadoAlquilerRepository;
 import DSII.TurismoSustentable.repositories.EstadoAlquilerDetalleRepository;
 import DSII.TurismoSustentable.repositories.EstadoBicicletaRepository;
+import DSII.TurismoSustentable.repositories.EstadoPagoRepository;
 import DSII.TurismoSustentable.repositories.GeneroRepository;
 import DSII.TurismoSustentable.repositories.PaisRepository;
 import DSII.TurismoSustentable.repositories.RolRepository;
@@ -42,6 +44,7 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
     private final EstadoAlquilerRepository estadoAlquilerRepository;
     private final EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository;
     private final TipoMantenimientoRepository tipoMantenimientoRepository;
+    private final EstadoPagoRepository estadoPagoRepository;
 
     public CargaCatalogosRefactor(
             RolRepository rolRepository,
@@ -53,7 +56,8 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
             EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository,
             EstadoAlquilerRepository estadoAlquilerRepository,
             EstadoOrdenMantenimientoRepository estadoOrdenMantenimientoRepository,
-            TipoMantenimientoRepository tipoMantenimientoRepository
+            TipoMantenimientoRepository tipoMantenimientoRepository,
+            EstadoPagoRepository estadoPagoRepository
     ) {
         this.rolRepository = rolRepository;
         this.generoRepository = generoRepository;
@@ -65,6 +69,7 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
         this.estadoAlquilerRepository = estadoAlquilerRepository;
         this.estadoOrdenMantenimientoRepository = estadoOrdenMantenimientoRepository;
         this.tipoMantenimientoRepository = tipoMantenimientoRepository;
+        this.estadoPagoRepository = estadoPagoRepository;
     }
 
     @Override
@@ -163,6 +168,21 @@ public class CargaCatalogosRefactor implements CommandLineRunner {
                 estadoOrdenMantenimientoRepository.save(
                         new EstadoOrdenMantenimiento(codigo)
                 );
+            }
+        }
+
+        // Estados de pago aprobados en el diccionario.
+        String[] estadosPago = {
+                "CREADO",
+                "PENDIENTE",
+                "APROBADO",
+                "RECHAZADO",
+                "CANCELADO"
+        };
+
+        for (String codigo : estadosPago) {
+            if (estadoPagoRepository.findByCodigo(codigo).isEmpty()) {
+                estadoPagoRepository.save(new EstadoPago(codigo));
             }
         }
 

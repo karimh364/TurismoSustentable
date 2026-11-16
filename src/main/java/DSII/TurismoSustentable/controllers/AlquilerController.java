@@ -2,23 +2,22 @@ package DSII.TurismoSustentable.controllers;
 
 import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerRequestDTO;
+import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
-import DSII.TurismoSustentable.models.Usuario;
-import DSII.TurismoSustentable.repositories.AlquilerRepository;
-import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import DSII.TurismoSustentable.services.AlquilerService; // <-- 1. IMPORTA EL SERVICIO
+import DSII.TurismoSustentable.services.LiquidacionAlquilerService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.AccessDeniedException;
 
 import javax.persistence.EntityNotFoundException;
+import javax.validation.Valid;
 import java.math.BigDecimal;
-import java.security.Principal;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -27,19 +26,13 @@ public class AlquilerController {
     // --- Inyectamos el Servicio ---
     @Autowired
     private AlquilerService alquilerService;
+
     @Autowired
-    private AlquilerRepository alquilerRepository;
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private LiquidacionAlquilerService liquidacionAlquilerService;
 
     @GetMapping("/alquileres")
-    public List<AlquilerDTO> getAlquiler(Principal principal) {
-        Usuario usuario = usuarioRepository.findByEmail(principal.getName())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado o sesión expirada"));
-        return alquilerRepository.findByUsuarioAndBorradoAlquilerFalse(usuario)
-                .stream()
-                .map(AlquilerDTO:: new)
-                .collect(Collectors.toList());
+    public List<Object> getAlquiler() {
+        return alquilerService.listarMisAlquileres();
     }
 
     @GetMapping("/alquileres/{id}")
@@ -61,6 +54,29 @@ public class AlquilerController {
         }
     }
 
+    @GetMapping("/alquileres/{id}/liquidacion")
+    public ResponseEntity<Object> consultarLiquidacion(
+            @PathVariable("id") Integer id
+    ) {
+        try {
+            return ResponseEntity.ok(
+                    liquidacionAlquilerService.consultarLiquidacion(id)
+            );
+
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ex.getMessage());
+
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest()
+                    .body(ex.getMessage());
+
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ex.getMessage());
+        }
+    }
+
     /**
      * CREAR ALQUILER
      * Ahora solo llama al servicio y maneja la respuesta.
@@ -74,8 +90,15 @@ public class AlquilerController {
             // 3. Devuelve la respuesta OK
             return new ResponseEntity<>(alquilerGuardado, HttpStatus.CREATED);
 
-        } catch (AccessDeniedException | ConfiguracionSistemaException e) {
+        } catch (AccessDeniedException
+                 | ConfiguracionSistemaException
+                 | DataAccessException e) {
             throw e;
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(e.getMessage());
+
         } catch (Exception e) {
             // 4. Si el servicio lanzó un error, devuélvelo como 400 Bad Request
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -99,6 +122,52 @@ public class AlquilerController {
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/alquileres/{alquilerId}/detalles/{detalleId}/retirar")
+    public ResponseEntity<Object> retirarBicicleta(
+            @PathVariable("alquilerId") Integer alquilerId,
+            @PathVariable("detalleId") Integer detalleId
+    ) {
+        try {
+            return ResponseEntity.ok(
+                    alquilerService.retirarBicicleta(
+                            alquilerId,
+                            detalleId
+                    )
+            );
+
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ex.getMessage());
+
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest()
+                    .body(ex.getMessage());
+
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ex.getMessage());
+        }
+    }
+
+    @PostMapping("/alquileres/{alquilerId}/detalles/{detalleId}/devolver")
+    public ResponseEntity<Object> devolverBicicleta(
+            @PathVariable("alquilerId") Integer alquilerId,
+            @PathVariable("detalleId") Integer detalleId,
+            @Valid @RequestBody DevolverBicicletaDTO solicitud
+    ) {
+        try {
+            return ResponseEntity.ok(alquilerService.devolverBicicleta(
+                    alquilerId, detalleId, solicitud
+            ));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (IllegalStateException ex) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
         }
     }
 

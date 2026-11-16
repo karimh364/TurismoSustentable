@@ -18,6 +18,26 @@ public class TrazabilidadInventarioService {
         historial.save(new HistorialEstadoBicicleta(
                 bicicleta, anterior, bicicleta.getEstado(), actor, motivo));
     }
+
+    public void estado(
+            Bicicleta bicicleta,
+            EstadoBicicleta anterior,
+            Usuario actor,
+            String motivo,
+            java.time.LocalDateTime fechaHoraCambio
+    ) {
+        historial.save(
+                new HistorialEstadoBicicleta(
+                        bicicleta,
+                        anterior,
+                        bicicleta.getEstado(),
+                        actor,
+                        motivo,
+                        fechaHoraCambio
+                )
+        );
+    }
+
     // Se llama exclusivamente desde operaciones autorizadas para ADMIN.
     public void administracion(Usuario admin, String entidad, int id, String accion,
                                String anteriores, String nuevos, String motivo) {
