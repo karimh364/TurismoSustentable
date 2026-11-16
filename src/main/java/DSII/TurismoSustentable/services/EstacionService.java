@@ -4,6 +4,7 @@ import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
 import DSII.TurismoSustentable.models.Estacion;
+import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,13 +27,16 @@ public class EstacionService {
 
     private final EstacionRepository estacionRepository;
     private final BicicletaRepository bicicletaRepository;
+    private final AuditoriaAdministrativaService auditoria;
 
     public EstacionService(
             EstacionRepository estacionRepository,
-            BicicletaRepository bicicletaRepository
+            BicicletaRepository bicicletaRepository,
+            AuditoriaAdministrativaService auditoria
     ) {
         this.estacionRepository = estacionRepository;
         this.bicicletaRepository = bicicletaRepository;
+        this.auditoria = auditoria;
     }
 
     @Transactional
@@ -41,7 +45,7 @@ public class EstacionService {
             @NotNull(message = "Los datos de creación son obligatorios.")
             @Valid CrearEstacionDTO datos
     ) {
-
+        Usuario administrador = auditoria.administradorActual();
         if (estacionRepository.existsByNombreIgnoreCase(
                 datos.getNombre()
         )) {
@@ -62,6 +66,9 @@ public class EstacionService {
 
         Estacion estacionGuardada =
                 estacionRepository.saveAndFlush(nuevaEstacion);
+
+        auditoria.registrar(administrador, "ESTACION", estacionGuardada.getId(),
+                "CREAR", null, auditoria.datos(estacionGuardada));
 
         return new EstacionDTO(estacionGuardada);
     }
@@ -95,7 +102,7 @@ public class EstacionService {
             @NotNull(message = "Los datos de actualización son obligatorios.")
             @Valid ActualizarEstacionDTO datos
     ) {
-
+        Usuario administrador = auditoria.administradorActual();
         // Coordinar la edición con ingresos y devoluciones.
         Estacion estacion = estacionRepository
                 .buscarActivaPorIdConBloqueo(id)
@@ -134,6 +141,8 @@ public class EstacionService {
             );
         }
 
+        String anteriores = auditoria.datos(estacion);
+
         // Modificar únicamente los campos permitidos.
         estacion.setNombre(datos.getNombre());
         estacion.setDireccion(datos.getDireccion());
@@ -144,6 +153,34 @@ public class EstacionService {
         // Hibernate persiste los cambios y actualiza la versión.
         estacionRepository.flush();
 
+        auditoria.registrar(administrador, "ESTACION", estacion.getId(),
+                "ACTUALIZAR", anteriores, auditoria.datos(estacion));
+
         return new EstacionDTO(estacion);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public void eliminarEstacionLogico(Integer id) {
+        Usuario administrador = auditoria.administradorActual();
+
+        // El mismo bloqueo coordina el borrado con ingresos y devoluciones.
+        Estacion estacion = estacionRepository.buscarActivaPorIdConBloqueo(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "La estación con ID " + id + " no existe o está inactiva."));
+
+        long bicicletasFisicas = bicicletaRepository.countByUbicacionActual(estacion);
+        if (bicicletasFisicas > 0) {
+            throw new IllegalStateException(
+                    "No se puede eliminar la estación porque contiene "
+                            + bicicletasFisicas + " bicicletas. "
+                            + "Primero debe moverlas a otra estación.");
+        }
+
+        String anteriores = auditoria.datos(estacion);
+        estacion.setBorradoEstacion(true);
+        estacionRepository.saveAndFlush(estacion);
+        auditoria.registrar(administrador, "ESTACION", estacion.getId(),
+                "ELIMINAR", anteriores, auditoria.datos(estacion));
     }
 }

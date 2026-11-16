@@ -4,6 +4,8 @@ import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
 import DSII.TurismoSustentable.models.Estacion;
+import DSII.TurismoSustentable.models.Bicicleta;
+import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.security.access.AccessDeniedException;
 
 import javax.persistence.EntityNotFoundException;
 import javax.persistence.OptimisticLockException;
@@ -31,14 +34,21 @@ class EstacionServiceTest {
     @Mock
     private BicicletaRepository bicicletaRepository;
 
+    @Mock
+    private AuditoriaAdministrativaService auditoria;
+
     @InjectMocks
     private EstacionService estacionService;
 
     private Estacion estacion;
     private ActualizarEstacionDTO datos;
+    private Usuario administrador;
 
     @BeforeEach
     void prepararDatos() {
+        administrador = new Usuario();
+        administrador.setId(99);
+        lenient().when(auditoria.administradorActual()).thenReturn(administrador);
         estacion = new Estacion(
                 "Plaza Original",
                 "Calle 1",
@@ -62,6 +72,8 @@ class EstacionServiceTest {
     @Test
     void actualizaCamposPermitidosConVersionCero() {
         prepararEstacionEncontrada();
+        when(auditoria.datos(estacion)).thenAnswer(i ->
+                estacion.getNombre() + "|" + estacion.getCapacidad());
 
         when(bicicletaRepository.countByUbicacionActual(estacion))
                 .thenReturn(0L);
@@ -89,6 +101,8 @@ class EstacionServiceTest {
                 .countByUbicacionActualAndBorradoBiciFalse(any());
 
         verify(estacionRepository).flush();
+        verify(auditoria).registrar(administrador, "ESTACION", 1, "ACTUALIZAR",
+                "Plaza Original|6", "Plaza Nueva|8");
     }
 
     @Test
@@ -206,6 +220,7 @@ class EstacionServiceTest {
                 .findByBorradoEstacionFalseAndEsPublicaTrue();
 
         verifyNoInteractions(bicicletaRepository);
+        verifyNoInteractions(auditoria);
     }
 
     @Test
@@ -241,6 +256,95 @@ class EstacionServiceTest {
                 .saveAndFlush(any(Estacion.class));
         verifyNoMoreInteractions(estacionRepository);
         verifyNoInteractions(bicicletaRepository);
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void eliminaEstacionVaciaConBloqueoYAuditoriaSinBorradoFisico() {
+        prepararEstacionEncontrada();
+        when(auditoria.datos(estacion)).thenAnswer(i -> Boolean.toString(estacion.isBorradoEstacion()));
+
+        estacionService.eliminarEstacionLogico(1);
+
+        assertTrue(estacion.isBorradoEstacion());
+        var orden = inOrder(estacionRepository, bicicletaRepository, auditoria);
+        orden.verify(auditoria).administradorActual();
+        orden.verify(estacionRepository).buscarActivaPorIdConBloqueo(1);
+        orden.verify(bicicletaRepository).countByUbicacionActual(estacion);
+        orden.verify(auditoria).datos(estacion);
+        orden.verify(estacionRepository).saveAndFlush(estacion);
+        orden.verify(auditoria).datos(estacion);
+        orden.verify(auditoria).registrar(administrador, "ESTACION", 1, "ELIMINAR", "false", "true");
+        verify(estacionRepository, never()).delete(any(Estacion.class));
+    }
+
+    @Test
+    void borradoRechazaTambienBicicletasArchivadasFisicamentePresentes() {
+        prepararEstacionEncontrada();
+        Bicicleta archivada = new Bicicleta();
+        archivada.setBorradoBici(true);
+        archivada.setUbicacionActual(estacion);
+        estacion.getBicicletasEnEstacion().add(archivada);
+        when(bicicletaRepository.countByUbicacionActual(estacion)).thenReturn(1L);
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+                () -> estacionService.eliminarEstacionLogico(1));
+
+        assertTrue(error.getMessage().contains("contiene 1 bicicletas"));
+        assertFalse(estacion.isBorradoEstacion());
+        verify(bicicletaRepository, never()).countByUbicacionActualAndBorradoBiciFalse(any());
+        verify(estacionRepository, never()).saveAndFlush(any(Estacion.class));
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void borrarEstacionInexistenteNoEscribeNiAudita() {
+        when(estacionRepository.buscarActivaPorIdConBloqueo(1)).thenReturn(Optional.empty());
+        EntityNotFoundException error = assertThrows(EntityNotFoundException.class,
+                () -> estacionService.eliminarEstacionLogico(1));
+        assertEquals("La estación con ID 1 no existe o está inactiva.", error.getMessage());
+        verifyNoInteractions(bicicletaRepository);
+        verify(estacionRepository, never()).saveAndFlush(any(Estacion.class));
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void sinAdministradorVigenteNoConsultaNiModificaLaEstacion() {
+        when(auditoria.administradorActual()).thenThrow(new AccessDeniedException("ADMIN revocado"));
+        assertThrows(AccessDeniedException.class, () -> estacionService.actualizarEstacion(1, datos));
+        verifyNoInteractions(estacionRepository, bicicletaRepository);
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void borradoPropagaFalloDeAuditoriaEnLaMismaOperacion() {
+        prepararEstacionEncontrada();
+        when(auditoria.datos(estacion)).thenAnswer(i -> Boolean.toString(estacion.isBorradoEstacion()));
+        doThrow(new IllegalStateException("Auditoría no disponible")).when(auditoria)
+                .registrar(administrador, "ESTACION", 1, "ELIMINAR", "false", "true");
+        assertThrows(IllegalStateException.class, () -> estacionService.eliminarEstacionLogico(1));
+        verify(estacionRepository).saveAndFlush(estacion);
+    }
+
+    @Test
+    void editarPropagaFalloDeAuditoriaSinDevolverExito() {
+        prepararEstacionEncontrada();
+        when(auditoria.datos(estacion)).thenAnswer(i -> estacion.getNombre());
+        doThrow(new IllegalStateException("Auditoría no disponible")).when(auditoria)
+                .registrar(administrador, "ESTACION", 1, "ACTUALIZAR", "Plaza Original", "Plaza Nueva");
+        assertThrows(IllegalStateException.class, () -> estacionService.actualizarEstacion(1, datos));
+        verify(estacionRepository).flush();
+    }
+
+    @Test
+    void crearPropagaFalloDeAuditoriaSinDevolverAltaExitosa() {
+        when(estacionRepository.saveAndFlush(any(Estacion.class))).thenReturn(estacion);
+        when(auditoria.datos(estacion)).thenReturn("NUEVA");
+        doThrow(new IllegalStateException("Auditoría no disponible")).when(auditoria)
+                .registrar(administrador, "ESTACION", 1, "CREAR", null, "NUEVA");
+
+        assertThrows(IllegalStateException.class, () -> estacionService.crearEstacion(datosDeAlta(true)));
+        verify(estacionRepository).saveAndFlush(any(Estacion.class));
     }
 
     private CrearEstacionDTO datosDeAlta(boolean esPublica) {
@@ -256,6 +360,7 @@ class EstacionServiceTest {
 
     private void comprobarAlta(boolean esPublica) {
         CrearEstacionDTO alta = datosDeAlta(esPublica);
+        when(auditoria.datos(any(Estacion.class))).thenReturn("ESTACION_NUEVA");
 
         when(estacionRepository.existsByNombreIgnoreCase("Estación QA"))
                 .thenReturn(false);
@@ -294,6 +399,7 @@ class EstacionServiceTest {
         verify(estacionRepository).saveAndFlush(any(Estacion.class));
         verifyNoMoreInteractions(estacionRepository);
         verifyNoInteractions(bicicletaRepository);
+        verify(auditoria).registrar(administrador, "ESTACION", 2, "CREAR", null, "ESTACION_NUEVA");
     }
 
     private void prepararEstacionEncontrada() {
@@ -311,5 +417,10 @@ class EstacionServiceTest {
         assertFalse(estacion.isBorradoEstacion());
 
         verify(estacionRepository, never()).flush();
+        comprobarQueNoSeAudito();
+    }
+
+    private void comprobarQueNoSeAudito() {
+        verify(auditoria, never()).registrar(any(), anyString(), anyInt(), anyString(), any(), any());
     }
 }

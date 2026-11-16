@@ -4,9 +4,8 @@ import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
 import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
-import DSII.TurismoSustentable.models.Bicicleta;
+import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.Estacion;
-import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
 import DSII.TurismoSustentable.services.EstacionService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,13 +29,10 @@ import javax.persistence.OptimisticLockException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -52,9 +48,6 @@ class EstacionControllerTest {
 
     @Mock
     private EstacionRepository estacionRepository;
-
-    @Mock
-    private BicicletaRepository bicicletaRepository;
 
     @InjectMocks
     private EstacionController controlador;
@@ -328,26 +321,12 @@ class EstacionControllerTest {
     }
 
     @Test
-    void deleteRechazaEstacionConBicicletaArchivada()
+    void deleteConserva409CuandoElServicioDetectaBicicletasPresentes()
             throws Exception {
-
-        Estacion estacion = new Estacion(
-                "Taller QA", "Calle QA", 6, 0.0, 0.0
-        );
-        estacion.setEsPublica(false);
-        ReflectionTestUtils.setField(estacion, "id", 1);
-
-        Bicicleta archivada = new Bicicleta();
-        archivada.setCodigoBicicleta("QA-ARCHIVADA");
-        archivada.setBorradoBici(true);
-        archivada.setUbicacionActual(estacion);
-        estacion.getBicicletasEnEstacion().add(archivada);
-
-        when(estacionRepository.buscarActivaPorIdConBloqueo(1))
-                .thenReturn(Optional.of(estacion));
-
-        when(bicicletaRepository.countByUbicacionActual(estacion))
-                .thenReturn(1L);
+        doThrow(new IllegalStateException(
+                "No se puede eliminar la estación porque contiene 1 bicicletas. "
+                        + "Primero debe moverlas a otra estación."))
+                .when(estacionService).eliminarEstacionLogico(1);
 
         mvc.perform(delete("/api/estaciones/1"))
                 .andExpect(status().isConflict())
@@ -355,66 +334,28 @@ class EstacionControllerTest {
                         "No se puede eliminar la estación porque contiene "
                 )));
 
-        assertFalse(estacion.isBorradoEstacion());
-        assertTrue(archivada.isBorradoBici());
-
-        verify(estacionRepository)
-                .buscarActivaPorIdConBloqueo(1);
-        verify(bicicletaRepository)
-                .countByUbicacionActual(estacion);
-
-        verify(bicicletaRepository, never())
-                .countByUbicacionActualAndBorradoBiciFalse(estacion);
-
-        verifyNoMoreInteractions(
-                estacionRepository,
-                bicicletaRepository
-        );
-        verifyNoInteractions(estacionService);
+        verify(estacionService).eliminarEstacionLogico(1);
+        verifyNoInteractions(estacionRepository);
     }
 
     @Test
     void deleteEstacionVaciaRealizaSoloBajaLogica()
             throws Exception {
-
-        Estacion estacion = new Estacion(
-                "Taller QA", "Calle QA", 6, 0.0, 0.0
-        );
-        estacion.setEsPublica(false);
-        ReflectionTestUtils.setField(estacion, "id", 1);
-
-        when(estacionRepository.buscarActivaPorIdConBloqueo(1))
-                .thenReturn(Optional.of(estacion));
-
-        when(bicicletaRepository.countByUbicacionActual(estacion))
-                .thenReturn(0L);
-
         mvc.perform(delete("/api/estaciones/1"))
                 .andExpect(status().isNoContent())
                 .andExpect(content().string(""));
 
-        assertTrue(estacion.isBorradoEstacion());
-
-        verify(estacionRepository)
-                .buscarActivaPorIdConBloqueo(1);
-        verify(bicicletaRepository)
-                .countByUbicacionActual(estacion);
-        verify(estacionRepository).save(estacion);
-
-        // Ninguna eliminación física ni otra operación adicional.
-        verifyNoMoreInteractions(
-                estacionRepository,
-                bicicletaRepository
-        );
-        verifyNoInteractions(estacionService);
+        verify(estacionService).eliminarEstacionLogico(1);
+        verifyNoInteractions(estacionRepository);
     }
 
     @Test
     void deleteDevuelve404CuandoNoExisteUnaEstacionActiva()
             throws Exception {
 
-        when(estacionRepository.buscarActivaPorIdConBloqueo(1))
-                .thenReturn(Optional.empty());
+        doThrow(new EntityNotFoundException(
+                "La estación con ID 1 no existe o está inactiva."))
+                .when(estacionService).eliminarEstacionLogico(1);
 
         mvc.perform(delete("/api/estaciones/1"))
                 .andExpect(status().isNotFound())
@@ -422,14 +363,44 @@ class EstacionControllerTest {
                         "La estación con ID 1 no existe o está inactiva."
                 ));
 
-        verify(estacionRepository)
-                .buscarActivaPorIdConBloqueo(1);
-        verifyNoMoreInteractions(estacionRepository);
+        verify(estacionService).eliminarEstacionLogico(1);
+        verifyNoInteractions(estacionRepository);
+    }
 
-        verifyNoInteractions(
-                bicicletaRepository,
-                estacionService
-        );
+    @Test
+    void deleteConserva409AnteConflictoDeVersion() throws Exception {
+        doThrow(new OptimisticLockException("Conflicto QA"))
+                .when(estacionService).eliminarEstacionLogico(1);
+        mvc.perform(delete("/api/estaciones/1"))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(startsWith("La estación fue modificada")));
+    }
+
+    @Test
+    void deleteNoExponeDetallesSqlDeIntegridad() throws Exception {
+        doThrow(new DataIntegrityViolationException("SQL: detalle privado QA"))
+                .when(estacionService).eliminarEstacionLogico(1);
+        mvc.perform(delete("/api/estaciones/1"))
+                .andExpect(status().isConflict())
+                .andExpect(content().string("No se pudo eliminar la estación por un conflicto con otros datos. Recargá los datos."));
+    }
+
+    @Test
+    void falloInternoDeAuditoriaNoAnunciaBorradoExitoso() throws Exception {
+        doThrow(new ConfiguracionSistemaException("Detalle interno QA"))
+                .when(estacionService).eliminarEstacionLogico(1);
+        mvc.perform(delete("/api/estaciones/1"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(startsWith("No se pudo completar la operación por un problema interno.")));
+    }
+
+    @Test
+    void falloInternoDeAuditoriaNoAnunciaAltaExitosa() throws Exception {
+        when(estacionService.crearEstacion(any(CrearEstacionDTO.class)))
+                .thenThrow(new ConfiguracionSistemaException("Detalle interno QA"));
+        enviarAlta(datosAltaValidos(true))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(startsWith("No se pudo completar la operación por un problema interno.")));
     }
 
     @Test
@@ -470,8 +441,7 @@ class EstacionControllerTest {
 
         verifyNoInteractions(
                 estacionService,
-                estacionRepository,
-                bicicletaRepository
+                estacionRepository
         );
     }
 
@@ -505,8 +475,7 @@ class EstacionControllerTest {
 
         verifyNoInteractions(
                 estacionService,
-                estacionRepository,
-                bicicletaRepository
+                estacionRepository
         );
     }
 
@@ -533,8 +502,7 @@ class EstacionControllerTest {
 
         verifyNoInteractions(
                 estacionService,
-                estacionRepository,
-                bicicletaRepository
+                estacionRepository
         );
     }
 
@@ -553,7 +521,7 @@ class EstacionControllerTest {
 
         verify(estacionService)
                 .crearEstacion(any(CrearEstacionDTO.class));
-        verifyNoInteractions(estacionRepository, bicicletaRepository);
+        verifyNoInteractions(estacionRepository);
     }
 
     @Test
@@ -574,7 +542,7 @@ class EstacionControllerTest {
 
         verify(estacionService)
                 .crearEstacion(any(CrearEstacionDTO.class));
-        verifyNoInteractions(estacionRepository, bicicletaRepository);
+        verifyNoInteractions(estacionRepository);
     }
 
     private Map<String, Object> datosAltaValidos(boolean esPublica) {
@@ -625,7 +593,7 @@ class EstacionControllerTest {
         assertEquals(Boolean.valueOf(esPublica), recibido.getEsPublica());
 
         verifyNoMoreInteractions(estacionService);
-        verifyNoInteractions(estacionRepository, bicicletaRepository);
+        verifyNoInteractions(estacionRepository);
     }
 
     private EstacionDTO estacionParaListado(

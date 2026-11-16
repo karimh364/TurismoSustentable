@@ -218,23 +218,19 @@
             <div class="modal-header bg-success text-white"><h5 class="modal-title">Editar Usuario</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <input type="hidden" id="user-id">
-                <div class="mb-2"><label>Nombre</label><input type="text" class="form-control" id="user-nombre"></div>
-                <div class="mb-2"><label>Apellido</label><input type="text" class="form-control" id="user-apellido"></div>
-                <div class="mb-2"><label>Email</label><input type="email" class="form-control" id="user-email"></div>
-                <div class="mb-2"><label>Género</label>
-                    <select class="form-select" id="user-genero">
-                        <option value="FEMENINO">Femenino</option>
-                        <option value="MASCULINO">Masculino</option>
-                        <option value="NO_BINARIO">No Binario</option>
-                        <option value="OTRO">Otro</option>
-                        <option value="PREFIERO_NO_DECIR">Prefiero no decir</option>
+                <div class="mb-2"><label for="user-nombre">Nombre</label><input type="text" class="form-control" id="user-nombre" maxlength="50" required></div>
+                <div class="mb-2"><label for="user-apellido">Apellido</label><input type="text" class="form-control" id="user-apellido" maxlength="50" required></div>
+                <div class="mb-2"><label for="user-email">Email</label><input type="email" class="form-control" id="user-email" maxlength="254" required></div>
+                <div class="mb-2"><label for="user-genero">Género</label>
+                    <select class="form-select" id="user-genero" required>
+                        <option value="" disabled selected>Seleccioná un género</option>
                     </select>
                 </div>
-                <div class="mb-2"><label>Fecha Nacimiento</label>
-                    <input type="date" class="form-control" id="user-fecha">
+                <div class="mb-2"><label for="user-fecha">Fecha Nacimiento</label>
+                    <input type="date" class="form-control" id="user-fecha" required>
                 </div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success px-4" onclick="guardarUsuario()">Guardar</button></div>
+            <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button id="user-guardar" type="button" class="btn btn-success px-4" onclick="guardarUsuario()">Guardar</button></div>
         </div>
     </div>
 </div>

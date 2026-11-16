@@ -1,5 +1,92 @@
 # Implementación de entidades
 
+## Etapa 340 — Formulario ADMIN de edición de usuarios (16/11/2026)
+
+Corrección puntual delegada por el usuario tras la comprobación manual de la
+auditoría. El formulario anterior enviaba genero como código mientras el DTO
+requiere generoId numérico; además ocultaba el detalle del rechazo. No se debilita
+el DTO ni se añade compatibilidad con el contrato anterior.
+
+- admin.html carga opciones dinámicas y conserva la apariencia del modal.
+  admin.js obtiene /api/catalogos/generos al abrir, identifica el género actual
+  por su código y selecciona el ID real, sin deducir IDs ni fijar opciones.
+- guardarUsuario envía los cinco campos del DTO, sin omitir la fecha obligatoria.
+  Conserva el formulario ante rechazo y muestra mensajes específicos con etiquetas
+  legibles mediante text de SweetAlert, no HTML recibido del servidor.
+- Se evita doble guardado, se delegan 401/403 al manejo de sesión y se distingue
+  un PUT confirmado de un fallo posterior al actualizar el listado.
+- EdicionUsuarios.test.cjs usa los archivos reales en un DOM/API simulado: IDs
+  no secuenciales, todos los códigos del catálogo, payload, campos obligatorios,
+  errores, sesión, doble clic y recarga fallida. No es una integración de navegador.
+
+Evidencia anterior a la corrección: consulta de solo lectura corrobora auditorías
+10/11/12 de ESTACION #2, CREAR/ACTUALIZAR/ELIMINAR, por qa.circuito. qa.tecnico
+seguía activo con apellido Circuito y sin auditoría de edición: el rechazo no
+había guardado el cambio. La edición efectiva y su registro siguen pendientes de
+la prueba manual con el formulario nuevo.
+
+Estado al entregar: solo revisión de fuentes/diff; NO se ejecuta Node, compilación,
+pruebas, SQL de escritura, reinicio ni Git. Las 155 pruebas Java aprobadas en la
+etapa 339 son evidencia previa: este bloque no cambia Java, entidades o tablas.
+La presentación y las pruebas de otra materia quedan fuera del alcance.
+
+Comprobacion manual posterior: usuario informa guardado correcto; lectura SQL
+corrobora apellido Circuito QA en qa.tecnico y auditoria #15, USUARIO #2,
+ACTUALIZAR por qa.circuito, con anterior Circuito y nuevo Circuito QA. Se cierra
+la comprobacion de edicion/auditoria del bloque, sin atribuir una nueva ejecucion
+de Node ni rollback SQL. Las auditorias de estaciones 10/11/12 ya se corroboraron.
+
+Preparacion de entrega: conteo real verifica las 29 tablas con datos. Se conservan
+los casos de negocio existentes y se entrega scripts/demo/cuentas-demo.sql para
+cuatro cuentas ficticias exclusivas y scripts/demo/iniciar-demo.ps1 con validate.
+BCrypt se genero y verifico con el encoder del proyecto; no se ejecuta el SQL de
+carga ni se alteran contrasenas existentes. Importacion/logins y nuevo respaldo
+quedan a cargo del usuario. No se configura ni inicia AnyDesk automaticamente.
+
+## Etapa 339 — Auditoría ADMIN de estaciones y edición de usuarios (16/11/2026)
+
+Bloque autorizado para implementar por el asistente, dejando guardar/comprobar al
+usuario. Se auditan CREAR, ACTUALIZAR y ELIMINAR lógico de ESTACION y ACTUALIZAR de
+USUARIO. La inactivación de usuarios ya auditada por mantenimiento no se duplica.
+
+- AuditoriaAdministrativaService identifica al ADMIN mediante sesión, cuenta
+  activa y rol persistido; captura una lista explícita de campos, sin contraseñas,
+  hashes, tokens, documentos ni colecciones completas. Reutiliza la escritura de
+  TrazabilidadInventarioService y AUDITORIA_SISTEMA existentes, con fecha UTC.
+- Participa obligatoriamente en la transacción de la operación; no abre una
+  transacción independiente ni oculta los fallos. Valores iguales no agregan una
+  auditoría falsa. La versión técnica no forma parte de los campos comparados.
+- El DELETE de estación delega en el servicio. Conserva bloqueo de la estación,
+  conteo de toda bicicleta físicamente presente y respuestas 204/404/409. Se
+  retiran del controller la escritura y la dependencia de BicicletaRepository.
+- Edición de usuario conserva OPTIMISTIC_FORCE_INCREMENT, actualización de Persona
+  e invalidación del token al cambiar email. Se captura al actor antes de editar,
+  incluso si se cambia su propio email.
+- No se agregan entidades, tablas, pantallas ni endpoints. Se conservan los DTO y
+  formularios existentes: estas operaciones no solicitan un motivo nuevo ni se
+  inventa uno al auditar. No se cambian alquileres, pagos, mantenimiento o Gradle.
+
+Pruebas agregadas/adaptadas: identidad y permisos, snapshots sin credenciales,
+fecha UTC, ausencia de eventos sin cambio, rechazo de operaciones inválidas,
+propagación de fallos y conservación de respuestas HTTP. La política transaccional
+se verifica también por configuración; no se presenta una simulación Mockito como
+una prueba real de rollback SQL.
+
+Estado al entregar: revisión estática y diff, SIN compilar/ejecutar tests, abrir
+otra instancia, reiniciar la app ni acceder/escribir la base de demostración.
+El usuario ejecutará las pruebas dirigidas. Integración/rollback SQL y revisión
+manual de estos nuevos registros no se declaran comprobadas por esta etapa.
+La auditoría transversal restante y el retiro del legado siguen separados.
+
+Comprobación posterior del usuario (16/11, 17:40 Argentina): BUILD SUCCESSFUL en
+20 s. Siete XML corroborados con timestamps 20:40:16–20:40:18 UTC:
+AuditoriaAdministrativaServiceTest 15, EstacionServiceTest 17,
+EstacionControllerTest 26, UsuarioServiceTest 12, UsuarioControllerTest 6,
+WebAuthorizationTest 21 y MantenimientoServiceTest 58. Total 155, cero fallos,
+errores u omisiones. No se repiten las pruebas ni se convierte este resultado
+en evidencia de persistencia/rollback SQL o de la app reiniciada. Se mantiene
+pendiente únicamente esa comprobación real dentro del alcance de este bloque.
+
 ## Etapa 338 — Cierre manual y privacidad del historial de mantenimiento (16/11/2026)
 
 Usuario implementa manualmente la devolución estimada en la vista compartida y la

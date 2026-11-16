@@ -12,6 +12,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.persistence.EntityManager;
@@ -41,6 +42,9 @@ class UsuarioServiceTest {
     @Mock
     private EntityManager entityManager;
 
+    @Mock
+    private AuditoriaAdministrativaService auditoria;
+
     @InjectMocks
     private UsuarioService usuarioService;
 
@@ -48,9 +52,13 @@ class UsuarioServiceTest {
     private ActualizarUsuarioDTO datos;
     private Genero generoNuevo;
     private LocalDateTime vencimientoOriginal;
+    private Usuario administrador;
 
     @BeforeEach
     void prepararDatos() {
+        administrador = new Usuario();
+        administrador.setId(99);
+        lenient().when(auditoria.administradorActual()).thenReturn(administrador);
         Persona persona = new Persona(
                 "Ana",
                 "Perez",
@@ -92,6 +100,8 @@ class UsuarioServiceTest {
     @Test
     void actualizaPersonaSinAlterarOtrosDatosDeCuenta() {
         prepararBusquedasValidas();
+        when(auditoria.datos(usuario)).thenAnswer(i ->
+                usuario.getEmail() + "|" + usuario.getPersona().getNombre());
         Persona personaOriginal = usuario.getPersona();
 
         UsuarioDTO resultado = usuarioService.actualizarUsuario(1, datos);
@@ -123,11 +133,14 @@ class UsuarioServiceTest {
                 usuario, LockModeType.OPTIMISTIC_FORCE_INCREMENT
         );
         verify(usuarioRepository).flush();
+        verify(auditoria).registrar(administrador, "USUARIO", 1, "ACTUALIZAR",
+                "ana@example.com|Ana", "ana@example.com|Ana Maria");
     }
 
     @Test
     void cambiarEmailInvalidaLaRecuperacionAnterior() {
         prepararBusquedasValidas();
+        when(auditoria.datos(usuario)).thenAnswer(i -> usuario.getEmail());
         datos.setEmail(" NUEVO@EXAMPLE.COM ");
 
         UsuarioDTO resultado = usuarioService.actualizarUsuario(1, datos);
@@ -136,6 +149,8 @@ class UsuarioServiceTest {
         assertEquals("nuevo@example.com", resultado.getEmail());
         assertNull(usuario.getTokenRecuperacion());
         assertNull(usuario.getVencimientoTokenRecuperacion());
+        verify(auditoria).registrar(administrador, "USUARIO", 1, "ACTUALIZAR",
+                "ana@example.com", "nuevo@example.com");
     }
 
     @Test
@@ -229,6 +244,7 @@ class UsuarioServiceTest {
         assertEquals("ana@example.com", usuario.getEmail());
         assertEquals("Ana", usuario.getPersona().getNombre());
         verify(usuarioRepository, never()).flush();
+        comprobarQueNoSeAudito();
     }
 
     @Test
@@ -242,6 +258,26 @@ class UsuarioServiceTest {
                 DataIntegrityViolationException.class,
                 () -> usuarioService.actualizarUsuario(1, datos)
         );
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void sinAdministradorVigenteNoConsultaNiEditaDatosPersonales() {
+        when(auditoria.administradorActual()).thenThrow(new AccessDeniedException("ADMIN revocado"));
+        assertThrows(AccessDeniedException.class, () -> usuarioService.actualizarUsuario(1, datos));
+        verifyNoInteractions(usuarioRepository, generoRepository, entityManager);
+        comprobarQueNoSeAudito();
+    }
+
+    @Test
+    void falloDeAuditoriaSePropagaDespuesDelFlushSinDevolverExito() {
+        prepararBusquedasValidas();
+        when(auditoria.datos(usuario)).thenAnswer(i -> usuario.getPersona().getNombre());
+        doThrow(new IllegalStateException("Auditoría no disponible")).when(auditoria)
+                .registrar(administrador, "USUARIO", 1, "ACTUALIZAR", "Ana", "Ana Maria");
+
+        assertThrows(IllegalStateException.class, () -> usuarioService.actualizarUsuario(1, datos));
+        verify(usuarioRepository).flush();
     }
 
     @Test
@@ -294,5 +330,10 @@ class UsuarioServiceTest {
     private void comprobarQueNoSeInicioEscritura() {
         verify(usuarioRepository, never()).flush();
         verifyNoInteractions(entityManager);
+        comprobarQueNoSeAudito();
+    }
+
+    private void comprobarQueNoSeAudito() {
+        verify(auditoria, never()).registrar(any(), anyString(), anyInt(), anyString(), any(), any());
     }
 }

@@ -26,6 +26,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final GeneroRepository generoRepository;
     private final EntityManager entityManager;
+    private final AuditoriaAdministrativaService auditoria;
     @org.springframework.beans.factory.annotation.Autowired
     private MantenimientoService mantenimiento;
 
@@ -38,11 +39,13 @@ public class UsuarioService {
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             GeneroRepository generoRepository,
-            EntityManager entityManager
+            EntityManager entityManager,
+            AuditoriaAdministrativaService auditoria
     ) {
         this.usuarioRepository = usuarioRepository;
         this.generoRepository = generoRepository;
         this.entityManager = entityManager;
+        this.auditoria = auditoria;
     }
 
     @Transactional
@@ -55,7 +58,7 @@ public class UsuarioService {
             @NotNull(message = "Los datos de actualización son obligatorios.")
             @Valid ActualizarUsuarioDTO datos
     ) {
-
+        Usuario administrador = auditoria.administradorActual();
         Usuario usuario = usuarioRepository.findById(id)
                 .filter(Usuario::isActivo)
                 .orElseThrow(() ->
@@ -91,6 +94,8 @@ public class UsuarioService {
             );
         }
 
+        String anteriores = auditoria.datos(usuario);
+
         // Controlar concurrencia incluso si solo cambia Persona.
         entityManager.lock(
                 usuario,
@@ -114,6 +119,9 @@ public class UsuarioService {
 
         // Persistir los cambios de las entidades administradas.
         usuarioRepository.flush();
+
+        auditoria.registrar(administrador, "USUARIO", usuario.getId(),
+                "ACTUALIZAR", anteriores, auditoria.datos(usuario));
 
         return new UsuarioDTO(usuario);
     }

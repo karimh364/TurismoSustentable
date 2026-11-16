@@ -2,6 +2,17 @@
 
 Fecha: 2 de noviembre de 2026.
 
+Implementación puntual posterior, etapa 339 (16/11): creación, edición y borrado
+lógico de estaciones y edición de usuarios conectados a AUDITORIA_SISTEMA en la
+misma transacción, con actor ADMIN verificado y campos explícitos sin credenciales.
+Compilación y 155 casos unitarios/HTTP aprobados por ejecución del usuario,
+corroborados en siete XML; comprobación manual/SQL pendiente, sin cobertura global.
+Se preservan contratos/formularios, sin inventar motivos. La inactivación de
+usuarios conserva la auditoría ya implementada por mantenimiento, sin duplicarla.
+Detalle y límites en [el registro 37](37-implementacion-entidades.md#etapa-339--auditoría-admin-de-estaciones-y-edición-de-usuarios-16112026).
+Las referencias siguientes a que no se modificó Java corresponden a la aprobación
+histórica del diseño, no al estado de este bloque posterior.
+
 Estado actualizado: el usuario aprobó expresamente las cuatro mejoras de este documento: HISTORIAL_INCIDENCIA; ampliación y renombre a HISTORIAL_ORDEN_MANTENIMIENTO; motivo en AUDITORIA_SISTEMA; e incidencia_corte_id en ALQUILER_DETALLE. Se incorporaron al DER lógico, que pasa de 28/52 a 29 entidades y 55 FK/relaciones. La auditoría sigue siendo exclusivamente de ADMIN. El [documento 36](36-incorporacion-aprobada-trazabilidad-der.md) registra campos, claves, condiciones y comprobaciones. No se modifican Java ni la base de datos.
 
 ## 1. Decisión aprobada sobre auditoría

@@ -5,11 +5,9 @@ import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
 import DSII.TurismoSustentable.models.Estacion;
 import DSII.TurismoSustentable.repositories.EstacionRepository;
-import DSII.TurismoSustentable.repositories.BicicletaRepository;
 import DSII.TurismoSustentable.services.EstacionService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,9 +27,6 @@ public class EstacionController {
 
     @Autowired
     private EstacionRepository estacionRepository;
-
-    @Autowired
-    private BicicletaRepository bicicletaRepository;
 
     @Autowired
     private EstacionService estacionService;
@@ -101,47 +96,23 @@ public class EstacionController {
 
     // DELETE /api/estaciones/{id}: Borrado Lógico (Solo ADMIN)
     @DeleteMapping("/estaciones/{id}")
-    @Transactional
     public ResponseEntity<Object> eliminarEstacionLogico(
             @PathVariable Integer id
     ) {
-
-        /*
-         * Bloquear la estación para que ninguna bicicleta pueda
-         * ingresar mientras se está comprobando y eliminando.
-         */
-        Optional<Estacion> estacionOptional = estacionRepository
-                .buscarActivaPorIdConBloqueo(id);
-
-        if (estacionOptional.isEmpty()) {
-            return new ResponseEntity<>(
-                    "La estación con ID "
-                            + id
-                            + " no existe o está inactiva.",
-                    HttpStatus.NOT_FOUND
-            );
+        try {
+            estacionService.eliminarEstacionLogico(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        } catch (OptimisticLockingFailureException | OptimisticLockException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("La estación fue modificada por otra operación. Recargá sus datos e intentá nuevamente.");
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("No se pudo eliminar la estación por un conflicto con otros datos. Recargá los datos.");
         }
-
-        Estacion estacion = estacionOptional.get();
-
-        // Contar todas las bicicletas que permanecen físicamente allí.
-        long bicicletasFisicas = bicicletaRepository
-                .countByUbicacionActual(estacion);
-
-        if (bicicletasFisicas > 0) {
-            return new ResponseEntity<>(
-                    "No se puede eliminar la estación porque contiene "
-                            + bicicletasFisicas
-                            + " bicicletas. "
-                            + "Primero debe moverlas a otra estación.",
-                    HttpStatus.CONFLICT
-            );
-        }
-
-        estacion.setBorradoEstacion(true);
-        estacionRepository.save(estacion);
-
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     // PUT /api/estaciones/{id}: Actualizar estación (Solo ADMIN)

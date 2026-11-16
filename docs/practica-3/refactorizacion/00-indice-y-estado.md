@@ -2,7 +2,30 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 338. Tanda manual de alquiler normal con reintegro y
+Comprobacion de cierre: edicion de qa.tecnico confirmada por lectura (apellido
+Circuito QA), con auditoria USUARIO #2, antes/despues y actor qa.circuito. Las
+29 tablas existentes contienen registros. Se preparan cuatro cuentas ficticias
+y un arranque persistente en [scripts/demo](../../../scripts/demo/README.md);
+su SQL queda pendiente de importar y los logins pendientes del usuario. No se
+ejecuta una carga ni se alteran usuarios existentes por preparar estos archivos.
+
+Estado más reciente: etapa 340, formulario ADMIN de edición de usuarios conectado
+al catálogo de géneros y a generoId numérico del DTO vigente. Se retira el envío
+anterior de genero y la actualización parcial de fecha; se muestran los errores
+reales sin cerrar el formulario. Pruebas JS preparadas, pendientes del usuario.
+No se modifica Java/BD ni se reinicia la demostración. Detalle en
+[el registro de la etapa 340](37-implementacion-entidades.md#etapa-340--formulario-admin-de-edición-de-usuarios-16112026).
+
+Etapa 339, auditoría ADMIN de estaciones y edición de
+usuarios implementada por autorización puntual. El usuario ejecutó la compilación
+y regresión dirigida: siete XML corroborados, 155 casos aprobados sin fallos,
+errores u omisiones. Comprobación manual/SQL de las nuevas auditorías pendiente;
+no se ejecuta integración destructiva ni se toca la BD de demostración.
+Alcance en [el registro de la etapa 339](37-implementacion-entidades.md#etapa-339--auditoría-admin-de-estaciones-y-edición-de-usuarios-16112026).
+Se conservan el comando validate y el respaldo de la demostración. No se declara
+cerrada la seguridad transversal ni el retiro completo del legado.
+
+Etapa 338. Tanda manual de alquiler normal con reintegro y
 alquiler con avería, recepción, reparación y habilitación ADMIN completada por el
 usuario. Devolución estimada visible y snapshots de mantenimiento restringidos a
 ADMIN en servicio, DTO y pantalla. Verificados 109 casos Java; el usuario informa

@@ -47,9 +47,11 @@ async function cargarUsuarios() {
                     </td>
                 </tr>`;
         });
+        return true;
     } catch (e) {
-        if (manejarErrorSesion(e)) return;
+        if (manejarErrorSesion(e)) return null;
         console.error(e);
+        return false;
     }
 }
 
@@ -70,58 +72,120 @@ async function borrarUsuario(id) {
     }
 }
 
-// EDIT Usuario (Solo precarga el modal)
-async function editarUsuario(id) {
-    try {
-        const res = await axios.get(`/api/usuarios/${id}`);
-        const u = res.data; // El DTO con los datos completos
+let cargandoEdicionUsuario = false;
+let guardandoEdicionUsuario = false;
 
-        // Carga de datos
+function mensajeEdicionUsuario(error, predeterminado) {
+    const datos = error.response?.data;
+    if (typeof datos === 'string' && datos.trim()) return datos;
+    if (Array.isArray(datos?.validationErrors) && datos.validationErrors.length) {
+        const etiquetas = {
+            nombre: 'Nombre', apellido: 'Apellido', email: 'Email',
+            fechaNacimiento: 'Fecha de nacimiento', generoId: 'Género'
+        };
+        return [...new Set(datos.validationErrors.map(valor => {
+            const texto = String(valor);
+            const separador = texto.indexOf(':');
+            if (separador < 0) return texto;
+            const campo = texto.slice(0, separador).trim();
+            const mensaje = texto.slice(separador + 1).trim();
+            return etiquetas[campo] ? `${etiquetas[campo]}: ${mensaje}` : mensaje;
+        }))].join('\n');
+    }
+    if (!error.response && !error.isAxiosError && !error.request && error.message) {
+        return error.message;
+    }
+    return predeterminado;
+}
+
+// UsuarioDTO informa el código; el catálogo aporta el ID real para actualizar.
+async function editarUsuario(id) {
+    if (cargandoEdicionUsuario || guardandoEdicionUsuario) return;
+    cargandoEdicionUsuario = true;
+    const boton = document.getElementById('user-guardar');
+    if (boton) boton.disabled = true;
+    document.getElementById('user-id').value = '';
+    try {
+        const usuarioId = Number(id);
+        if (!Number.isSafeInteger(usuarioId) || usuarioId <= 0) {
+            throw new Error('Recargá el listado y seleccioná un usuario válido.');
+        }
+        const [res, catalogo] = await Promise.all([
+            axios.get(`/api/usuarios/${usuarioId}`),
+            axios.get('/api/catalogos/generos')
+        ]);
+        const u = res.data;
+        const generos = catalogo.data;
+        if (!u || u.id !== usuarioId) throw new Error('Los datos del usuario no son válidos. Recargá el listado.');
+        if (!Array.isArray(generos) || !generos.length || generos.some(g =>
+            !g || !Number.isSafeInteger(g.id) || g.id <= 0 || typeof g.codigo !== 'string' || !g.codigo)) {
+            throw new Error('No se pudieron cargar las opciones de género. Intentá nuevamente.');
+        }
+        const actual = generos.find(g => g.codigo === u.genero);
+        if (!actual) throw new Error('El género del usuario no está disponible en el catálogo. Recargá los datos.');
+
+        const selector = document.getElementById('user-genero');
+        selector.innerHTML = '';
+        const opcionInicial = new Option('Seleccioná un género', '');
+        opcionInicial.disabled = true;
+        selector.add(opcionInicial);
+        generos.forEach(g => selector.add(new Option(g.nombre || g.codigo, String(g.id))));
+
         document.getElementById('user-id').value = u.id;
         document.getElementById('user-nombre').value = u.nombre;
         document.getElementById('user-apellido').value = u.apellido;
         document.getElementById('user-email').value = u.email;
-        document.getElementById('user-genero').value = u.genero;
-        document.getElementById('user-fecha').value = u.fechaNacimiento;
+        selector.value = String(actual.id);
+        document.getElementById('user-fecha').value = u.fechaNacimiento || '';
 
-        new bootstrap.Modal(document.getElementById('modalUsuario')).show();
-
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalUsuario')).show();
     } catch (error) {
         if (manejarErrorSesion(error)) return;
-        Swal.fire('Error', 'No se pudieron cargar los datos del usuario.', 'error');
+        await Swal.fire({title: 'No se pudo abrir la edición', icon: 'error',
+            text: mensajeEdicionUsuario(error, 'No se pudieron cargar el usuario y sus opciones. Intentá nuevamente.')});
+    } finally {
+        cargandoEdicionUsuario = false;
+        if (boton) boton.disabled = false;
     }
 }
 
 async function guardarUsuario() {
-    const id = document.getElementById('user-id').value;
-
-    // Construimos el objeto data con todos los campos
-    const data = {
-        nombre: document.getElementById('user-nombre').value,
-        apellido: document.getElementById('user-apellido').value,
-        email: document.getElementById('user-email').value,
-
-        // --- ENVÍO DE DATOS NUEVOS ---
-        genero: document.getElementById('user-genero').value,
-        fechaNacimiento: document.getElementById('user-fecha').value
-    };
-
-    // IMPORTANTE: Si la fecha está vacía, no la enviamos (la borramos del objeto)
-    // Esto evita que se envíe un string vacío ("") y falle en el backend
-    if (!data.fechaNacimiento) {
-        delete data.fechaNacimiento;
-    }
-
+    if (guardandoEdicionUsuario || cargandoEdicionUsuario) return;
+    guardandoEdicionUsuario = true;
+    const boton = document.getElementById('user-guardar');
+    if (boton) boton.disabled = true;
     try {
-        // El controlador actualizado aceptará estos campos parciales
+        const id = Number(document.getElementById('user-id').value);
+        const data = {
+            nombre: document.getElementById('user-nombre').value,
+            apellido: document.getElementById('user-apellido').value,
+            email: document.getElementById('user-email').value,
+            generoId: Number(document.getElementById('user-genero').value),
+            fechaNacimiento: document.getElementById('user-fecha').value
+        };
+        if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Volvé a abrir el usuario antes de guardar.');
+        if (!data.nombre.trim()) throw new Error('El nombre es obligatorio.');
+        if (!data.apellido.trim()) throw new Error('El apellido es obligatorio.');
+        if (!data.email.trim()) throw new Error('El email es obligatorio.');
+        if (!Number.isSafeInteger(data.generoId) || data.generoId <= 0) throw new Error('Seleccioná un género válido.');
+        if (!data.fechaNacimiento) throw new Error('La fecha de nacimiento es obligatoria.');
+
         await axios.put(`/api/usuarios/${id}`, data);
 
-        bootstrap.Modal.getInstance(document.getElementById('modalUsuario')).hide();
-        cargarUsuarios(); // Recargar la tabla
-        Swal.fire('Guardado', 'Usuario actualizado con éxito', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalUsuario'))?.hide();
+        const actualizado = await cargarUsuarios();
+        if (actualizado === null) return; // La sesión ya informó/redirigió el acceso.
+        await Swal.fire({title: 'Usuario guardado', icon: actualizado === false ? 'warning' : 'success',
+            text: actualizado === false
+                ? 'Se guardaron los cambios, pero no se pudo actualizar el listado. Recargá la página para consultarlos.'
+                : 'Usuario actualizado con éxito.'});
     } catch (e) {
         if (manejarErrorSesion(e)) return;
-        Swal.fire('Error', 'No se pudo guardar el usuario', 'error');
+        await Swal.fire({title: 'No se pudo guardar el usuario', icon: 'error',
+            text: mensajeEdicionUsuario(e, 'No se pudo guardar el usuario. Revisá la conexión e intentá nuevamente.')});
+    } finally {
+        guardandoEdicionUsuario = false;
+        if (boton) boton.disabled = false;
     }
 }
 
