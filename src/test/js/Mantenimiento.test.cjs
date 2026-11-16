@@ -147,3 +147,27 @@ test('HTML dispone de menú plegable, encabezados accesibles y CSS acotado',()=>
     assert.match(html,/bootstrap.bundle.min.js/);assert.match(html,/Saltar al contenido/);
     assert.match(css,/\.maintenance-page \.maintenance-table td\[data-label\]/);assert.match(css,/max-width: 767.98px/);
 });
+test('TECNICO ve el historial legible sin mostrar snapshots internos', async () => {
+    const e = await entorno(['TECNICO']);
+
+    e.setGet(async () => ({
+        data: [{
+            accion: 'TRABAJO',
+            origen: 'USUARIO',
+            actorUsuarioId: 2,
+            observaciones: 'Freno revisado',
+            valoresAnteriores: 'INTERNO_ANTES',
+            valoresNuevos: 'INTERNO_DESPUES'
+        }]
+    }));
+
+    await e.m.historial(7);
+
+    const html = e.avisos[0][3].html;
+
+    assert.match(html, /Freno revisado/);
+    assert.doesNotMatch(
+        html,
+        /Datos de auditoría|INTERNO_ANTES|INTERNO_DESPUES|maintenance-audit/
+    );
+});

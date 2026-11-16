@@ -201,18 +201,50 @@ const Mantenimiento = (() => {
         });
     }
     async function historial(ordenId) {
-        return ejecutar('historia:'+id(ordenId),async()=>{
-            const {data}=await solicitar(()=>axios.get('/api/mantenimiento/ordenes/'+id(ordenId)+'/historial'),'Cargando el historial…');
-            await dialogo({title:'Historial de orden #'+id(ordenId),confirmButtonText:'Cerrar historial',width:900,
-                html:'<p class="small text-muted">Fechas en hora local. Se conserva quién realizó cada operación.</p>'+data.map(h=>`<article class="border-bottom mb-3 pb-3">
-                <h3 class="h6">${texto(etiqueta(h.accion))}</h3><p class="small">${texto(fecha(h.fechaHoraCambio))}</p>
-                <p>${h.estadoAnterior!=null && h.estadoNuevo!=null
-                    ?texto(etiqueta(h.estadoAnterior))+' → '+texto(etiqueta(h.estadoNuevo))
-                    :h.estadoNuevo!=null?'Estado inicial: '+texto(etiqueta(h.estadoNuevo)):'Actualización de datos, sin cambio de estado.'}</p>
-                <p class="small">${h.origen==='SISTEMA'?'Generado automáticamente por el sistema.':'Registrado por el usuario #'+texto(h.actorUsuarioId)+'.'}</p>
-                <p class="maintenance-work-text">${texto(h.observaciones)}</p><details><summary>Datos de auditoría (detalle técnico original)</summary>
-                <h4 class="h6 mt-2">Antes</h4><pre class="maintenance-audit">${texto(h.valoresAnteriores)}</pre>
-                <h4 class="h6">Después</h4><pre class="maintenance-audit">${texto(h.valoresNuevos)}</pre></details></article>`).join('')});
+        return ejecutar('historia:' + id(ordenId), async () => {
+            const {data} = await solicitar(
+                () => axios.get(
+                    '/api/mantenimiento/ordenes/' + id(ordenId) + '/historial'
+                ),
+                'Cargando el historial…'
+            );
+
+            await dialogo({
+                title: 'Historial de orden #' + id(ordenId),
+                confirmButtonText: 'Cerrar historial',
+                width: 900,
+                html: '<p class="small text-muted">Fechas en hora local. Se conserva quién realizó cada operación.</p>'
+                    + data.map(h => `
+                    <article class="border-bottom mb-3 pb-3">
+                        <h3 class="h6">${texto(etiqueta(h.accion))}</h3>
+                        <p class="small">${texto(fecha(h.fechaHoraCambio))}</p>
+                        <p>${
+                        h.estadoAnterior != null && h.estadoNuevo != null
+                            ? texto(etiqueta(h.estadoAnterior))
+                            + ' → ' + texto(etiqueta(h.estadoNuevo))
+                            : h.estadoNuevo != null
+                                ? 'Estado inicial: ' + texto(etiqueta(h.estadoNuevo))
+                                : 'Actualización de datos, sin cambio de estado.'
+                    }</p>
+                        <p class="small">${
+                        h.origen === 'SISTEMA'
+                            ? 'Generado automáticamente por el sistema.'
+                            : 'Registrado por el usuario #'
+                            + texto(h.actorUsuarioId) + '.'
+                    }</p>
+                        <p class="maintenance-work-text">${texto(h.observaciones)}</p>
+                        ${admin() ? `
+                            <details>
+                                <summary>Datos de auditoría (detalle técnico original)</summary>
+                                <h4 class="h6 mt-2">Antes</h4>
+                                <pre class="maintenance-audit">${texto(h.valoresAnteriores)}</pre>
+                                <h4 class="h6">Después</h4>
+                                <pre class="maintenance-audit">${texto(h.valoresNuevos)}</pre>
+                            </details>
+                        ` : ''}
+                    </article>
+                `).join('')
+            });
         });
     }
     async function intervalos() {

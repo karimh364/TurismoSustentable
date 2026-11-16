@@ -60,8 +60,17 @@ public class MantenimientoService {
     public OrdenMantenimientoDTO consultar(Integer id) { return new OrdenMantenimientoDTO(visible(id,lector())); }
     @PreAuthorize("hasAnyAuthority('ADMIN','TECNICO')")
     public List<HistorialMantenimientoDTO> historial(Integer id) {
-        visible(id,lector());
-        return historias.findByOrdenMantenimientoIdOrderByIdAsc(id).stream().map(HistorialMantenimientoDTO::new).collect(Collectors.toList());
+        Usuario actor = lector();
+        visible(id, actor);
+
+        boolean incluirAuditoria = rol(actor, "ADMIN");
+
+        return historias.findByOrdenMantenimientoIdOrderByIdAsc(id)
+                .stream()
+                .map(h -> new HistorialMantenimientoDTO(
+                        h, incluirAuditoria
+                ))
+                .collect(Collectors.toList());
     }
     @PreAuthorize("hasAuthority('ADMIN')")
     public List<TecnicoMantenimientoDTO> tecnicos() {

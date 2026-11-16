@@ -145,6 +145,58 @@ class MantenimientoServiceTest {
         servicio.operar(10,"trabajo",d);assertEquals("ARS",orden.getMonedaRepuestos());
         verify(historias).save(argThat(h->h.getEstadoNuevo()==null&&h.getValoresNuevos().contains("Cambiar cable")&&h.getActorUsuario()==tec));
     }
+
+    @Test
+    void historialFiltraSnapshotsSegunRolSinBorrarLaHistoria() {
+        String antes = "{\"diagnostico\":null}";
+        String despues = "{\"diagnostico\":\"Freno revisado\"}";
+
+        var historia = new HistorialOrdenMantenimiento(
+                orden, "TRABAJO", null, null, tec, "USUARIO",
+                "Revisión del freno", antes, despues, ahora
+        );
+
+        when(historias.findByOrdenMantenimientoIdOrderByIdAsc(10))
+                .thenReturn(List.of(historia));
+
+        sesion(tec, "TECNICO");
+
+        var tecnico = servicio.historial(10).get(0);
+
+        assertEquals("TRABAJO", tecnico.accion);
+        assertEquals("Revisión del freno", tecnico.observaciones);
+        assertNull(tecnico.valoresAnteriores);
+        assertNull(tecnico.valoresNuevos);
+
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        var jsonTecnico = mapper.valueToTree(tecnico);
+
+        assertFalse(jsonTecnico.has("valoresAnteriores"));
+        assertFalse(jsonTecnico.has("valoresNuevos"));
+
+        sesion(admin, "ADMIN");
+
+        var administrador = servicio.historial(10).get(0);
+
+        assertEquals(antes, administrador.valoresAnteriores);
+        assertEquals(despues, administrador.valoresNuevos);
+        assertEquals(antes, historia.getValoresAnteriores());
+        assertEquals(despues, historia.getValoresNuevos());
+    }
+
+    @Test
+    void historialDeOrdenAjenaNoSeEntregaAlTecnico() {
+        sesion(otro, "TECNICO");
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> servicio.historial(10)
+        );
+
+        verify(historias, never())
+                .findByOrdenMantenimientoIdOrderByIdAsc(anyInt());
+    }
+
     @ParameterizedTest @ValueSource(strings={"APTA","NO_APTA"})
     void finalizarNoHabilitaAutomaticamente(String resultado){
         enProceso();sesion(tec,"TECNICO");servicio.operar(10,"finalizar",trabajoFinal(resultado));

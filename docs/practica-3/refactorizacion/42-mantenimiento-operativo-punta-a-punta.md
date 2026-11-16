@@ -274,3 +274,99 @@ finally {
 No hay commit/push de este ajuste. El siguiente bloque funcional continúa siendo
 incidencias durante el alquiler; la revisión global y retiro del legado siguen
 pendientes. No se amplía ese alcance por realizar esta corrección de interfaz.
+
+## Mejora futura diferida: reparaciones en estaciones internas
+
+16 de noviembre de 2026. El usuario autoriza dejar esta propuesta documentada y
+posponer su implementación por el tiempo disponible para la entrega. No se
+modifica Java, JavaScript, SQL, el DER ni el diccionario de estados por esta nota.
+La propuesta no se presenta como una restricción ya implementada o vigente.
+
+### Comportamiento actual que se conserva
+
+- Una bicicleta físicamente registrada en una estación ocupa lugar también en
+  MANTENIMIENTO. No es un espacio fantasma: se libera al registrar su salida real,
+  no al cambiar el estado operativo.
+- El circuito actual admite trabajo técnico con presencia física registrada;
+  no exige que toda reparación ocurra en un taller interno.
+- Habilitar después de una revisión APTA conserva la ubicación. Una bicicleta
+  habilitada en una estación interna sigue excluida de la oferta a clientes.
+
+### Propuesta para implementar posteriormente
+
+1. Permitir que una averiada espere en MANTENIMIENTO en una estación pública,
+   ocupando su lugar hasta el retiro físico efectivo.
+2. Registrar por ADMIN el traslado real a una estación interna activa, con motivo,
+   versiones, capacidad disponible y trazabilidad. Liberar origen y ocupar destino
+   en la misma transacción, sin inventar movimientos por cambios de estado.
+3. Exigir ubicación interna activa para iniciar el trabajo técnico. Precisar antes
+   de implementar las condiciones de reanudación, registro de trabajo, finalización
+   y movimientos durante una intervención ya iniciada.
+4. Conservar la separación entre reparación, habilitación ADMIN y traslado. La
+   vuelta a una estación pública requiere registrar el movimiento real; habilitar
+   por sí solo no debe asignar una estación ni alterar su ocupación.
+
+### Código y comprobaciones que requeriría
+
+- Revisar las guardas de MantenimientoService y los traslados de BicicletaService.
+  Una orden creada no debe impedir el traslado al taller que exige el propio
+  circuito futuro; tampoco se deben permitir movimientos incompatibles con un
+  trabajo en curso. Resolver ambas condiciones conjuntamente.
+- Ajustar los controles y mensajes de gestión de bicicletas/mantenimiento, sin
+  depender de ocultar botones ni agregar estados o entidades innecesarios.
+- Probar rechazo de inicio en pública, traslado a interna con cupo, reparación,
+  habilitación y retorno registrado a pública. Comprobar permisos ADMIN/TECNICO,
+  versiones, concurrencia/capacidad y rollback, así como la ocupación durante la
+  espera y la exclusión de talleres de los alquileres y devoluciones de clientes.
+
+La definición final y su implementación quedan pendientes. No se ha ejecutado
+ninguna prueba de esta propuesta ni se declara resuelta por haberla documentado.
+
+## Cierre manual y acceso al historial: etapa 338
+
+16 de noviembre de 2026. Comprobaciones realizadas por el usuario desde las
+pantallas, con una cuenta CLIENTE+ADMIN y otra exclusivamente TECNICO. No se
+declara por ello una prueba manual con CLIENTE puro ni una cobertura de todos
+los escenarios o permisos.
+
+- Alquiler #1: reserva, anticipo simulado, retiro, devolución sin falla y
+  liquidación; costo ARS 1547.00, pago ARS 16380.00 y reembolso confirmado
+  ARS 14833.00. Situación SALDADO, sin deuda ni reintegro pendiente.
+- Alquiler #2: avería reportada y validada, corte, recepción en estación,
+  correctivo asignado, trabajo y resultado APTA por TECNICO; la bicicleta sigue
+  MANTENIMIENTO hasta habilitación ADMIN y después vuelve a DISPONIBLE.
+  Se conserva el corte al recibir/reparar. Lectura SQL del asistente corrobora
+  seis segundos completos facturados, subtotal ARS 27.30 y ausencia de una
+  devolución normal ficticia. El usuario confirma reembolso ARS 16352.70 y
+  situación SALDADO sobre el pago original ARS 16380.00.
+- La fecha de devolución estimada ya guardada/enviada por backend se muestra
+  ahora en alquileres-vista.js; la recepción normal se etiqueta Devolución real.
+- HistorialMantenimientoDTO solo incorpora valoresAnteriores/valoresNuevos cuando
+  MantenimientoService verifica ADMIN vigente. Para TECNICO los campos se omiten
+  del JSON; la pantalla también restringe el desplegable a ADMIN. Los eventos
+  legibles y las historias persistidas no se borran ni se modifican.
+- Regresión dirigida: tres XML corroborados, 109 casos Java aprobados sin fallos,
+  errores u omisiones; salida del usuario con 37 JavaScript aprobados y sintaxis
+  correcta. Incluye pruebas nuevas de filtrado/serialización, acceso ajeno y
+  ocultación del detalle interno para TECNICO. No es otra ejecución SQL/global.
+- Después del reinicio, el usuario confirma el historial sin JSON para TECNICO
+  y con detalle interno para ADMIN.
+
+### Arranque local conservando los datos de demostración
+
+El archivo application-refactor.properties sigue configurado con create-drop.
+Se descargó un respaldo SQL fuera del repositorio antes de detener la app.
+Las tablas permanecieron tras ese cierre: se verificaron 29 tablas y datos de
+prueba, por lo que NO se importó el respaldo encima ni se borró la base.
+
+Para esta demostración se arrancó con una sobreescritura explícita:
+
+```powershell
+.\gradlew.bat bootRun --args="--spring.profiles.active=refactor --spring.jpa.hibernate.ddl-auto=validate"
+```
+
+validate comprueba el esquema existente sin recrearlo/eliminarlo. No reemplaza
+las migraciones definitivas de producción. No iniciar con el comando anterior
+de create-drop si se necesitan conservar estos datos. Las integraciones SQL
+opt-in recrean el esquema: no ejecutarlas contra esta demostración en uso.
+Los backups no se incorporan a Git.

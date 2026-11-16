@@ -1,5 +1,24 @@
 # Implementación de entidades
 
+## Etapa 338 — Cierre manual y privacidad del historial de mantenimiento (16/11/2026)
+
+Usuario implementa manualmente la devolución estimada en la vista compartida y la
+restricción de snapshots a ADMIN, conservando el historial legible para TECNICO
+asignado. No se modifican entidades, tablas, cobros ni historias persistidas.
+Comprobados los archivos y tres XML: MantenimientoServiceTest 58,
+MantenimientoControllerTest 30 y WebAuthorizationTest 21, todos sin fallos,
+errores u omisiones; incluyen dos nuevos casos de servicio. El usuario informa
+37 JavaScript aprobados, incluida la nueva prueba del historial técnico.
+
+La tanda manual normal y con avería termina con ambos alquileres saldados;
+recuperación, reparación por técnico y habilitación ADMIN comprobadas. Tras
+reiniciar con ddl-auto=validate, el usuario confirma ausencia de JSON para
+TECNICO y conservación para ADMIN. No se repite integración SQL ni se declara
+regresión global nueva. Detalles y conservación de datos en el
+[reporte 42](42-mantenimiento-operativo-punta-a-punta.md#cierre-manual-y-acceso-al-historial-etapa-338).
+Reparación exclusivamente en taller queda propuesta/diferida; auditoría
+transversal restante y retiro coordinado del legado continúan pendientes.
+
 ## Etapa 337 — Estadísticas por detalle y tipo contratado (16/11/2026)
 
 Bloque puntual implementado manualmente por el usuario; adiciones específicas de

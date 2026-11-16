@@ -2,7 +2,23 @@
 
 Actualizado: 16 de noviembre de 2026.
 
-Estado más reciente: etapa 337. Estadísticas de uso migradas a ALQUILER_DETALLE:
+Estado más reciente: etapa 338. Tanda manual de alquiler normal con reintegro y
+alquiler con avería, recepción, reparación y habilitación ADMIN completada por el
+usuario. Devolución estimada visible y snapshots de mantenimiento restringidos a
+ADMIN en servicio, DTO y pantalla. Verificados 109 casos Java; el usuario informa
+37 JavaScript aprobados y confirma ambos roles en la app reiniciada con validate.
+Alcance y arranque conservando datos en el
+[cierre manual del reporte 42](42-mantenimiento-operativo-punta-a-punta.md#cierre-manual-y-acceso-al-historial-etapa-338).
+No equivale a cierre global del DER ni del retiro del legado.
+
+Nota de planificación — 16/11: se difiere para después de la entrega la propuesta
+de exigir una estación interna para iniciar reparaciones. Se autorizó documentar
+la mejora, no implementarla ni cambiar la regla vigente. Alcance, dependencias y
+comprobaciones en [la nota de mantenimiento](42-mantenimiento-operativo-punta-a-punta.md#mejora-futura-diferida-reparaciones-en-estaciones-internas).
+La ocupación sigue dependiendo de la ubicación física registrada; cambiar el
+estado o habilitar una bicicleta no la traslada ni libera su lugar.
+
+Etapa 337. Estadísticas de uso migradas a ALQUILER_DETALLE:
 contador EN_CURSO y preferencias de usos concluidos por tipo contratado/género.
 Consultas anteriores retiradas, servicio conectado y contrato HTTP conservado.
 Verificación: tres pruebas SQL específicas en dos tandas y 70 HTTP/regresión

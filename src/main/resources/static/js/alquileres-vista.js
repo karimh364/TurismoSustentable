@@ -134,7 +134,10 @@ const VistaAlquileres = (() => {
                     'No informada'
                 )}</div>
                 <div>Retiro: ${fecha(detalle.fechaHoraRetiro, true)}</div>
-                <div>Devolución: ${fecha(
+                <div>Devolución estimada: ${fecha(
+            detalle.fechaHoraDevolucionEstimada, true
+                )}</div>
+                <div>Devolución real: ${fecha(
                     detalle.fechaHoraDevolucionReal, true
                 )}</div>
                 <div>Fin de uso: ${fecha(
