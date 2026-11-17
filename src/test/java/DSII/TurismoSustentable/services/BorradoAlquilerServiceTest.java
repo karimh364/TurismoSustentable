@@ -2,17 +2,13 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.Alquiler;
-import DSII.TurismoSustentable.models.CodigoEstadoAlquiler;
 import DSII.TurismoSustentable.models.EstadoAlquiler;
-import DSII.TurismoSustentable.repositories.AlquilerRepository;
-import DSII.TurismoSustentable.repositories.AlquilerDetalleRepository;
-import DSII.TurismoSustentable.repositories.BicicletaRepository;
-import DSII.TurismoSustentable.repositories.HistorialEstadoDetalleRepository;
+import DSII.TurismoSustentable.repositories.*;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import org.mockito.InjectMocks;
@@ -45,21 +41,19 @@ class BorradoAlquilerServiceTest {
     private TrazabilidadInventarioService trazabilidadInventario;
 
     @Mock
-    private CorreoService correoService;
+    private PagoRepository pagoRepository;
+
+    @Mock
+    private ReembolsoRepository reembolsoRepository;
 
     @InjectMocks
     private AlquilerService servicio;
 
     @ParameterizedTest
     @ValueSource(strings = {"RESERVADO", "EN_PROGRESO"})
-    void rechazaContratacionNuevaActiva(String codigo) {
+    void rechazaAlquilerActivo(String codigo) {
         Alquiler alquiler = prepararAlquiler();
-
         alquiler.setEstadoContratacion(new EstadoAlquiler(codigo));
-
-        // El estado nuevo debe protegerla incluso si el legado
-        // contiene un valor que antes permitía ocultarla.
-        alquiler.setEstado(CodigoEstadoAlquiler.FINALIZADO);
 
         assertThrows(
                 IllegalStateException.class,
@@ -80,11 +74,8 @@ class BorradoAlquilerServiceTest {
     @ValueSource(strings = {
             "FINALIZADO", "CANCELADO", "VENCIDO"
     })
-    void ocultaContratacionNuevaCerradaSinAlterarImportes(
-            String codigo
-    ) throws Exception {
+    void ocultaAlquilerCerradoSinAlterarImportes(String codigo) {
         Alquiler alquiler = prepararAlquiler();
-
         alquiler.setEstadoContratacion(new EstadoAlquiler(codigo));
         alquiler.setCostoEstimadoArs(new BigDecimal("1800.00"));
         alquiler.setCostoFinalArs(new BigDecimal("1200.00"));
@@ -105,9 +96,9 @@ class BorradoAlquilerServiceTest {
                 alquiler.getCostoFinalArs()
         );
 
-        // Ocultar no inventa una liquidación ni una cancelación.
         assertNull(alquiler.getFechaHoraLiquidacion());
         assertNull(alquiler.getFechaHoraCancelacion());
+        assertNull(alquiler.getFechaHoraCierre());
 
         verify(alquilerRepository).buscarPorIdConBloqueo(50);
         verify(alquilerRepository).save(alquiler);
@@ -117,48 +108,7 @@ class BorradoAlquilerServiceTest {
     }
 
     @Test
-    void rechazaAlquilerLegadoEnCurso() {
-        Alquiler alquiler = prepararAlquiler();
-        alquiler.setEstado(CodigoEstadoAlquiler.INICIADO);
-
-        assertThrows(
-                IllegalStateException.class,
-                () -> servicio.borrarAlquilerLogico(50)
-        );
-
-        assertFalse(alquiler.isBorradoAlquiler());
-        assertEquals(
-                CodigoEstadoAlquiler.INICIADO,
-                alquiler.getEstado()
-        );
-
-        comprobarSinGuardado();
-        comprobarSinEfectosLaterales();
-    }
-
-    @ParameterizedTest
-    @EnumSource(
-            value = CodigoEstadoAlquiler.class,
-            names = {"FINALIZADO", "CANCELADO", "RECHAZADO"}
-    )
-    void conservaBorradoDelLegadoCerrado(
-            CodigoEstadoAlquiler estado
-    ) throws Exception {
-        Alquiler alquiler = prepararAlquiler();
-        alquiler.setEstado(estado);
-
-        servicio.borrarAlquilerLogico(50);
-
-        assertTrue(alquiler.isBorradoAlquiler());
-        assertEquals(estado, alquiler.getEstado());
-        assertNull(alquiler.getEstadoContratacion());
-
-        verify(alquilerRepository).save(alquiler);
-        comprobarSinEfectosLaterales();
-    }
-
-    @Test
-    void rechazaRegistroSinNingunEstado() {
+    void rechazaRegistroSinEstado() {
         Alquiler alquiler = prepararAlquiler();
 
         assertThrows(
@@ -167,7 +117,23 @@ class BorradoAlquilerServiceTest {
         );
 
         assertFalse(alquiler.isBorradoAlquiler());
+        comprobarSinGuardado();
+        comprobarSinEfectosLaterales();
+    }
 
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(strings = {"", "DESCONOCIDO"})
+    void rechazaCodigoDeEstadoInvalido(String codigo) {
+        Alquiler alquiler = prepararAlquiler();
+        alquiler.setEstadoContratacion(new EstadoAlquiler(codigo));
+
+        assertThrows(
+                ConfiguracionSistemaException.class,
+                () -> servicio.borrarAlquilerLogico(50)
+        );
+
+        assertFalse(alquiler.isBorradoAlquiler());
         comprobarSinGuardado();
         comprobarSinEfectosLaterales();
     }
@@ -223,12 +189,12 @@ class BorradoAlquilerServiceTest {
                 bicicletaRepository,
                 historialEstadoDetalleRepository,
                 trazabilidadInventario,
-                correoService
+                pagoRepository,
+                reembolsoRepository
         );
 
         verify(alquilerRepository, never())
                 .delete(any(Alquiler.class));
-
         verify(alquilerRepository, never()).deleteById(anyInt());
     }
 }

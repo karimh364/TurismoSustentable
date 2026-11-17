@@ -1476,7 +1476,6 @@ public class AlquilerService {
             rollbackFor = Exception.class
     )
     public void borrarAlquilerLogico(Integer id) {
-
         Alquiler alquiler = alquilerRepository
                 .buscarPorIdConBloqueo(id)
                 .filter(a -> !a.isBorradoAlquiler())
@@ -1486,41 +1485,36 @@ public class AlquilerService {
                         )
                 );
 
-        if (alquiler.getEstado() == CodigoEstadoAlquiler.INICIADO) {
-            throw new IllegalStateException(
-                    "No se puede eliminar un alquiler en curso. "
-                            + "Primero debe finalizarse indicando "
-                            + "una estación de devolución."
-            );
-        }
+        EstadoAlquiler estadoActual = alquiler.getEstadoContratacion();
 
-        EstadoAlquiler estadoContratacion =
-                alquiler.getEstadoContratacion();
-
-        if (estadoContratacion != null) {
-
-            String codigo = estadoContratacion.getCodigo();
-
-            boolean contratacionCerrada =
-                    "FINALIZADO".equals(codigo)
-                            || "CANCELADO".equals(codigo)
-                            || "VENCIDO".equals(codigo);
-
-            if (!contratacionCerrada) {
-                throw new IllegalStateException(
-                        "No se puede eliminar un alquiler "
-                                + "que todavía no está cerrado."
-                );
-            }
-
-        } else if (alquiler.getEstado() == null) {
-
+        if (estadoActual == null
+                || estadoActual.getCodigo() == null
+                || !Set.of(
+                "RESERVADO",
+                "EN_PROGRESO",
+                "FINALIZADO",
+                "CANCELADO",
+                "VENCIDO"
+        ).contains(estadoActual.getCodigo())) {
             throw new ConfiguracionSistemaException(
-                    "El alquiler no tiene un estado configurado."
+                    "El alquiler no tiene un estado válido configurado."
             );
         }
 
-        // Solo cambia la visibilidad; no cancela ni liquida.
+        boolean cerrado = Set.of(
+                "FINALIZADO",
+                "CANCELADO",
+                "VENCIDO"
+        ).contains(estadoActual.getCodigo());
+
+        if (!cerrado) {
+            throw new IllegalStateException(
+                    "No se puede ocultar un alquiler "
+                            + "que todavía no está cerrado."
+            );
+        }
+
+        // Solo cambia la visibilidad; conserva historia y obligaciones económicas.
         alquiler.setBorradoAlquiler(true);
         alquilerRepository.save(alquiler);
     }

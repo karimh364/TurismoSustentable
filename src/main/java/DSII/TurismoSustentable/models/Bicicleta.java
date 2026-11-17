@@ -4,9 +4,7 @@ import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
-import java.util.HashSet;
 import javax.validation.constraints.Size;
-import java.util.Set;
 
 @Entity
 public class Bicicleta {
@@ -45,9 +43,6 @@ public class Bicicleta {
     @Column(nullable = false)
     private boolean borradoBici = false; // Independiente del estado y de la presencia física
     // ------------------------------------
-
-    @OneToMany(mappedBy = "bicicleta", fetch = FetchType.LAZY)
-    private Set<Alquiler> alquileres = new HashSet<>();
 
     // CONSTRUCTORES
     public Bicicleta() {
@@ -115,16 +110,6 @@ public class Bicicleta {
 
     public void setBorradoBici(boolean borradoBici) {
         this.borradoBici = borradoBici;
-    }
-
-    // Getters y Setters de la relación
-
-    public Set<Alquiler> getAlquileres() {
-        return alquileres;
-    }
-
-    public void setAlquileres(Set<Alquiler> alquileres) {
-        this.alquileres = alquileres;
     }
 
     @Override

@@ -142,18 +142,19 @@ class AlquilerCotizacionTest {
     }
 
     @Test
-    void constructorAnteriorNoInventaDatosDeCotizacion() {
-        Alquiler alquiler = new Alquiler(
-                new Usuario(),
-                new Bicicleta(),
-                new Estacion()
-        );
+    void constructorVacioNoInventaDatosDeCotizacion() {
+        Alquiler alquiler = new Alquiler();
 
         assertNull(alquiler.getCotizacionArsPorUsd());
         assertNull(alquiler.getFuenteCotizacion());
         assertNull(alquiler.getFechaHoraAplicacionCotizacion());
         assertNull(alquiler.getFechaHoraActualizacionFuente());
 
-        assertTrue(validator.validate(alquiler).isEmpty());
+        // Una entidad vacía no equivale a una cabecera lista para guardar.
+        assertFalse(
+                validator.validateProperty(
+                        alquiler, "ubicacionRetiro"
+                ).isEmpty()
+        );
     }
 }

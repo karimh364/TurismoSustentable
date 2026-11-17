@@ -1,7 +1,6 @@
 package DSII.TurismoSustentable.repositories;
 
 import DSII.TurismoSustentable.models.Alquiler;
-import DSII.TurismoSustentable.models.Usuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -29,9 +28,6 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
             @org.springframework.data.repository.query.Param("id") Integer id);
 
     // MÉTODOS DE BÚSQUEDA PERSONALIZADOS
-    List<Alquiler> findByBorradoAlquilerFalse();
-    List<Alquiler> findByUsuarioAndBorradoAlquilerFalse(Usuario usuario);
-
     @EntityGraph(attributePaths = {
             "usuario",
             "estadoContratacion",

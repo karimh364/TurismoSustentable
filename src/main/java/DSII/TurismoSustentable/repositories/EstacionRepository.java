@@ -12,9 +12,6 @@ import java.util.Optional;
 
 public interface EstacionRepository extends JpaRepository<Estacion, Integer> {
 
-    // Útil para buscar una estación por su nombre
-    Optional<Estacion> findByNombre(String nombre);
-
     boolean existsByNombreIgnoreCase(String nombre);
 
     boolean existsByNombreIgnoreCaseAndIdNot(
@@ -24,14 +21,6 @@ public interface EstacionRepository extends JpaRepository<Estacion, Integer> {
 
     List<Estacion> findByBorradoEstacionFalse();
     List<Estacion> findByBorradoEstacionFalseAndEsPublicaTrue();
-
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT e FROM Estacion e " +
-            "WHERE e.nombre = :nombre " +
-            "AND e.borradoEstacion = false")
-    Optional<Estacion> buscarActivaPorNombreConBloqueo(
-            @Param("nombre") String nombre
-    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT e FROM Estacion e " +

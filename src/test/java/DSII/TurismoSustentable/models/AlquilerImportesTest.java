@@ -79,22 +79,30 @@ class AlquilerImportesTest {
     }
 
     @Test
-    void mantieneImportesPendientesSinInventarCerosEnLaTransicion() {
-        Alquiler alquiler = new Alquiler(
-                new Usuario(),
-                new Bicicleta(),
-                new Estacion()
-        );
+    void conservaImportesFinalesPendientesSinInventarCeros() {
+        Alquiler alquiler = new Alquiler();
 
-        assertNull(alquiler.getCostoEstimadoUsd());
-        assertNull(alquiler.getCostoEstimadoArs());
+        alquiler.setCostoEstimadoUsd(new BigDecimal("18.00"));
+        alquiler.setCostoEstimadoArs(new BigDecimal("27540.00"));
+
+        assertEquals(
+                new BigDecimal("18.00"),
+                alquiler.getCostoEstimadoUsd()
+        );
+        assertEquals(
+                new BigDecimal("27540.00"),
+                alquiler.getCostoEstimadoArs()
+        );
         assertNull(alquiler.getCostoFinalUsd());
         assertNull(alquiler.getCostoFinalArs());
 
-        for (String campo : CAMPOS) {
+        for (String campo : new String[]{
+                "costoFinalUsd",
+                "costoFinalArs"
+        }) {
             assertTrue(
                     validator.validateProperty(alquiler, campo).isEmpty(),
-                    "Durante la transición se permite null en " + campo
+                    "El importe final puede estar pendiente: " + campo
             );
         }
     }

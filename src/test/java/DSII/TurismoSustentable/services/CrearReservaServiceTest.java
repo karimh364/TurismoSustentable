@@ -265,7 +265,6 @@ class CrearReservaServiceTest {
 
         assertNull(cabecera.getCostoFinalUsd());
         assertNull(cabecera.getCostoFinalArs());
-        assertNull(cabecera.getFechaInicio());
         assertNull(cabecera.getFechaHoraLiquidacion());
 
         ArgumentCaptor<AlquilerDetalle> detalleCaptor =
