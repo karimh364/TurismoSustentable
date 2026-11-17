@@ -1,6 +1,5 @@
 package DSII.TurismoSustentable.services;
 
-import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
 import DSII.TurismoSustentable.dto.CancelarDetalleDTO;
@@ -32,7 +31,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.Map;
 
 import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
@@ -78,9 +76,6 @@ public class AlquilerService {
 
     @Autowired
     private EstacionRepository estacionRepository;
-
-    @Autowired
-    private CorreoService correoService;
 
     @Autowired
     private TipoBicicletaRepository tipoBicicletaRepository;
@@ -167,8 +162,6 @@ public class AlquilerService {
                 new ConfiguracionSistemaException("Falta el estado de bicicleta: " + codigo));
     }
 
-    private static final BigDecimal SEGUNDOS_EN_HORA =
-            new BigDecimal("3600");
 
 
     // OBTIENE EL USUARIO AUTENTICADO
@@ -190,27 +183,12 @@ public class AlquilerService {
     }
 
 
-    // COMPRUEBA SI EL USUARIO ACTUAL ES ADMINISTRADOR
-    private boolean usuarioActualEsAdmin() {
-        Authentication auth =
-                SecurityContextHolder.getContext().getAuthentication();
-
-        if (auth == null) {
-            return false;
-        }
-
-        return auth.getAuthorities().stream()
-                .anyMatch(autoridad ->
-                        "ADMIN".equals(autoridad.getAuthority())
-                );
-    }
-
     @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
     @Transactional(
             readOnly = true,
             isolation = Isolation.REPEATABLE_READ
     )
-    public List<Object> listarMisAlquileres() {
+    public List<AlquilerCabeceraDTO> listarMisAlquileres() {
 
         Usuario usuario = obtenerUsuarioAutenticado();
 
@@ -239,7 +217,7 @@ public class AlquilerService {
             readOnly = true,
             isolation = Isolation.REPEATABLE_READ
     )
-    public List<Object> listarAlquileresAdministracion() {
+    public List<AlquilerCabeceraDTO> listarAlquileresAdministracion() {
 
         Usuario usuario = obtenerUsuarioAutenticado();
 
@@ -261,31 +239,30 @@ public class AlquilerService {
         );
     }
 
-    /*
-     * Compatibilidad temporal de lectura.
-     * Retirar la rama ANTERIOR al reemplazar sus productores y consumidores.
-     * No convierte registros antiguos ni inventa detalles o cotizaciones.
-     */
-    private List<Object> prepararListado(List<Alquiler> alquileres) {
-
-        List<Integer> idsConDetalles = new ArrayList<>();
+    private List<AlquilerCabeceraDTO> prepararListado(
+            List<Alquiler> alquileres
+    ) {
+        List<Integer> ids = new ArrayList<>();
 
         for (Alquiler alquiler : alquileres) {
-            if (alquiler.getEstadoContratacion() != null) {
-                idsConDetalles.add(alquiler.getId());
+            if (alquiler.getEstadoContratacion() == null
+                    || alquiler.getUbicacionRetiro() == null) {
+                throw new ConfiguracionSistemaException(
+                        "El alquiler con ID "
+                                + alquiler.getId()
+                                + " no tiene los datos obligatorios de cabecera."
+                );
             }
+
+            ids.add(alquiler.getId());
         }
 
         Map<Integer, List<AlquilerDetalle>> detallesPorAlquiler =
                 new TreeMap<>();
 
-        // Evitar una consulta IN con una colección vacía.
-        if (!idsConDetalles.isEmpty()) {
-
+        if (!ids.isEmpty()) {
             List<AlquilerDetalle> detalles =
-                    alquilerDetalleRepository.buscarPorAlquileresConDatos(
-                            idsConDetalles
-                    );
+                    alquilerDetalleRepository.buscarPorAlquileresConDatos(ids);
 
             for (AlquilerDetalle detalle : detalles) {
                 detallesPorAlquiler.computeIfAbsent(
@@ -295,40 +272,21 @@ public class AlquilerService {
             }
         }
 
-        List<Object> resultado = new ArrayList<>();
+        List<AlquilerCabeceraDTO> resultado = new ArrayList<>();
 
         for (Alquiler alquiler : alquileres) {
+            List<AlquilerDetalle> detalles =
+                    detallesPorAlquiler.get(alquiler.getId());
 
-            if (alquiler.getEstadoContratacion() != null) {
-
-                List<AlquilerDetalle> detalles =
-                        detallesPorAlquiler.get(alquiler.getId());
-
-                if (detalles == null || detalles.isEmpty()) {
-                    throw new ConfiguracionSistemaException(
-                            "El alquiler con ID "
-                                    + alquiler.getId()
-                                    + " no tiene detalles registrados."
-                    );
-                }
-
-                resultado.add(
-                        new AlquilerCabeceraDTO(alquiler, detalles)
+            if (detalles == null || detalles.isEmpty()) {
+                throw new ConfiguracionSistemaException(
+                        "El alquiler con ID "
+                                + alquiler.getId()
+                                + " no tiene detalles registrados."
                 );
-
-            } else {
-
-                if (alquiler.getEstado() == null
-                        || alquiler.getBicicleta() == null) {
-                    throw new ConfiguracionSistemaException(
-                            "El alquiler anterior con ID "
-                                    + alquiler.getId()
-                                    + " tiene datos incompletos."
-                    );
-                }
-
-                resultado.add(new AlquilerDTO(alquiler));
             }
+
+            resultado.add(new AlquilerCabeceraDTO(alquiler, detalles));
         }
 
         return resultado;
@@ -1565,153 +1523,6 @@ public class AlquilerService {
         // Solo cambia la visibilidad; no cancela ni liquida.
         alquiler.setBorradoAlquiler(true);
         alquilerRepository.save(alquiler);
-    }
-
-    /*
-     * FINALIZAR UN ALQUILER
-     */
-    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
-    public AlquilerDTO finalizarAlquiler(
-            Integer id,
-            String nombreEstacionDestino
-    ) throws Exception {
-
-        // 1. Obtener el usuario autenticado
-        Usuario usuarioAutenticado = obtenerUsuarioAutenticado();
-
-        // 2. Buscar el alquiler
-        Alquiler alquiler = alquilerRepository.buscarPorIdConBloqueo(id)
-                .filter(a -> !a.isBorradoAlquiler())
-                .orElseThrow(() ->
-                        new Exception("El alquiler no existe.")
-                );
-
-        // 3. Prevenir IDOR
-        boolean esAdmin = usuarioActualEsAdmin();
-
-        boolean esPropietario =
-                alquiler.getUsuario().getId()
-                        == usuarioAutenticado.getId();
-
-        if (!esAdmin && !esPropietario) {
-            throw new AccessDeniedException(
-                    "No tiene permiso para finalizar este alquiler."
-            );
-        }
-
-        // 4. Comprobar el estado
-        if (alquiler.getEstado() != CodigoEstadoAlquiler.INICIADO) {
-            throw new IllegalStateException(
-                    "El alquiler ya fue finalizado o cancelado."
-            );
-        }
-
-        // 5. Validar el nombre de la estación
-        if (nombreEstacionDestino == null
-                || nombreEstacionDestino.trim().isEmpty()) {
-
-            throw new IllegalArgumentException(
-                    "Debe especificar una estación de destino."
-            );
-        }
-
-        // 6. Buscar la estación de destino
-
-        // Buscar y bloquear la estación durante esta devolución
-        Estacion nuevaEstacion = estacionRepository
-                .buscarActivaPorNombreConBloqueo(
-                        nombreEstacionDestino.trim()
-                )
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "La estación de destino no existe."
-                        )
-                );
-
-        if (!nuevaEstacion.isEsPublica()) {
-            throw new IllegalArgumentException(
-                    "La devolución debe realizarse en una estación pública habilitada."
-            );
-        }
-
-        // Contar todas las bicicletas físicamente presentes, incluso archivadas.
-        long espaciosOcupados = bicicletaRepository
-                .countByUbicacionActual(nuevaEstacion);
-
-        // Impedir que la devolución supere la capacidad
-        if (espaciosOcupados >= nuevaEstacion.getCapacidad()) {
-            throw new IllegalStateException(
-                    "La estación seleccionada no tiene espacios libres."
-            );
-        }
-
-        BigDecimal precioPorHora = alquiler.getPrecioPorHoraAplicado();
-        if (precioPorHora == null || precioPorHora.signum() <= 0) {
-            // No reconstruir contratos antiguos con una tarifa actual diferente.
-            throw new ConfiguracionSistemaException("El alquiler no tiene una tarifa contratada válida.");
-        }
-        EstadoBicicleta disponible = estadoBicicleta("DISPONIBLE");
-
-        // 7. Registrar la hora real de devolución
-        LocalDateTime fechaDevolucion = LocalDateTime.now();
-
-        alquiler.setFechaFin(fechaDevolucion);
-        alquiler.setEstado(CodigoEstadoAlquiler.FINALIZADO);
-        alquiler.setUbicacionDevolucion(nuevaEstacion);
-
-        // 8. Calcular duración real
-        long segundosReales = ChronoUnit.SECONDS.between(
-                alquiler.getFechaInicio(),
-                fechaDevolucion
-        );
-
-        if (segundosReales < 0) {
-            segundosReales = 0;
-        }
-
-        // 9. Calcular costo final en USD
-        BigDecimal precioPorSegundo = precioPorHora.divide(
-                SEGUNDOS_EN_HORA,
-                10,
-                RoundingMode.HALF_UP
-        );
-
-        BigDecimal costoFinal = precioPorSegundo
-                .multiply(BigDecimal.valueOf(segundosReales))
-                .setScale(2, RoundingMode.HALF_UP);
-
-        alquiler.setCostoTotal(costoFinal);
-
-        // 10. Obtener y congelar costo en ARS
-        BigDecimal tasaCambio = obtenerCotizacionDolar();
-
-        BigDecimal costoArs = costoFinal
-                .multiply(tasaCambio)
-                .setScale(0, RoundingMode.HALF_UP);
-
-        alquiler.setCostoTotalArs(costoArs);
-
-        // 11. Liberar y trasladar la bicicleta
-        Bicicleta bicicleta = alquiler.getBicicleta();
-
-        EstadoBicicleta estadoAnterior = bicicleta.getEstado();
-        bicicleta.setEstado(disponible);
-        bicicleta.setUbicacionActual(nuevaEstacion);
-
-        bicicletaRepository.save(bicicleta);
-        trazabilidadInventario.estado(bicicleta, estadoAnterior, usuarioAutenticado,
-                "Devolución de alquiler.");
-        // Tener ADMIN además de CLIENTE no convierte su propio viaje en una acción administrativa.
-        if (esAdmin && !esPropietario) {
-            trazabilidadInventario.administracion(usuarioAutenticado, "BICICLETA", bicicleta.getId(),
-                    "FINALIZAR_ALQUILER", "estado=" + estadoAnterior.getCodigo(),
-                    trazabilidadInventario.datos(bicicleta), "Devolución de alquiler.");
-        }
-
-        // 12. Guardar alquiler finalizado
-        Alquiler alquilerFinalizado = alquilerRepository.save(alquiler);
-        correoService.enviarComprobanteFinalizacion(alquilerFinalizado);
-        return new AlquilerDTO(alquilerFinalizado);
     }
 
     /*

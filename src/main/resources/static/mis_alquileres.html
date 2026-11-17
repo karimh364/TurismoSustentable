@@ -88,8 +88,8 @@
                         <thead class="table-light">
                         <tr>
                             <th>Bicicleta(s)</th>
-                            <th>Registro / inicio</th>
-                            <th>Cierre / fin</th>
+                            <th>Creación</th>
+                            <th>Cierre</th>
                             <th>Importes</th>
                             <th>Estado</th>
                         </tr>
@@ -99,39 +99,6 @@
                     </table>
                 </div>
                 <div id="mensaje-historial" class="text-center text-muted mt-2"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="modalDevolucion" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-danger text-white border-0">
-                    <h5 class="modal-title fw-bold"><i class="fas fa-map-marker-alt me-2"></i> Finalizar Viaje</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-
-                    <div class="text-center mb-4">
-                        <h4 id="modal-dev-bici" class="fw-bold text-dark mb-1">---</h4>
-                        <p class="text-muted small">Tiempo transcurrido: <strong id="modal-dev-tiempo" class="text-primary">0 min</strong></p>
-                    </div>
-
-                    <input type="hidden" id="modal-dev-id">
-
-                    <div class="mb-4">
-                        <label class="form-label fw-bold text-muted">¿Dónde vas a devolverla?</label>
-                        <select id="select-estacion-destino" class="form-select form-select-lg shadow-sm">
-                            <option value="">Cargando estaciones...</option>
-                        </select>
-                        <div class="form-text mt-2"><i class="fas fa-info-circle"></i> Solo se muestran estaciones con lugares disponibles.</div>
-                    </div>
-
-                </div>
-                <div class="modal-footer bg-light border-0 p-3 justify-content-between rounded-bottom-4">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold" onclick="confirmarDevolucion()">Devolver Bici <i class="fas fa-check ms-1"></i></button>
-                </div>
             </div>
         </div>
     </div>

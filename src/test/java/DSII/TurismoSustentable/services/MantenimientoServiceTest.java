@@ -35,7 +35,6 @@ class MantenimientoServiceTest {
     @Mock EstadoBicicletaRepository estadosBici;
     @Mock EstacionRepository estaciones;
     @Mock TipoBicicletaRepository tiposBici;
-    @Mock AlquilerRepository alquileres;
     @Mock AlquilerDetalleRepository detalles;
     @Mock IncidenciaRepository incidencias;
     @Mock TrazabilidadInventarioService traza;
@@ -51,8 +50,26 @@ class MantenimientoServiceTest {
     @BeforeAll static void validar(){factory=Validation.buildDefaultValidatorFactory();}
     @AfterAll static void cerrar(){factory.close();}
     @BeforeEach void preparar(){
-        servicio=new MantenimientoService(ordenes,historias,bicis,usuarios,tipos,estados,estadosBici,estaciones,tiposBici,
-                alquileres,detalles,incidencias,traza,Clock.fixed(ahora.toInstant(ZoneOffset.UTC),ZoneOffset.UTC),factory.getValidator(),new ObjectMapper());
+        servicio = new MantenimientoService(
+                ordenes,
+                historias,
+                bicis,
+                usuarios,
+                tipos,
+                estados,
+                estadosBici,
+                estaciones,
+                tiposBici,
+                detalles,
+                incidencias,
+                traza,
+                Clock.fixed(
+                        ahora.toInstant(ZoneOffset.UTC),
+                        ZoneOffset.UTC
+                ),
+                factory.getValidator(),
+                new ObjectMapper()
+        );
         admin=usuario(1,"ADMIN"); tec=usuario(2,"TECNICO"); otro=usuario(3,"TECNICO"); cliente=usuario(4,"CLIENTE");
         cuentas=Map.of(1,admin,2,tec,3,otro,4,cliente);
         estacion=new Estacion("Taller","Calle 1",10,-31.4,-64.2); ReflectionTestUtils.setField(estacion,"id",5); estacion.setEsPublica(false);

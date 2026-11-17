@@ -140,11 +140,6 @@ public class WebAuthorization {
                         "/api/alquileres/*/detalles/*/devolver"
                 ).hasAnyAuthority("CLIENTE", "ADMIN")
 
-                .antMatchers(
-                        HttpMethod.PATCH,
-                        "/api/alquileres/finalizar/**"
-                ).hasAnyAuthority("ADMIN", "CLIENTE")
-
                 // 6. CONSULTAS DE USUARIOS: SOLO ADMIN
                 .antMatchers(
                         HttpMethod.GET,

@@ -24,6 +24,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import javax.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
@@ -33,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -45,6 +47,7 @@ class DevolucionAlquilerControllerTest {
     private static final String CUERPO = "{\"estacionDevolucionId\":200}";
 
     @Autowired private MockMvc mockMvc;
+    @Autowired private RequestMappingHandlerMapping rutas;
     @MockBean private AlquilerService servicio;
     @MockBean private LiquidacionAlquilerService liquidacionAlquilerService;
     @MockBean private UserDetailsService userDetailsService;
@@ -131,6 +134,53 @@ class DevolucionAlquilerControllerTest {
         String respuesta = mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().is(esperado)).andReturn().getResponse().getContentAsString();
         if (esperado == 500) assertFalse(respuesta.contains("CONFIG_INTERNA_QA"));
+    }
+
+    @Test
+    void devolucionAnteriorNoTieneControladorRegistrado() {
+        boolean existeRutaAnterior = rutas.getHandlerMethods()
+                .keySet()
+                .stream()
+                .flatMap(info -> info.getPatternValues().stream())
+                .anyMatch(ruta ->
+                        ruta.startsWith("/api/alquileres/finalizar/")
+                );
+
+        assertFalse(existeRutaAnterior);
+    }
+
+    @Test
+    void visitanteNoPuedeUtilizarLaDevolucionAnterior() throws Exception {
+        mockMvc.perform(
+                        patch("/api/alquileres/finalizar/7")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"ubicacionDestino\":\"Destino QA\"}"
+                                )
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(servicio, liquidacionAlquilerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CLIENTE", "ADMIN", "TECNICO"})
+    void ningunRolPuedeUtilizarLaDevolucionAnterior(
+            String rol
+    ) throws Exception {
+        mockMvc.perform(
+                        patch("/api/alquileres/finalizar/7")
+                                .with(user("qa@example.com").authorities(
+                                        new SimpleGrantedAuthority(rol)
+                                ))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"ubicacionDestino\":\"Destino QA\"}"
+                                )
+                )
+                .andExpect(status().isForbidden());
+
+        verifyNoInteractions(servicio, liquidacionAlquilerService);
     }
 
     private AlquilerDetalleDTO detalleDevuelto() {

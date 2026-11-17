@@ -24,29 +24,22 @@ const VistaAlquileres = (() => {
         return numero;
     }
 
-    function nuevo(alquiler) {
-        if (alquiler?.modelo === 'ANTERIOR') {
-            return false;
-        }
-
+    function validar(alquiler) {
         if (alquiler?.modelo !== 'DETALLES'
                 || !Array.isArray(alquiler.detalles)
                 || alquiler.detalles.length === 0) {
             throw new Error('Formato de alquiler incompleto o desconocido.');
         }
-
-        return true;
     }
 
-    function fecha(valor, utc = false) {
+    function fecha(valor) {
         if (!valor) return '—';
 
-        // El nuevo flujo guarda fechas UTC sin offset en LocalDateTime.
-        // Las fechas del modelo anterior conservan su interpretación.
+        // El backend entrega estas fechas en UTC.
         const cadena = String(valor);
-        const iso = utc && !/(Z|[+-]\d{2}:\d{2})$/i.test(cadena)
-            ? cadena + 'Z'
-            : cadena;
+        const iso = /(Z|[+-]\d{2}:\d{2})$/i.test(cadena)
+            ? cadena
+            : cadena + 'Z';
 
         const resultado = new Date(iso);
 
@@ -80,24 +73,13 @@ const VistaAlquileres = (() => {
     }
 
     function activo(alquiler) {
-        return nuevo(alquiler)
-            ? ['RESERVADO', 'EN_PROGRESO'].includes(alquiler.estado)
-            : alquiler.estado === 'INICIADO';
+        validar(alquiler);
+
+        return ['RESERVADO', 'EN_PROGRESO'].includes(alquiler.estado);
     }
 
     function importes(alquiler, moneda = 'USD') {
-        if (!nuevo(alquiler)) {
-            const etiqueta = alquiler.estado === 'INICIADO'
-                ? 'Estimado'
-                : 'Total';
-
-            return `${etiqueta}: ${importe(
-                alquiler.costoTotal,
-                alquiler.costoTotalArs,
-                moneda,
-                'No informado'
-            )}`;
-        }
+        validar(alquiler);
 
         return `
             <div>Estimado: ${importe(
@@ -115,12 +97,7 @@ const VistaAlquileres = (() => {
     }
 
     function bicicletas(alquiler, moneda = 'USD', accionesDetalle = () => '') {
-        if (!nuevo(alquiler)) {
-            return `
-                <strong>${texto(alquiler.codigoBicicleta)}</strong>
-                <div class="small text-muted">Modelo anterior</div>
-            `;
-        }
+        validar(alquiler);
 
         const unidades = alquiler.detalles.map(detalle => `
             <li class="mb-3">
@@ -133,16 +110,10 @@ const VistaAlquileres = (() => {
                     'USD',
                     'No informada'
                 )}</div>
-                <div>Retiro: ${fecha(detalle.fechaHoraRetiro, true)}</div>
-                <div>Devolución estimada: ${fecha(
-            detalle.fechaHoraDevolucionEstimada, true
-                )}</div>
-                <div>Devolución real: ${fecha(
-                    detalle.fechaHoraDevolucionReal, true
-                )}</div>
-                <div>Fin de uso: ${fecha(
-                    detalle.fechaHoraFinUso, true
-                )}</div>
+                <div>Retiro: ${fecha(detalle.fechaHoraRetiro)}</div>
+                <div>Devolución estimada: ${fecha(detalle.fechaHoraDevolucionEstimada)}</div>
+                <div>Devolución real: ${fecha(detalle.fechaHoraDevolucionReal)}</div>
+                <div>Fin de uso: ${fecha(detalle.fechaHoraFinUso)}</div>
                 <div>Estimado: ${importe(
                     detalle.subtotalEstimadoUsd,
                     detalle.subtotalEstimadoArs,
@@ -178,7 +149,7 @@ const VistaAlquileres = (() => {
     }
 
     return {
-        texto, id, nuevo, fecha, importe,
+        texto, id, validar, fecha, importe,
         activo, importes, bicicletas
     };
 })();

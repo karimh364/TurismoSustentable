@@ -1,6 +1,6 @@
 package DSII.TurismoSustentable.controllers;
 
-import DSII.TurismoSustentable.dto.AlquilerDTO;
+import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
 import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
 import DSII.TurismoSustentable.dto.CancelarDetalleDTO;
 import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
@@ -18,7 +18,6 @@ import javax.persistence.EntityNotFoundException;
 import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -32,7 +31,7 @@ public class AlquilerController {
     private LiquidacionAlquilerService liquidacionAlquilerService;
 
     @GetMapping("/alquileres")
-    public List<Object> getAlquiler() {
+    public List<AlquilerCabeceraDTO> getAlquiler() {
         return alquilerService.listarMisAlquileres();
     }
 
@@ -193,64 +192,6 @@ public class AlquilerController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (IllegalStateException ex) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
-        }
-    }
-
-    // FINALIZAR ALQUILER
-    @PatchMapping("/alquileres/finalizar/{id}")
-    public ResponseEntity<Object> finalizarAlquiler(
-            @PathVariable Integer id,
-            @RequestBody Map<String, String> payload) {
-
-        try {
-            String ubicacionDestino = payload.get("ubicacionDestino");
-
-            if (ubicacionDestino == null
-                    || ubicacionDestino.trim().isEmpty()) {
-
-                return new ResponseEntity<>(
-                        "Debe especificar la estación de destino.",
-                        HttpStatus.BAD_REQUEST
-                );
-            }
-
-            AlquilerDTO alquilerFinalizado =
-                    alquilerService.finalizarAlquiler(
-                            id,
-                            ubicacionDestino
-                    );
-
-            return ResponseEntity.ok(alquilerFinalizado);
-
-        } catch (ConfiguracionSistemaException e) {
-            throw e;
-        } catch (AccessDeniedException e) {
-            // Intentó finalizar el alquiler de otro usuario
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.FORBIDDEN
-            );
-
-        } catch (IllegalStateException e) {
-            // Alquiler finalizado, cancelado o estación llena
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.CONFLICT
-            );
-
-        } catch (IllegalArgumentException e) {
-            // Estación inexistente o datos inválidos
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST
-            );
-
-        } catch (Exception e) {
-            // Cualquier otro error no previsto
-            return new ResponseEntity<>(
-                    e.getMessage(),
-                    HttpStatus.BAD_REQUEST
-            );
         }
     }
 

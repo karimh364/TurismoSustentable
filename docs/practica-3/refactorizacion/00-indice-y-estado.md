@@ -1,6 +1,22 @@
 # Refactorización de Prácticas III: índice y estado
 
-Actualizado: 16 de noviembre de 2026.
+Actualizado: 17 de noviembre de 2026.
+
+## Referencia vigente para el cierre — 17/11
+
+El [diagnóstico y guía de cierre del DER v5](44-diagnostico-y-guia-cierre-der-v5.md)
+consolida el análisis de backend, consumidores web, esquema y datos actuales,
+pendientes y orden de trabajo antes de la exposición del miércoles 18 a las 19:30.
+La BD tiene 29 tablas y las 55 relaciones previstas, pero conserva dos FK y ocho
+columnas del alquiler anterior; no se declara una migración 100 % terminada.
+Las siete suites JS se ejecutaron en la revisión: 117 aprobadas, cero fallos.
+La revisión no ejecutó integraciones destructivas ni modificó código o datos.
+El primer subbloque manual preparado retira el control antiguo de alquiler activo
+de inventario/mantenimiento/incidencias, conservando el control por detalle.
+Las tareas propuestas de esa guía siguen pendientes hasta su implementación y
+comprobación; las notas siguientes conservan el estado histórico de cada etapa.
+
+## Antecedentes y comprobaciones anteriores
 
 Comprobacion de cierre: edicion de qa.tecnico confirmada por lectura (apellido
 Circuito QA), con auditoria USUARIO #2, antes/despues y actor qa.circuito. Las

@@ -632,7 +632,7 @@ async function cargarAlquileres() {
         }
 
         const filas = res.data.map(alquiler => {
-            const nuevo = VistaAlquileres.nuevo(alquiler);
+            VistaAlquileres.validar(alquiler);
             const id = VistaAlquileres.id(alquiler.id);
 
             return `
@@ -645,32 +645,15 @@ async function cargarAlquileres() {
                             ${VistaAlquileres.texto(alquiler.estado)}
                         </span>
                     </td>
-                    <td>${VistaAlquileres.fecha(
-                        nuevo
-                            ? alquiler.fechaHoraCreacion
-                            : alquiler.fechaInicio,
-                        nuevo
-                    )}</td>
-                    <td>${VistaAlquileres.fecha(
-                        nuevo
-                            ? alquiler.fechaHoraCierre
-                            : alquiler.fechaFin,
-                        nuevo
-                    )}</td>
+                    <td>${VistaAlquileres.fecha(alquiler.fechaHoraCreacion)}</td>
+                    <td>${VistaAlquileres.fecha(alquiler.fechaHoraCierre)}</td>
                     <td>
                         ${VistaAlquileres.importes(alquiler, 'USD')}
                         <hr class="my-1">
                         ${VistaAlquileres.importes(alquiler, 'ARS')}
                     </td>
                     <td>
-                        ${!nuevo && alquiler.estado === 'INICIADO'
-                            ? `
-                                <button class="btn btn-sm btn-danger"
-                                    onclick="finalizarAlquilerAdmin(${id})">
-                                    Finalizar
-                                </button>
-                            `
-                            : (nuevo && typeof OperacionesAlquiler !== 'undefined' ? OperacionesAlquiler.acciones(alquiler, true) : '<span class="text-muted">Solo consulta</span>')}
+                        ${typeof OperacionesAlquiler === 'undefined' ? '<span class="text-muted">Solo consulta</span>' : OperacionesAlquiler.acciones(alquiler, true)}
                     </td>
                 </tr>`;
         });
@@ -693,91 +676,6 @@ async function cargarAlquileres() {
         `;
     }
 }
-
-async function finalizarAlquilerAdmin(id) {
-    try {
-        // Obtener información actualizada de las estaciones
-        const respuesta = await axios.get('/api/estaciones');
-
-        // Mostrar solamente estaciones que tengan lugar
-        const estacionesDisponibles = respuesta.data.filter(
-            estacion => estacion.espaciosLibres > 0
-        );
-
-        if (estacionesDisponibles.length === 0) {
-            Swal.fire(
-                'Sin estaciones disponibles',
-                'No hay estaciones con espacios libres para devolver la bicicleta.',
-                'warning'
-            );
-            return;
-        }
-
-        // Opciones para el selector de SweetAlert
-        const opciones = {};
-
-        estacionesDisponibles.forEach(estacion => {
-            opciones[estacion.nombre] =
-                `${estacion.nombre} - ${estacion.espaciosLibres} espacios libres`;
-        });
-
-        const resultado = await Swal.fire({
-            title: 'Finalizar alquiler',
-            text: 'Seleccione la estación de devolución',
-            input: 'select',
-            inputOptions: opciones,
-            inputPlaceholder: 'Seleccione una estación',
-            showCancelButton: true,
-            confirmButtonText: 'Finalizar viaje',
-            cancelButtonText: 'Cancelar',
-            icon: 'question',
-
-            inputValidator: valor => {
-                if (!valor) {
-                    return 'Debe seleccionar una estación.';
-                }
-            }
-        });
-
-        if (!resultado.isConfirmed) {
-            return;
-        }
-
-        // El backend espera: { ubicacionDestino: "Nombre estación" }
-        await axios.patch(
-            `/api/alquileres/finalizar/${id}`,
-            {
-                ubicacionDestino: resultado.value
-            }
-        );
-
-        await Promise.all([
-            cargarAlquileres(),
-            cargarBicicletas(),
-            cargarEstaciones()
-        ]);
-
-        Swal.fire(
-            'Alquiler finalizado',
-            'La bicicleta fue devuelta correctamente.',
-            'success'
-        );
-
-    } catch (e) {
-        if (manejarErrorSesion(e)) return;
-        const mensaje =
-            typeof e.response?.data === 'string'
-                ? e.response.data
-                : 'No se pudo finalizar el alquiler.';
-
-        Swal.fire(
-            'No se pudo finalizar',
-            mensaje,
-            'error'
-        );
-    }
-}
-
 
 // UTILIDADES
 function getColorEstado(estado) {

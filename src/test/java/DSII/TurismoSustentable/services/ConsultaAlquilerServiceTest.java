@@ -1,7 +1,6 @@
 package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
-import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.*;
@@ -539,16 +538,8 @@ class ConsultaAlquilerServiceTest {
     }
 
     @Test
-    void listadoPropioCombinaModelosYAgrupaDetallesSinMezclarlos() {
+    void listadoPropioAgrupaDetallesYConservaSnapshots() {
         prepararUsuario();
-
-        Alquiler anterior = new Alquiler();
-        anterior.setId(40);
-        anterior.setUsuario(usuario);
-        anterior.setEstado(CodigoEstadoAlquiler.FINALIZADO);
-        anterior.setBicicleta(detalles.get(0).getBicicleta());
-        anterior.setCostoTotal(new BigDecimal("12.34"));
-        anterior.setCostoTotalArs(new BigDecimal("18880.20"));
 
         Alquiler otraCabecera = new Alquiler();
         otraCabecera.setId(30);
@@ -562,7 +553,7 @@ class ConsultaAlquilerServiceTest {
         otroDetalle.setAlquiler(otraCabecera);
 
         when(alquilerRepository.buscarVisiblesPorUsuarioConDatos(1))
-                .thenReturn(List.of(alquiler, anterior, otraCabecera));
+                .thenReturn(List.of(alquiler, otraCabecera));
 
         // La consulta devuelve los grupos en otro orden.
         when(alquilerDetalleRepository.buscarPorAlquileresConDatos(
@@ -571,18 +562,12 @@ class ConsultaAlquilerServiceTest {
                 otroDetalle, detalles.get(0), detalles.get(1)
         ));
 
-        List<Object> resultado = servicio.listarMisAlquileres();
+        List<AlquilerCabeceraDTO> resultado = servicio.listarMisAlquileres();
 
-        assertEquals(3, resultado.size());
-        assertTrue(resultado.get(0) instanceof AlquilerCabeceraDTO);
-        assertTrue(resultado.get(1) instanceof AlquilerDTO);
-        assertTrue(resultado.get(2) instanceof AlquilerCabeceraDTO);
+        assertEquals(2, resultado.size());
 
-        AlquilerCabeceraDTO primero =
-                (AlquilerCabeceraDTO) resultado.get(0);
-        AlquilerDTO antiguo = (AlquilerDTO) resultado.get(1);
-        AlquilerCabeceraDTO tercero =
-                (AlquilerCabeceraDTO) resultado.get(2);
+        AlquilerCabeceraDTO primero = resultado.get(0);
+        AlquilerCabeceraDTO segundo = resultado.get(1);
 
         assertEquals(50, primero.getId());
         assertEquals("DETALLES", primero.getModelo());
@@ -604,22 +589,13 @@ class ConsultaAlquilerServiceTest {
                 primero.getCotizacionArsPorUsd()
         );
 
-        assertEquals(40, antiguo.getId());
-        assertEquals("ANTERIOR", antiguo.getModelo());
-        assertEquals(
-                new BigDecimal("12.34"), antiguo.getCostoTotal()
-        );
-        assertEquals(
-                new BigDecimal("18880.20"), antiguo.getCostoTotalArs()
-        );
-
-        assertEquals(30, tercero.getId());
-        assertEquals(1, tercero.getDetalles().size());
+        assertEquals(30, segundo.getId());
+        assertEquals(1, segundo.getDetalles().size());
         assertEquals(
                 Integer.valueOf(103),
-                tercero.getDetalles().get(0).getId()
+                segundo.getDetalles().get(0).getId()
         );
-        assertNull(tercero.getCostoFinalUsd());
+        assertNull(segundo.getCostoFinalUsd());
 
         verify(alquilerRepository)
                 .buscarVisiblesPorUsuarioConDatos(1);
@@ -647,12 +623,11 @@ class ConsultaAlquilerServiceTest {
                 List.of(50)
         )).thenReturn(detalles);
 
-        List<Object> resultado =
+        List<AlquilerCabeceraDTO> resultado =
                 servicio.listarAlquileresAdministracion();
 
         assertEquals(1, resultado.size());
-        AlquilerCabeceraDTO cabecera =
-                (AlquilerCabeceraDTO) resultado.get(0);
+        AlquilerCabeceraDTO cabecera = resultado.get(0);
         assertEquals(2, cabecera.getUsuarioId());
         assertEquals(2, cabecera.getDetalles().size());
 
@@ -669,7 +644,7 @@ class ConsultaAlquilerServiceTest {
         autenticar(administrativo ? "ADMIN" : "CLIENTE");
         prepararUsuario();
 
-        List<Object> resultado;
+        List<AlquilerCabeceraDTO> resultado;
 
         if (administrativo) {
             when(alquilerRepository
@@ -741,18 +716,16 @@ class ConsultaAlquilerServiceTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void listadoRechazaRegistroAnteriorIncompleto(
+    void listadoRechazaCabeceraSinDatosObligatorios(
             boolean faltaEstado
     ) {
         prepararUsuario();
 
-        alquiler.setEstadoContratacion(null);
-        alquiler.setEstado(
-                faltaEstado ? null : CodigoEstadoAlquiler.FINALIZADO
-        );
-        alquiler.setBicicleta(
-                faltaEstado ? detalles.get(0).getBicicleta() : null
-        );
+        if (faltaEstado) {
+            alquiler.setEstadoContratacion(null);
+        } else {
+            alquiler.setUbicacionRetiro(null);
+        }
 
         when(alquilerRepository.buscarVisiblesPorUsuarioConDatos(1))
                 .thenReturn(List.of(alquiler));

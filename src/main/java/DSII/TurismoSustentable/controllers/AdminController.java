@@ -1,5 +1,6 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
 import DSII.TurismoSustentable.services.EstadisticasService;
 import DSII.TurismoSustentable.services.AlquilerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +45,7 @@ public class AdminController {
 
     //Metodo del admin para hacer GET a todos los alquileres
     @GetMapping("/alquileres-todos")
-    public List<Object> getAllAlquileres() {
+    public List<AlquilerCabeceraDTO> getAllAlquileres() {
         return alquilerService.listarAlquileresAdministracion();
     }
 

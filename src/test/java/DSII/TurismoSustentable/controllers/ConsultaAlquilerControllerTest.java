@@ -3,7 +3,6 @@ package DSII.TurismoSustentable.controllers;
 import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
-import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.LiquidacionAlquilerDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
@@ -263,13 +262,13 @@ class ConsultaAlquilerControllerTest {
     @ParameterizedTest
     @ValueSource(strings = {LISTADO_PROPIO, LISTADO_ADMIN})
     @WithMockUser(authorities = {"ADMIN", "CLIENTE"})
-    void listadosSerializanAmbosModelosConAmbosRoles(
+    void listadosSerializanCabeceraYDetallesSinCamposAnteriores(
             String ruta
     ) throws Exception {
 
         prepararRespuestaListado(
                 ruta,
-                List.of(crearRespuesta(), crearRespuestaAnterior())
+                List.of(crearRespuesta())
         );
 
         mockMvc.perform(
@@ -279,7 +278,7 @@ class ConsultaAlquilerControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(
                         MediaType.APPLICATION_JSON
                 ))
-                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$.length()").value(1))
 
                 // Modelo del DER v5: cabecera con detalles.
                 .andExpect(jsonPath("$[0].modelo").value("DETALLES"))
@@ -306,15 +305,13 @@ class ConsultaAlquilerControllerTest {
                 .andExpect(jsonPath("$[0].detalles[0].bicicleta")
                         .doesNotExist())
 
-                // Compatibilidad temporal sin fabricar detalles.
-                .andExpect(jsonPath("$[1].modelo").value("ANTERIOR"))
-                .andExpect(jsonPath("$[1].id").value(40))
-                .andExpect(jsonPath("$[1].codigoBicicleta")
-                        .value("QA-ANT-02"))
-                .andExpect(jsonPath("$[1].costoTotal").value(12.34))
-                .andExpect(jsonPath("$[1].costoTotalArs")
-                        .value(18880.2))
-                .andExpect(jsonPath("$[1].detalles").doesNotExist());
+                // La cabecera no vuelve a publicar campos del modelo anterior.
+                .andExpect(jsonPath("$[0].codigoBicicleta")
+                        .doesNotExist())
+                .andExpect(jsonPath("$[0].costoTotal").doesNotExist())
+                .andExpect(jsonPath("$[0].costoTotalArs").doesNotExist())
+                .andExpect(jsonPath("$[0].fechaInicio").doesNotExist())
+                .andExpect(jsonPath("$[0].fechaFin").doesNotExist());
 
         verificarConsultaListado(ruta);
     }
@@ -670,7 +667,7 @@ class ConsultaAlquilerControllerTest {
 
     private void prepararRespuestaListado(
             String ruta,
-            List<Object> respuesta
+            List<AlquilerCabeceraDTO> respuesta
     ) {
         if (LISTADO_PROPIO.equals(ruta)) {
             when(alquilerService.listarMisAlquileres())
@@ -689,30 +686,6 @@ class ConsultaAlquilerControllerTest {
         }
 
         verifyNoMoreInteractions(alquilerService);
-    }
-
-    private AlquilerDTO crearRespuestaAnterior() {
-        Usuario usuario = new Usuario();
-        usuario.setId(1);
-
-        Bicicleta bicicleta = new Bicicleta();
-        bicicleta.setId(2);
-        bicicleta.setCodigoBicicleta("QA-ANT-02");
-
-        LocalDateTime inicio =
-                LocalDateTime.of(2026, 11, 9, 10, 0);
-
-        Alquiler alquiler = new Alquiler();
-        alquiler.setId(40);
-        alquiler.setUsuario(usuario);
-        alquiler.setBicicleta(bicicleta);
-        alquiler.setEstado(CodigoEstadoAlquiler.FINALIZADO);
-        alquiler.setFechaInicio(inicio);
-        alquiler.setFechaFin(inicio.plusHours(1));
-        alquiler.setCostoTotal(new BigDecimal("12.34"));
-        alquiler.setCostoTotalArs(new BigDecimal("18880.20"));
-
-        return new AlquilerDTO(alquiler);
     }
 
     private void comprobarConsultaPermitida() throws Exception {

@@ -28,19 +28,29 @@ public class BicicletaService {
     private final TipoBicicletaRepository tipos;
     private final EstadoBicicletaRepository estados;
     private final EstacionRepository estaciones;
-    private final AlquilerRepository alquileres;
     private final UsuarioRepository usuarios;
     private final TrazabilidadInventarioService trazabilidad;
 
-    public BicicletaService(BicicletaRepository bicicletas, TipoBicicletaRepository tipos,
-                            EstadoBicicletaRepository estados, EstacionRepository estaciones,
-                            AlquilerRepository alquileres, UsuarioRepository usuarios,
-                            TrazabilidadInventarioService trazabilidad,MantenimientoService mantenimiento,
-                            OrdenMantenimientoRepository ordenes,AlquilerDetalleRepository detalles) {
-        this.mantenimiento=mantenimiento; this.ordenes=ordenes; this.detalles=detalles;
-        this.bicicletas = bicicletas; this.tipos = tipos; this.estados = estados;
-        this.estaciones = estaciones; this.alquileres = alquileres;
-        this.usuarios = usuarios; this.trazabilidad = trazabilidad;
+    public BicicletaService(
+            BicicletaRepository bicicletas,
+            TipoBicicletaRepository tipos,
+            EstadoBicicletaRepository estados,
+            EstacionRepository estaciones,
+            UsuarioRepository usuarios,
+            TrazabilidadInventarioService trazabilidad,
+            MantenimientoService mantenimiento,
+            OrdenMantenimientoRepository ordenes,
+            AlquilerDetalleRepository detalles
+    ) {
+        this.mantenimiento = mantenimiento;
+        this.ordenes = ordenes;
+        this.detalles = detalles;
+        this.bicicletas = bicicletas;
+        this.tipos = tipos;
+        this.estados = estados;
+        this.estaciones = estaciones;
+        this.usuarios = usuarios;
+        this.trazabilidad = trazabilidad;
     }
 
     public List<BicicletaDTO> listar(boolean incluirEliminadas) {
@@ -207,12 +217,11 @@ public class BicicletaService {
         }
     }
     private void comprobarSinAlquiler(Bicicleta bicicleta) {
-        if(detalles.contarAsignacionesActivas(bicicleta.getId())>0) {
-            throw error(HttpStatus.CONFLICT,"La bicicleta tiene una reserva o viaje activo.");
-        }
-        if (alquileres.existsByBicicletaAndEstado(bicicleta, CodigoEstadoAlquiler.INICIADO)) {
-            throw error(HttpStatus.CONFLICT,
-                    "La bicicleta tiene un alquiler activo. Debe finalizarse antes de editarla.");
+        if (detalles.contarAsignacionesActivas(bicicleta.getId()) > 0) {
+            throw error(
+                    HttpStatus.CONFLICT,
+                    "La bicicleta tiene una reserva o viaje activo."
+            );
         }
     }
     private void comprobarSinOrden(Bicicleta bicicleta) {

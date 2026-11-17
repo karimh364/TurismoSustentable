@@ -31,7 +31,6 @@ public class MantenimientoService {
     private final EstadoBicicletaRepository estadosBicicleta;
     private final EstacionRepository estaciones;
     private final TipoBicicletaRepository tiposBicicleta;
-    private final AlquilerRepository alquileres;
     private final AlquilerDetalleRepository detalles;
     private final IncidenciaRepository incidencias;
     private final TrazabilidadInventarioService traza;
@@ -39,16 +38,38 @@ public class MantenimientoService {
     private final Validator validator;
     private final ObjectMapper json;
 
-    public MantenimientoService(OrdenMantenimientoRepository ordenes, HistorialOrdenMantenimientoRepository historias,
-            BicicletaRepository bicicletas, UsuarioRepository usuarios, TipoMantenimientoRepository tipos,
-            EstadoOrdenMantenimientoRepository estados, EstadoBicicletaRepository estadosBicicleta,
-            EstacionRepository estaciones, TipoBicicletaRepository tiposBicicleta, AlquilerRepository alquileres,
-            AlquilerDetalleRepository detalles, IncidenciaRepository incidencias, TrazabilidadInventarioService traza,
-            Clock reloj, Validator validator, ObjectMapper json) {
-        this.ordenes=ordenes; this.historias=historias; this.bicicletas=bicicletas; this.usuarios=usuarios;
-        this.tipos=tipos; this.estados=estados; this.estadosBicicleta=estadosBicicleta; this.estaciones=estaciones;
-        this.tiposBicicleta=tiposBicicleta; this.alquileres=alquileres; this.detalles=detalles; this.incidencias=incidencias;
-        this.traza=traza; this.reloj=reloj; this.validator=validator; this.json=json;
+    public MantenimientoService(
+            OrdenMantenimientoRepository ordenes,
+            HistorialOrdenMantenimientoRepository historias,
+            BicicletaRepository bicicletas,
+            UsuarioRepository usuarios,
+            TipoMantenimientoRepository tipos,
+            EstadoOrdenMantenimientoRepository estados,
+            EstadoBicicletaRepository estadosBicicleta,
+            EstacionRepository estaciones,
+            TipoBicicletaRepository tiposBicicleta,
+            AlquilerDetalleRepository detalles,
+            IncidenciaRepository incidencias,
+            TrazabilidadInventarioService traza,
+            Clock reloj,
+            Validator validator,
+            ObjectMapper json
+    ) {
+        this.ordenes = ordenes;
+        this.historias = historias;
+        this.bicicletas = bicicletas;
+        this.usuarios = usuarios;
+        this.tipos = tipos;
+        this.estados = estados;
+        this.estadosBicicleta = estadosBicicleta;
+        this.estaciones = estaciones;
+        this.tiposBicicleta = tiposBicicleta;
+        this.detalles = detalles;
+        this.incidencias = incidencias;
+        this.traza = traza;
+        this.reloj = reloj;
+        this.validator = validator;
+        this.json = json;
     }
 
     @PreAuthorize("hasAnyAuthority('ADMIN','TECNICO')")
@@ -287,8 +308,12 @@ public class MantenimientoService {
         return lista;
     }
     private void sinAlquiler(Bicicleta b) {
-        if(detalles.contarAsignacionesActivas(b.getId())>0 || alquileres.existsByBicicletaAndEstado(b,CodigoEstadoAlquiler.INICIADO))
-            throw conflicto("La bicicleta tiene una reserva o viaje activo; debe resolverlo por su circuito.");
+        if (detalles.contarAsignacionesActivas(b.getId()) > 0) {
+            throw conflicto(
+                    "La bicicleta tiene una reserva o viaje activo; "
+                            + "debe resolverlo por su circuito."
+            );
+        }
     }
     private Bicicleta bicicleta(Integer id) {
         return bicicletas.buscarActivaPorIdConBloqueo(positivo(id)).orElseThrow(()->noExiste("La bicicleta no existe o fue eliminada."));

@@ -1,7 +1,6 @@
 package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
-import DSII.TurismoSustentable.dto.AlquilerDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.dto.CotizacionDolarDTO;
 import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
@@ -459,42 +458,45 @@ class AlquilerMysqlIntegrationTest {
     }
 
     @Test
-    void listadoPropioMysqlFiltraUsuarioBorradoYOrdenaModelos() {
+    void listadoPropioMysqlFiltraUsuarioBorradoYOrdenaCabeceras() {
         int reservaId = alquilerService.crearReserva(solicitud());
 
-        int anteriorId =
-                crearAlquilerAnteriorListado(usuarioId, false);
+        int finalizadoId =
+                crearAlquilerFinalizadoListado(usuarioId, false);
         int borradoId =
-                crearAlquilerAnteriorListado(usuarioId, true);
+                crearAlquilerFinalizadoListado(usuarioId, true);
 
         int usuarioAjenoId = crearUsuarioAjenoListado();
         int ajenoId =
-                crearAlquilerAnteriorListado(usuarioAjenoId, false);
+                crearAlquilerFinalizadoListado(usuarioAjenoId, false);
 
         long[] antes = contarRegistros();
         clearInvocations(cotizacionDolarService);
 
         // Servicio real, fuera de una transacción de test.
-        List<Object> resultado =
+        List<AlquilerCabeceraDTO> resultado =
                 alquilerService.listarMisAlquileres();
 
         List<Integer> ids = idsListado(resultado);
 
-        assertEquals(List.of(anteriorId, reservaId), ids);
+        assertEquals(List.of(finalizadoId, reservaId), ids);
         assertFalse(ids.contains(borradoId));
         assertFalse(ids.contains(ajenoId));
 
-        assertTrue(resultado.get(0) instanceof AlquilerDTO);
-        assertTrue(resultado.get(1) instanceof AlquilerCabeceraDTO);
+        AlquilerCabeceraDTO finalizado = resultado.get(0);
+        AlquilerCabeceraDTO reservado = resultado.get(1);
 
-        AlquilerDTO anterior =
-                (AlquilerDTO) resultado.get(0);
-        AlquilerCabeceraDTO nuevo =
-                (AlquilerCabeceraDTO) resultado.get(1);
+        assertEquals("DETALLES", finalizado.getModelo());
+        assertEquals("FINALIZADO", finalizado.getEstado());
+        assertEquals(1, finalizado.getDetalles().size());
+        assertEquals(
+                new BigDecimal("7.50"),
+                finalizado.getCostoFinalUsd()
+        );
 
-        assertEquals("ANTERIOR", anterior.getModelo());
-        assertEquals("DETALLES", nuevo.getModelo());
-        assertEquals(2, nuevo.getDetalles().size());
+        assertEquals("DETALLES", reservado.getModelo());
+        assertEquals("RESERVADO", reservado.getEstado());
+        assertEquals(2, reservado.getDetalles().size());
 
         // La fila borrada lógicamente sigue existiendo físicamente.
         transaccion.executeWithoutResult(estado ->
@@ -511,17 +513,17 @@ class AlquilerMysqlIntegrationTest {
     void listadoAdministrativoMysqlIncluyeAjenosPeroNoBorrados() {
         int reservaId = alquilerService.crearReserva(solicitud());
 
-        int anteriorId =
-                crearAlquilerAnteriorListado(usuarioId, false);
+        int finalizadoId =
+                crearAlquilerFinalizadoListado(usuarioId, false);
 
         int usuarioAjenoId = crearUsuarioAjenoListado();
         int ajenoId =
-                crearAlquilerAnteriorListado(usuarioAjenoId, false);
+                crearAlquilerFinalizadoListado(usuarioAjenoId, false);
 
         int borradoPropioId =
-                crearAlquilerAnteriorListado(usuarioId, true);
+                crearAlquilerFinalizadoListado(usuarioId, true);
         int borradoAjenoId =
-                crearAlquilerAnteriorListado(usuarioAjenoId, true);
+                crearAlquilerFinalizadoListado(usuarioAjenoId, true);
 
         transaccion.executeWithoutResult(estado ->
                 entityManager.persist(
@@ -544,7 +546,7 @@ class AlquilerMysqlIntegrationTest {
         );
 
         assertTrue(generales.contains(reservaId));
-        assertTrue(generales.contains(anteriorId));
+        assertTrue(generales.contains(finalizadoId));
         assertTrue(generales.contains(ajenoId));
         assertFalse(generales.contains(borradoPropioId));
         assertFalse(generales.contains(borradoAjenoId));
@@ -560,7 +562,7 @@ class AlquilerMysqlIntegrationTest {
 
         // Tener ADMIN no convierte la lista personal en una lista general.
         assertEquals(
-                List.of(anteriorId, reservaId),
+                List.of(finalizadoId, reservaId),
                 idsListado(alquilerService.listarMisAlquileres())
         );
 
@@ -609,7 +611,7 @@ class AlquilerMysqlIntegrationTest {
         long[] antes = contarRegistros();
         clearInvocations(cotizacionDolarService);
 
-        List<Object> resultado =
+        List<AlquilerCabeceraDTO> resultado =
                 alquilerService.listarMisAlquileres();
 
         assertEquals(
@@ -617,10 +619,8 @@ class AlquilerMysqlIntegrationTest {
                 idsListado(resultado)
         );
 
-        AlquilerCabeceraDTO segunda =
-                (AlquilerCabeceraDTO) resultado.get(0);
-        AlquilerCabeceraDTO primera =
-                (AlquilerCabeceraDTO) resultado.get(1);
+        AlquilerCabeceraDTO segunda = resultado.get(0);
+        AlquilerCabeceraDTO primera = resultado.get(1);
 
         assertEquals(1, segunda.getDetalles().size());
         assertEquals(
@@ -3288,52 +3288,84 @@ class AlquilerMysqlIntegrationTest {
         });
     }
 
-    private int crearAlquilerAnteriorListado(
+    private int crearAlquilerFinalizadoListado(
             int propietarioId,
             boolean borrado
     ) {
         return transaccion.execute(estado -> {
-            LocalDateTime inicio =
-                    LocalDateTime.now(ZoneOffset.UTC).minusHours(2);
+            LocalDateTime retiro =
+                    LocalDateTime.now(ZoneOffset.UTC)
+                            .minusHours(2)
+                            .withNano(0);
+            LocalDateTime creacion = retiro.minusMinutes(5);
+            LocalDateTime devolucion = retiro.plusMinutes(45);
 
             Estacion estacion =
                     entityManager.find(Estacion.class, estacionId);
+            Bicicleta bicicleta =
+                    entityManager.find(Bicicleta.class, bicicleta1Id);
 
-            Alquiler alquiler = new Alquiler(
-                    entityManager.find(Usuario.class, propietarioId),
-                    entityManager.find(Bicicleta.class, bicicleta1Id),
-                    inicio,
-                    inicio.plusMinutes(45),
-                    new BigDecimal("7.50"),
-                    CodigoEstadoAlquiler.FINALIZADO,
-                    estacion,
-                    estacion
+            BigDecimal usd = new BigDecimal("7.50");
+            BigDecimal ars = new BigDecimal("11475.00");
+
+            Alquiler alquiler = new Alquiler();
+            alquiler.setUsuario(
+                    entityManager.find(Usuario.class, propietarioId)
             );
-            alquiler.setPrecioPorHoraAplicado(
-                    new BigDecimal("10.00")
+            alquiler.setEstadoContratacion(
+                    catalogo(EstadoAlquiler.class, "FINALIZADO")
             );
-            alquiler.setCostoTotalArs(
-                    new BigDecimal("11475.00")
+            alquiler.setUbicacionRetiro(estacion);
+            alquiler.setFechaHoraCreacion(creacion);
+            alquiler.setFechaHoraVencimientoReserva(
+                    creacion.plusMinutes(15)
             );
+            alquiler.setFechaHoraCierre(devolucion);
+            alquiler.setFechaHoraLiquidacion(devolucion);
+            alquiler.setCotizacionArsPorUsd(new BigDecimal("1530.00"));
+            alquiler.setFuenteCotizacion("QA_LISTADOS_TEST");
+            alquiler.setFechaHoraAplicacionCotizacion(creacion);
+            alquiler.setCostoEstimadoUsd(usd);
+            alquiler.setCostoEstimadoArs(ars);
+            alquiler.setCostoFinalUsd(usd);
+            alquiler.setCostoFinalArs(ars);
             alquiler.setBorradoAlquiler(borrado);
 
             entityManager.persist(alquiler);
+
+            // Fixture de consulta, no ejecución del circuito operativo.
+            AlquilerDetalle detalle = new AlquilerDetalle();
+            detalle.setAlquiler(alquiler);
+            detalle.setBicicleta(bicicleta);
+            detalle.setTipoBicicletaContratado(bicicleta.getTipo());
+            detalle.setEstado(
+                    catalogo(EstadoAlquilerDetalle.class, "DEVUELTO")
+            );
+            detalle.setEstacionDevolucion(estacion);
+            detalle.setPrecioPorHoraAplicadoUsd(new BigDecimal("10.00"));
+            detalle.setDuracionEstimadaSegundos(2700);
+            detalle.setFechaHoraRetiro(retiro);
+            detalle.setFechaHoraDevolucionEstimada(devolucion);
+            detalle.setFechaHoraDevolucionReal(devolucion);
+            detalle.setFechaHoraFinUso(devolucion);
+            detalle.setFechaHoraCierreDetalle(devolucion);
+            detalle.setSubtotalEstimadoUsd(usd);
+            detalle.setSubtotalEstimadoArs(ars);
+            detalle.setSubtotalRealUsd(usd);
+            detalle.setSubtotalRealArs(ars);
+            detalle.setOrigenCierre("SISTEMA");
+
+            entityManager.persist(detalle);
             entityManager.flush();
             return alquiler.getId();
         });
     }
 
-    private List<Integer> idsListado(List<Object> listado) {
+    private List<Integer> idsListado(List<AlquilerCabeceraDTO> listado) {
         List<Integer> ids = new ArrayList<>();
 
-        for (Object fila : listado) {
-            if (fila instanceof AlquilerCabeceraDTO) {
-                ids.add(((AlquilerCabeceraDTO) fila).getId());
-            } else if (fila instanceof AlquilerDTO) {
-                ids.add(((AlquilerDTO) fila).getId());
-            } else {
-                fail("El listado debe devolver DTO de alquiler.");
-            }
+        for (AlquilerCabeceraDTO fila : listado) {
+            ids.add(fila.getId());
         }
 
         return ids;

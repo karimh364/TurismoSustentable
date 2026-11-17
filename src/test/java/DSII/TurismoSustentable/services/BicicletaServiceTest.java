@@ -29,7 +29,6 @@ class BicicletaServiceTest {
     @Mock TipoBicicletaRepository tipos;
     @Mock EstadoBicicletaRepository estados;
     @Mock EstacionRepository estaciones;
-    @Mock AlquilerRepository alquileres;
     @Mock UsuarioRepository usuarios;
     @Mock HistorialEstadoBicicletaRepository historial;
     @Mock AuditoriaSistemaRepository auditoria;
@@ -41,8 +40,17 @@ class BicicletaServiceTest {
     private Usuario admin;
 
     @BeforeEach void preparar() {
-        service = new BicicletaService(bicicletas, tipos, estados, estaciones, alquileres, usuarios,
-                new TrazabilidadInventarioService(historial, auditoria),mantenimiento,ordenes,detalles);
+        service = new BicicletaService(
+                bicicletas,
+                tipos,
+                estados,
+                estaciones,
+                usuarios,
+                new TrazabilidadInventarioService(historial, auditoria),
+                mantenimiento,
+                ordenes,
+                detalles
+        );
         admin = new Usuario();
         admin.setId(1); admin.setEmail("admin.qa@example.com"); admin.setActivo(true);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
@@ -129,9 +137,15 @@ class BicicletaServiceTest {
         when(bicicletas.existsByCodigoBicicletaIgnoreCaseAndIdNot("QA-02", 1)).thenReturn(true);
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.actualizar(1, solicitud));
     }
-    @Test void alquilerAsociadoImpideEditarAunqueEstadoFueraIncoherente() {
-        when(alquileres.existsByBicicletaAndEstado(bici, CodigoEstadoAlquiler.INICIADO)).thenReturn(true);
-        rechazaSinCambios(HttpStatus.CONFLICT, () -> service.actualizar(1, solicitud));
+    @Test
+    void detalleActivoImpideEditarAunqueEstadoFueraIncoherente() {
+        when(detalles.contarAsignacionesActivas(bici.getId()))
+                .thenReturn(1L);
+
+        rechazaSinCambios(
+                HttpStatus.CONFLICT,
+                () -> service.actualizar(1, solicitud)
+        );
     }
     @Test void estadosDeProcesoNoSeLiberanDesdeEdicionGeneral() {
         for (String codigo : List.of("EN_USO", "RESERVADA", "MANTENIMIENTO", "EXTRAVIADA", "DE_BAJA")) {
@@ -258,10 +272,17 @@ class BicicletaServiceTest {
         dto.setVersion(7);
         rechazaSinCambios(HttpStatus.CONFLICT, () -> service.eliminarLogico(1, dto));
     }
-    @Test void eliminarConAlquilerAsociadoNoCierraElViajeNiLiberaLaBici() {
-        when(alquileres.existsByBicicletaAndEstado(bici, CodigoEstadoAlquiler.INICIADO)).thenReturn(true);
-        rechazaSinCambios(HttpStatus.CONFLICT, () -> service.eliminarLogico(1, eliminacion()));
-        verify(alquileres, never()).save(any());
+    @Test
+    void eliminarConDetalleActivoNoCierraElViajeNiLiberaLaBici() {
+        when(detalles.contarAsignacionesActivas(bici.getId()))
+                .thenReturn(1L);
+
+        rechazaSinCambios(
+                HttpStatus.CONFLICT,
+                () -> service.eliminarLogico(1, eliminacion())
+        );
+
+        verify(detalles, never()).save(any());
     }
     @Test void eliminarNoEludeLosEstadosDeProcesosPendientes() {
         for (String codigo : List.of("EN_USO", "RESERVADA", "MANTENIMIENTO", "EXTRAVIADA")) {

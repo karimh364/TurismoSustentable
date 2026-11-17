@@ -28,10 +28,6 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
     java.util.Optional<Alquiler> buscarPorIdConBloqueo(
             @org.springframework.data.repository.query.Param("id") Integer id);
 
-    boolean existsByBicicletaAndEstado(
-            DSII.TurismoSustentable.models.Bicicleta bicicleta,
-            DSII.TurismoSustentable.models.CodigoEstadoAlquiler estado);
-
     // MÉTODOS DE BÚSQUEDA PERSONALIZADOS
     List<Alquiler> findByBorradoAlquilerFalse();
     List<Alquiler> findByUsuarioAndBorradoAlquilerFalse(Usuario usuario);
@@ -54,9 +50,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
     @EntityGraph(attributePaths = {
             "usuario",
             "estadoContratacion",
-            "ubicacionRetiro",
-            "bicicleta",
-            "ubicacionDevolucion"
+            "ubicacionRetiro"
     })
     @Query(
             "select a from Alquiler a "
@@ -71,9 +65,7 @@ public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
     @EntityGraph(attributePaths = {
             "usuario",
             "estadoContratacion",
-            "ubicacionRetiro",
-            "bicicleta",
-            "ubicacionDevolucion"
+            "ubicacionRetiro"
     })
     @Query(
             "select a from Alquiler a "

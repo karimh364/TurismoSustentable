@@ -92,9 +92,6 @@ class CrearReservaServiceTest {
     private TrazabilidadInventarioService trazabilidadInventario;
 
     @Mock
-    private CorreoService correoService;
-
-    @Mock
     private OrdenMantenimientoRepository ordenMantenimientoRepository;
 
     @Mock
@@ -389,8 +386,6 @@ class CrearReservaServiceTest {
         verify(transactionManager).commit(transaccion);
         verify(transactionManager, never()).rollback(any());
 
-        verifyNoInteractions(correoService);
-
         verify(trazabilidadInventario, never()).administracion(
                 any(), anyString(), anyInt(),
                 anyString(), any(), any(), any()
@@ -638,7 +633,7 @@ class CrearReservaServiceTest {
         verify(bicicletaRepository, never())
                 .save(any(Bicicleta.class));
 
-        verifyNoInteractions(correoService, trazabilidadInventario);
+        verifyNoInteractions(trazabilidadInventario);
     }
 
     @Test
@@ -768,8 +763,7 @@ class CrearReservaServiceTest {
         verifyNoInteractions(
                 alquilerDetalleRepository,
                 historialEstadoDetalleRepository,
-                trazabilidadInventario,
-                correoService
+                trazabilidadInventario
         );
 
         verify(bicicletaRepository, never())

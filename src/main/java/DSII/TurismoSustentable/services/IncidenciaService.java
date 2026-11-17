@@ -295,8 +295,11 @@ public class IncidenciaService {
         traza.administracion(c.actor,"BICICLETA",c.b.getId(),"ESTADO_POR_INCIDENCIA",antes,traza.datos(c.b),motivo,ahora);
     }
     private void sinOperaciones(Bicicleta b) {
-        if(detalles.contarAsignacionesActivas(b.getId())>0 || alquileres.existsByBicicletaAndEstado(b,CodigoEstadoAlquiler.INICIADO))
-            throw conflicto("La bicicleta tiene una reserva o viaje activo.");
+        if (detalles.contarAsignacionesActivas(b.getId()) > 0) {
+            throw conflicto(
+                    "La bicicleta tiene una reserva o viaje activo."
+            );
+        }
     }
     private void evento(Incidencia i,String accion,String anterior,String nuevo,Usuario actor,String motivo,String antes,LocalDateTime ahora) {
         String despues=datos(i);
