@@ -1,7 +1,7 @@
 # Diagnóstico y guía de cierre de la migración al DER v5
 
 Fecha de referencia: 17 de noviembre de 2026.
-Actualización de cierre: 17/11, después de las migraciones 03/04 y la prueba manual de QA Coordenadas.
+Última actualización: 18/11, después del cierre manual de sesión/inactivación y la pausa de integraciones SQL. El orden vigente de pendientes está en la sección 15.
 Presentación prevista: miércoles 18 de noviembre, 19:30 (Argentina).
 
 ## 1. Finalidad y alcance
@@ -28,13 +28,13 @@ Referencias: [DER v5](der-v5-propuesto.mmd), [diccionario](08-diccionario-estado
 
 | Módulo | Implementado y conectado | Cierre pendiente |
 | --- | --- | --- |
-| Identidad/acceso | PERSONA, documentos y catálogos, registro CLIENTE, múltiples roles, login, recuperación, sesión y edición administrativa | Gestión administrativa de asignación/retiro de roles; uniformar cuenta activa y roles vigentes en rutas conservadas |
-| Estaciones | Alta/edición/borrado lógico, pública/interna, capacidad, concurrencia, panel y mapa; coordenadas BigDecimal/DECIMAL(9,6) verificadas en código, BD y prueba manual | Escapado de textos y uso del control común de sesión/roles en el mapa; revisión transversal restante |
+| Identidad/acceso | PERSONA, documentos y catálogos, registro CLIENTE, múltiples roles, login, recuperación, sesión y edición administrativa; filtro de cuenta/roles vigentes, rechazo sin logout e invalidación por cuenta inactiva comprobados; gestión de roles conectada en código (sección 16) | Compilar/probar la gestión administrativa de roles y su diálogo; regresión transversal restante, sin declarar seguridad de producción |
+| Estaciones | Alta/edición/borrado lógico, pública/interna, capacidad, concurrencia, panel y mapa; coordenadas BigDecimal/DECIMAL(9,6) verificadas; acceso a alquiler desde mapa exige perfil CLIENTE confirmado por servidor | Escapado de textos y estados visibles de error de carga del mapa; revisión transversal restante |
 | Bicicletas | Tipo/tarifa, ubicación, traslados con motivo, estados, baja/eliminación, consulta de eliminadas e historia; dependencia del alquiler anterior retirada | Regresión integral y controles transversales pendientes |
 | Alquiler | Cabecera/detalles, reserva múltiple, retiro/devolución por unidad, cancelación y vencimiento, pantallas; retirada la compatibilidad anterior y sus ocho columnas/dos FK; cabecera obligatoria alineada en Java/BD | Revisión física restante, comprobantes v5 y cierre transversal; no declarar migración global terminada |
 | Finanzas | Anticipo, adicional, liquidación, deuda y reembolso simulados, idempotencia y pantallas | Regresión integral tras retirar legado; no confundir simulación con Mercado Pago real |
 | Incidencias | Reportar/revisar/cortar, recibir/recuperar, pérdida definitiva, conexión con mantenimiento y liquidación; consulta anterior retirada | Pulir selección de informante/contexto de cuentas multirrol |
-| Mantenimiento | ADMIN gestiona, TECNICO asignado trabaja, historia, preventiva, habilitación posterior e inactivación de técnico; dependencia anterior retirada | Reparación exclusivamente en taller sigue siendo propuesta diferida |
+| Mantenimiento | ADMIN gestiona, TECNICO asignado trabaja, historia, preventiva y habilitación posterior; UsuarioService coordina la inactivación y mantenimiento prepara únicamente órdenes, con auditoría y transacción compartida | Regresión SQL posterior pausada; reparación exclusivamente en taller sigue siendo propuesta diferida |
 | Auditoría | Escritura administrativa e historiales de dominio implementados | Consulta administrativa general con filtros y pantalla; no exponerla a CLIENTE/TECNICO |
 | Estadísticas | Consultas migradas a detalles y tipo contratado, endpoint de resumen | Pantalla consumidora: no encontrada en la revisión |
 | Correo | Bienvenida y recuperación conservadas; métodos exclusivos del alquiler anterior retirados | Implementar/conectar comprobantes v5 con varias unidades e importes guardados; no se consideran reemplazados por haber retirado los anteriores |
@@ -120,8 +120,10 @@ conservados; SQL e integración aislada demuestran el esquema resultante.
 
 ### B. Seguridad transversal y gestión de roles
 
-- Verificar cuenta activa y roles persistidos después de inactivación/revocación,
-  incluso con una sesión ya abierta, en las rutas que aún usan criterios antiguos.
+- Control central de cuenta activa/roles vigentes implementado para API privada
+  y páginas protegidas. Revocación de rol e inactivación con sesión abierta
+  comprobadas manualmente el 18/11; conservar la regresión de las rutas y las
+  condiciones de dominio particulares (propiedad, asignación y versiones).
 - Gestión ADMIN de roles con actor real, auditoría y conservación de al menos un
   rol; registro público continúa asignando exclusivamente CLIENTE.
 - ADMIN no hereda CLIENTE ni TECNICO; cuentas multirrol conservan los permisos y
@@ -141,7 +143,8 @@ conservados; SQL e integración aislada demuestran el esquema resultante.
   métricas financieras ni contar reservas como viajes realizados.
 - Añadir consulta ADMIN de auditoría por entidad/id, fecha y responsable, sin
   credenciales o datos internos fuera de su alcance autorizado.
-- Alinear mapa con sesión/roles del servidor y explicar fallos de carga al usuario.
+- Acceso de alquiler desde mapa alineado con perfil/roles del servidor y
+  comprobado; quedan mensajes visibles ante fallos de carga y escapado de textos.
 - Verificar conservación de detalles al refrescar/cambiar moneda, anchos estables,
   scroll de diálogos, cargas/vacíos/errores, etiquetas y navegación responsive.
 - Resolver contexto de cuentas multirrol y evitar IDs manuales cuando procede una
@@ -181,8 +184,9 @@ documentos 37 y 41–43. No sumar resultados de distintas tandas como si fueran 
 - Conservar cambios de Gradle, tests com.tests, capturas, trazas y presentación de
   la otra materia; no mezclarlos en la limpieza de negocio.
 - Perfil refactor actualmente con ddl-auto=validate: conservar datos demo.
-- Integraciones opt-in TURISMO_TEST_MYSQL todavía pueden usar create-drop. No
-  ejecutarlas contra la BD demo que se desea preservar; aislar antes de repetirlas.
+- Integraciones opt-in TURISMO_TEST_MYSQL pausadas explícitamente con @Disabled
+  y configuradas con validate desde el 18/11; ver sección 14. No reactivarlas
+  mientras se deban conservar los datos demo: validate no impide sus escrituras.
 - Pagos/reembolsos simulados y dinero ficticio aprobados. Mercado Pago real y
   despliegue productivo no se declaran terminados ni se añaden a esta entrega.
 - Exigir taller para iniciar reparación sigue siendo mejora expresamente diferida;
@@ -421,10 +425,11 @@ de hashes/coordenadas con commit/push; después revisar las restricciones físic
 restantes y los controles/consumidores pendientes sin mezclar otros cambios DDL.
 Cada cambio requiere comprobaciones previas, respaldo y pruebas acordes.
 
-Continúan comprobantes v5 por correo, controles de cuenta/roles vigentes,
-administración de roles, consulta de auditoría, pantalla estadística y pulido
-indicados en las secciones 2 y 4. Integraciones SQL se deben aislar antes de
-ejecutarlas; no usar TURISMO_TEST_MYSQL/create-drop sobre la demostración vigente.
+Continúan comprobantes v5 por correo, revisión transversal, administración de
+roles, consulta de auditoría, pantalla estadística y pulido. El control central
+de cuenta/roles vigente se implementó después de esta revisión inicial; ver
+secciones 12/13. Integraciones SQL pausadas por decisión posterior del usuario
+(sección 14), sin crear otra BD ni recrear los datos de demostración.
 
 ## 12. Ajuste de acceso a Mis alquileres — 18/11
 
@@ -504,3 +509,239 @@ integración/rollback/concurrencia todavía pendientes de ejecutar.
 Se reemplazó el aviso de éxito fijo sobre órdenes de técnicos por un mensaje
 neutral de cuenta inactivada y conservación de datos/historiales. Se agregó su
 caso en EdicionUsuarios.test.cjs; ejecución de esta nueva prueba pendiente del usuario.
+
+## 14. Pausa de integraciones SQL para conservar datos — 18/11
+
+Por decisión del usuario no se crea otra BD en este bloque. Se modifican únicamente
+AlquilerMysqlIntegrationTest, MantenimientoMysqlIntegrationTest e
+IncidenciaMysqlIntegrationTest: ddl-auto pasa de create-drop a validate y se agrega
+@Disabled con motivo explícito a nivel de clase. Se conservan sus casos, fixtures,
+URL local e interruptores TURISMO_TEST_MYSQL/TURISMO_TEST_WEB existentes.
+
+Con @Disabled estas clases quedan omitidas incluso si TURISMO_TEST_MYSQL=true.
+No deben contarse como pruebas SQL aprobadas por obtener BUILD SUCCESSFUL: sus
+casos siguen pendientes de ejecución. Continúan disponibles las pruebas unitarias,
+HTTP con mocks y JavaScript. La aplicación refactor conserva validate sin cambios.
+
+La pausa protege los datos actuales: quitar create-drop evita la recreación
+automática de tablas, pero validate no evita las inserciones/modificaciones que
+realizan los fixtures y operaciones de estas pruebas con transacciones reales.
+No se ejecutaron tests, comandos SQL ni cambios de estructura/datos en este bloque.
+Las referencias a create-drop en las secciones históricas describen el estado
+anterior, no la configuración vigente de estas tres clases.
+
+Para reactivarlas más adelante: obtener autorización expresa para usar datos
+descartables y respaldar lo que deba conservarse, revisar la URL y preparar un
+esquema/catálogos compatibles con validate. Revisar también los fixtures HTTP con
+el control de sesión vigente y las suposiciones de esquema/datos limpios. Solo
+entonces retirar @Disabled de las clases que se vayan a ejecutar y habilitar
+TURISMO_TEST_MYSQL para la tanda explícita; TURISMO_TEST_WEB sigue siendo opt-in
+adicional. No restaurar create-drop ni borrar datos como paso implícito. La
+compilación de estas clases y su ejecución se distinguen de su aprobación efectiva.
+
+El usuario confirmó compileTestJava correcto después de esta pausa. Esa
+compilación no acredita ejecución ni aprobación de los casos SQL omitidos.
+
+## 15. Orden vigente de cierre: backend antes de pulido visual — 18/11
+
+Objetivo reiterado por el usuario: cerrar el circuito existente de alquiler,
+finanzas simuladas, incidencias y mantenimiento; completar backend y relaciones
+del DER v5 antes de priorizar estética. No significa CRUD arbitrario de estados,
+historiales o pagos. Las entidades existentes siguen siendo la base del trabajo.
+
+Estado cerrado en este alcance: identidad estable de sesión, filtro de cuenta y
+roles vigentes, separación ADMIN/CLIENTE en Mis alquileres/mapa, inactivación de
+usuario coordinada desde UsuarioService y mensaje neutral de éxito. El usuario
+confirmó además la nueva inactivación de qa.sesion y el mensaje actualizado.
+No se vuelve a planificar lo anterior como funcionalidad faltante.
+
+| Orden | Bloque pendiente | Alcance / criterio de cierre |
+| --- | --- | --- |
+| B1 — comprobado en el alcance informado | Gestión administrativa de roles | GET/PUT de roles, protecciones, versión, auditoría y diálogo conectados; usuario confirmó compilación/tandas Java-JS y escenarios manuales de asignación, concurrencia de formulario, retiro/desbloqueo por reserva, orden y deuda, y ADMIN propio. Límites SQL y caso de último ADMIN descritos en sección 16. Sin tablas nuevas. |
+| B2 | Consulta administrativa de auditoría | DTO y consulta con filtros/paginación sobre AUDITORIA_SISTEMA, autorización ADMIN y prueba de exclusión CLIENTE/TECNICO. No permitir editar/borrar eventos ni exponer credenciales. Escritura ya existente no equivale a consulta implementada. |
+| B3 | Comprobantes del circuito v5 | Reutilizar CorreoService/Mailjet, varias unidades e importes/fechas guardados; disparar para hechos confirmados sin inventar pagos ni enviar por una transacción revertida. Fallos de correo no revierten una operación ya confirmada. Actualmente solo están bienvenida y recuperación. |
+| B4 | Revisión final del backend/DER y protecciones HTTP | Contrastar campos/relaciones/restricciones restantes y consumidores, buscar referencias huérfanas, revisar permisos/propiedad, contratos y validaciones. Revisar CSRF/cabeceras con adaptación coordinada de consumidores y pruebas, no activar a ciegas ni declarar protección productiva completa. Proponer cada corrección según evidencia, sin DDL automático. |
+| F1 | Conexión de pantallas de gestión pendientes | Consumir la gestión de roles y auditoría nuevas desde ADMIN y el resumen estadístico existente. No declararlas completas por tener solo endpoints. |
+| F2 | Pulido y regresión del circuito visible | Textos seguros en DOM/mapa, errores/cargas/vacíos, contexto multirrol, detalles abiertos, anchos, scroll y responsive; ensayo del circuito con roles separados y multirrol. |
+
+Para B1 se identificaron antes del servicio los bordes no resueltos por el DER:
+retirar CLIENTE con reserva/viaje o gestión financiera pendiente, retirar TECNICO
+con órdenes abiertas asignadas y conservar al menos un ADMIN activo del sistema.
+El usuario aprobó expresamente el 18/11: rechazar con 409 y explicación
+cuando el retiro deje operaciones sin acceso o gestión sin administrador;
+resolver las operaciones/reasignar primero, sin cancelaciones, pausas ni cambios
+de roles implícitos. Implementación delegada después de esa aprobación; ver sección 16.
+
+La consulta paginada y las operaciones de rol utilizarán DTO adecuados; no se
+crean entidades nuevas para datos que ya representan USUARIO_ROL y
+AUDITORIA_SISTEMA. Los detalles de endpoint/DTO se concretarán al implementar cada
+bloque. Las implementaciones continúan manuales salvo delegación expresa.
+
+Se mantienen fuera de estos bloques Mercado Pago real/despliegue productivo y la
+propuesta diferida de exigir taller para iniciar mantenimiento. No se retoman
+ahora pruebas SQL ni se crea BD de pruebas por decisión del usuario. La falta de
+ejecución de integración posterior y las limitaciones de verificación quedan
+visibles; no asignar un porcentaje global ni declarar fidelidad total al DER a
+partir de conteos de tablas o un arranque con validate.
+
+## 16. Gestión administrativa de roles conectada — 18/11
+
+Bloque delegado expresamente por el usuario, incluyendo las tres protecciones de
+retiro de CLIENTE, TECNICO y último ADMIN activo. Al implementar, el asistente no
+ejecutó compilaciones, tests ni SQL; el usuario realizó después las comprobaciones
+automáticas/manuales indicadas en la evidencia al final de esta sección.
+
+### Código y conexión
+
+- RolesUsuarioService concentra exclusivamente USUARIO_ROL. No se agregan reglas
+  a mantenimiento ni a la edición de Persona; UsuarioService conserva sus rutas
+  existentes. La separación evita inflar su constructor con repositorios ajenos
+  a la actualización de datos personales/inactivación.
+- RolesUsuarioController expone GET y PUT /api/usuarios/{id}/roles; aprovecha la
+  autorización HTTP existente para consultas de usuarios y escrituras ADMIN,
+  más comprobaciones ADMIN en controlador y servicio. El filtro de sesión vigente
+  sigue verificando cuenta/roles en cada petición protegida.
+- ActualizarRolesUsuarioDTO admite versión no negativa, lista no vacía de códigos
+  CLIENTE/ADMIN/TECNICO sin duplicados y motivo normalizado de hasta 2000 caracteres.
+  Rechaza campos ajenos como actorId. RolesUsuarioDTO devuelve únicamente usuarioId,
+  nickname, versión y roles, sin entidades, datos personales o credenciales.
+- GET consulta una cuenta activa; PUT solo modifica asignaciones de una cuenta
+  activa y valida la versión leída. La misma composición no altera versión ni
+  inventa auditoría. No modifica cuenta activa, datos personales, alquileres,
+  órdenes ni movimientos financieros.
+- admin.html incorpora un diálogo propio, roles-usuarios.js cargado una sola vez
+  después de auth.js y antes de admin.js; la tabla de usuarios tiene el botón Roles.
+  Selección, motivo y mensajes usan los datos/versión devueltos por el servidor.
+  No se requieren SQL ni edición libre de claves numéricas de ROL para la gestión.
+
+### Atomicidad, retiro y auditoría
+
+Todos los cambios de roles toman primero el mismo bloqueo de la fila ADMIN del
+catálogo existente y después actor/objetivo por ID ascendente. El conteo del
+último ADMIN activo ocurre después del bloqueo, con READ_COMMITTED; no se basa
+en contar sin serializar dos retiros simultáneos. Las cuentas no precargan sus
+alquileres EAGER al esperar estos bloqueos. La operación y su auditoría se
+confirman en una única transacción con rollback ante excepción.
+
+Para retirar CLIENTE se comprueban reservas/viajes, detalles vigentes, liquidación
+o costo final ausentes, pagos CREADO/PENDIENTE y reembolsos PENDIENTE/EN_PROCESO.
+Una segunda consulta compara costo final ARS con pagos aprobados menos reembolsos
+confirmados en ambos sentidos: deuda o reintegro pendiente. No se filtra borrado
+lógico para ocultar obligaciones ni se recalculan precios/cotizaciones. Un intento
+FALLIDO histórico no bloquea por sí solo si el saldo ya quedó resuelto; si todavía
+se debe un reintegro lo detecta la comparación de importes confirmados.
+
+Para retirar TECNICO se reutiliza la consulta de órdenes abiertas asignadas;
+si existen se devuelve 409 sin pausarlas/desasignarlas. Retirar ADMIN exige que
+permanezca otro administrador activo. No se permite dejar la cuenta sin roles.
+Los rechazos no escriben asignaciones ni auditorías de éxito.
+
+CAMBIAR_ROLES se audita sobre USUARIO con actor de sesión, motivo y JSON de listas
+ordenadas anteriores/nuevas. Se registra antes de aplicar las asignaciones dentro
+de la MISMA transacción para permitir al actor retirarse su ADMIN cuando hay otro:
+no se invalida su autorización retrospectivamente ni se confirma una auditoría
+si falla la escritura. La actualización fuerza el incremento de @Version de
+Usuario (PESSIMISTIC_FORCE_INCREMENT) porque modificar solo la tabla intermedia
+no basta como contrato de versión del formulario; la respuesta toma la versión
+después del flush, sin calcularla manualmente en frontend.
+Referencia técnica: [Hibernate 5.6, LockMode](https://docs.hibernate.org/orm/5.6/javadocs/org/hibernate/LockMode.html).
+
+El diálogo conserva datos ante 409 y no reintenta el PUT automáticamente; para
+recargar, cerrar y volver a abrir Roles. Bloquea doble clic y cierre mientras
+guarda, muestra textos recibidos como texto y distingue escritura aceptada de
+fallo posterior al actualizar la pantalla. Ante timeout sin respuesta no afirma
+que no se haya escrito: pide recargar. Si el actor pierde su propio ADMIN,
+confirma su perfil y vuelve al inicio sin cerrar la sesión ni consultar de nuevo
+el listado ADMIN. Las demás sesiones reflejan el cambio en su siguiente petición.
+
+### Comprobación pendiente
+
+Pruebas nuevas: ActualizarRolesUsuarioDTOTest, RolesUsuarioServiceTest,
+RolesUsuarioControllerTest y RolesUsuarios.test.cjs. AuditoriaAdministrativaServiceTest
+incluye snapshot de roles/actor/motivo. En MantenimientoMysqlIntegrationTest se
+preparan escenarios de persistencia/PK/versiones, rollback después de escrituras
+y dos solicitudes con la misma versión; la clase sigue @Disabled/validate.
+No se declara concurrencia SQL verificada por los mocks ni se reactiva esa suite.
+
+Compilar con compileTestJava y ejecutar las nuevas pruebas junto con
+UsuarioServiceTest, UsuarioControllerTest, AuditoriaAdministrativaServiceTest,
+WebAuthorizationTest y SesionVigenteHttpTest. Ejecutar RolesUsuarios.test.cjs
+junto con EdicionUsuarios.test.cjs/Sesion.test.cjs y las suites JS de regresión.
+Una compilación correcta no sustituye la ejecución ni la prueba manual.
+
+Tanda manual propuesta, solo con cuentas/datos QA nuevos, sin alterar roles de
+admin.demo, cliente.demo, tecnico.demo ni parcial_playwright:
+
+1. Registrar qa.roles como CLIENTE y entrar con admin.demo a Usuarios > Roles.
+   Agregar TECNICO conservando CLIENTE, con motivo; comprobar listado y auditoría.
+   Hasta implementar B2, la auditoría se comprueba por consulta SQL de solo lectura,
+   no mediante una pantalla administrativa general que todavía no existe.
+2. Abrir Roles sobre esa misma cuenta en dos pestañas ADMIN antes de guardar.
+   Guardar A; B debe recibir 409 y conservar su formulario hasta recargarlo.
+3. No permitir guardar todos los roles desmarcados ni motivo vacío. No confundir
+   el aviso del frontend con probar el rechazo HTTP; las pruebas HTTP cubren ambos.
+4. Con cuenta QA que tenga reserva/viaje o finanzas pendientes, retirar CLIENTE
+   debe rechazarse. Resolver normalmente esas operaciones antes de reintentar.
+5. Asignar una orden QA abierta a un TECNICO QA y comprobar el rechazo de retiro
+   de TECNICO; resolver/reasignar la orden y repetir sin modificar técnicos demo.
+6. Agregar ADMIN a qa.roles, iniciar sesión con ella en otro contexto y retirarse
+   su propio ADMIN conservando CLIENTE y existiendo admin.demo activo. Debe guardar,
+   auditar, volver al inicio y mantener acceso personal sin volver a loguearse.
+7. No retirar roles de todos los administradores demo para forzar el caso del
+   último ADMIN; esa comprobación destructiva de preparación queda para datos
+   descartables. La condición de rechazo está cubierta unitariamente, no se
+   declara demostrada en concurrencia real de BD con esta tanda manual.
+
+Después de comprobar B1, el siguiente backend propuesto sigue siendo B2 (consulta
+administrativa de auditoría); F1/F2 no se declaran terminados por este diálogo.
+
+Evidencia manual informada por el usuario el 18/11: el panel muestra Roles;
+asignó TECNICO conservando CLIENTE a qa.roles y la sesión de esa cuenta pudo
+seguir entrando a Mis alquileres y abrir Mantenimiento sin volver a loguearse.
+Confirmó las validaciones de roles/motivo y la prueba en dos pestañas: A retiró
+TECNICO sin órdenes, B recibió el rechazo de versión desactualizada y no pisó A.
+Al cerrar/reabrir el diálogo, GET mostró únicamente CLIENTE.
+
+Observación de frontend pendiente: ese GET actualiza el diálogo, pero la tabla
+de usuarios de la pestaña B conserva su listado anterior hasta F5. No confundir
+esa presentación desactualizada con una escritura aceptada; sincronizar fila o
+listado al consultar/recargar roles es parte del pulido pendiente. No se corrigió
+automáticamente el código por este reporte.
+
+El usuario confirmó también que qa.roles, con CLIENTE y TECNICO y una reserva
+activa, no pudo perder CLIENTE: el guardado devolvió el rechazo específico de
+operaciones pendientes. Después confirmó la cancelación normal de esa reserva
+sin pago/retiro y el retiro de CLIENTE conservando TECNICO: Mis alquileres quedó
+denegado y Mantenimiento siguió accesible sin volver a iniciar sesión. Con ello
+queda comprobado ese bloqueo y desbloqueo, no el caso financiero aislado.
+El usuario confirmó el rechazo de retiro de TECNICO a qa.roles cuando tenía una
+orden abierta asignada, con el mensaje específico de finalizar/reasignar primero.
+Luego confirmó la finalización de esa orden y el retiro de TECNICO conservando
+CLIENTE. Queda comprobado ese bloqueo y desbloqueo. Luego confirmó que, tras
+agregar ADMIN a qa.roles, esa cuenta pudo entrar al panel y retirarse su propio
+ADMIN conservando CLIENTE: guardó, volvió al inicio sin logout, pudo acceder a
+Mis alquileres sin nuevas credenciales y no pudo volver a Administración.
+admin.demo siguió operativo.
+
+La tanda manual principal queda comprobada en ese alcance. Continúa pendiente
+la concurrencia SQL de las suites pausadas; no se declara el caso de último ADMIN
+probado manualmente ni se alteran cuentas demo para forzarlo. Las pruebas nuevas
+Java/JavaScript tienen sus comandos indicados; posteriormente el usuario confirmó
+que repitió la compilación y las tandas automáticas y dieron OK. No se atribuyen
+conteos exactos ni ejecución SQL a esa confirmación.
+
+Para comprobar finanzas sin viaje activo, el usuario generó y devolvió normalmente
+el alquiler 4 de qa.roles. Informó SALDO_PENDIENTE, costo final ARS 3054,19,
+pagos aprobados ARS 511,88 y deuda ARS 2542,31, sin importe a reintegrar. Luego
+confirmó que no pudo retirar CLIENTE conservando TECNICO: recibió el rechazo
+específico de operaciones/gestiones financieras pendientes. Después confirmó el
+pago por la simulación normal, la liquidación SALDADO y el retiro de CLIENTE
+conservando TECNICO. Queda comprobado el bloqueo por deuda sin viaje activo y su
+liberación después de resolverla, sin deuda QA pendiente de ese alquiler. No se
+forzaron fechas ni importes por SQL y no se declara probado un reintegro aislado
+solo por este escenario de deuda. El último ADMIN está cubierto por la tanda
+unitaria informada; no se forzó ese estado retirando roles de cuentas demo.
+
+Siguiente paso: guardar el avance de B1 y la pausa de integraciones pendiente
+con commit/push; después retomar B2, consulta administrativa de auditoría. La
+sincronización de la tabla al reabrir un diálogo tras 409 permanece anotada en F2.

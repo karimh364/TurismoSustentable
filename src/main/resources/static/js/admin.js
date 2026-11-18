@@ -43,6 +43,7 @@ async function cargarUsuarios() {
                     <td>${u.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-danger">Inactivo</span>'}</td>
                     <td>
                         <button class="btn btn-sm btn-warning" onclick="editarUsuario(${u.id})"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="abrirRolesUsuario(${u.id}, this)">Roles</button>
                         <button class="btn btn-sm btn-danger" onclick="borrarUsuario(${u.id})"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>`;

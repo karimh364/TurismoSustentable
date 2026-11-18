@@ -13,6 +13,7 @@ import DSII.TurismoSustentable.repositories.*;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -67,6 +68,7 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@Disabled("Integración pausada para conservar los datos locales de demostración.")
 @EnabledIfEnvironmentVariable(
         named = "TURISMO_TEST_MYSQL",
         matches = "true"
@@ -75,7 +77,7 @@ import static org.mockito.Mockito.*;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.datasource.url=jdbc:mariadb://localhost:3306/turismo_sustentable?sslMode=disable",
-                "spring.jpa.hibernate.ddl-auto=create-drop",
+                "spring.jpa.hibernate.ddl-auto=validate",
                 "spring.jpa.open-in-view=false",
                 "alquiler.vencimientos.automaticos=false",
                 "mantenimiento.preventivo.automatico=false",

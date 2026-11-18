@@ -12,6 +12,16 @@ import org.springframework.data.jpa.repository.Lock;
 import javax.persistence.LockModeType;
 
 public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
+    @Query("select count(distinct u.id) from Usuario u join u.usuarioRoles ur "
+            + "where u.activo = true and ur.rol.codigo = 'ADMIN'")
+    long contarAdministradoresActivos();
+
+    // No precargar alquileres EAGER mientras se esperan las cuentas bloqueadas.
+    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {"persona"})
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select u from Usuario u where u.id = :id")
+    Optional<Usuario> buscarCuentaParaRolesConBloqueo(@Param("id") Integer id);
+
     @Query("select u.id from Usuario u where u.email=:email")
     Optional<Integer> buscarIdPorEmail(@Param("email") String email);
 

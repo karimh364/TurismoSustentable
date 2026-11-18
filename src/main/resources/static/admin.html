@@ -237,6 +237,33 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalRolesUsuario" tabindex="-1" aria-labelledby="roles-titulo" aria-describedby="roles-ayuda">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="roles-titulo">Roles del usuario</h5>
+                <button id="roles-cerrar" type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p id="roles-ayuda" class="small text-muted">Los roles son acumulables. Conservá al menos uno. Retirar un rol no cancela alquileres ni reasigna órdenes: primero resolvé las operaciones pendientes. Siempre debe quedar un administrador activo.</p>
+                <fieldset id="roles-opciones" class="mb-3">
+                    <legend class="fs-6">Permisos de la cuenta</legend>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="roles-cliente"><label class="form-check-label" for="roles-cliente">Cliente — alquileres y pagos propios</label></div>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="roles-admin"><label class="form-check-label" for="roles-admin">Administrador — gestión del sistema</label></div>
+                    <div class="form-check"><input class="form-check-input" type="checkbox" id="roles-tecnico"><label class="form-check-label" for="roles-tecnico">Técnico — trabajo sobre órdenes asignadas</label></div>
+                </fieldset>
+                <label for="roles-motivo" class="form-label">Motivo del cambio</label>
+                <textarea id="roles-motivo" class="form-control" rows="3" maxlength="2000" required></textarea>
+                <p id="roles-estado" class="small mt-2 mb-0" role="status" aria-live="polite"></p>
+            </div>
+            <div class="modal-footer">
+                <button id="roles-cancelar" type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button id="roles-guardar" type="button" class="btn btn-success" onclick="guardarRolesUsuario()">Guardar roles</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <footer class="bg-dark text-white text-center py-3 mt-auto">
     <div class="container">
         <p class="mb-0">
@@ -250,6 +277,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script src="js/auth.js"></script>
+<script src="js/roles-usuarios.js"></script>
 <script src="js/alquileres-vista.js"></script>
 <script src="js/alquileres-operaciones.js"></script>
 <script src="js/admin.js"></script>

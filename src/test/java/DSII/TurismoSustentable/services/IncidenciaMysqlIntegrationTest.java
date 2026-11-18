@@ -34,10 +34,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
+@Disabled("Integración pausada para conservar los datos locales de demostración.")
 @EnabledIfEnvironmentVariable(named="TURISMO_TEST_MYSQL",matches="true")
 @SpringBootTest(webEnvironment=SpringBootTest.WebEnvironment.RANDOM_PORT,properties={
         "spring.datasource.url=jdbc:mariadb://localhost:3306/turismo_sustentable?sslMode=disable",
-        "spring.jpa.hibernate.ddl-auto=create-drop","spring.jpa.open-in-view=false",
+        "spring.jpa.hibernate.ddl-auto=validate","spring.jpa.open-in-view=false",
         "mantenimiento.preventivo.automatico=false","alquiler.vencimientos.automaticos=false",
         "pagos.simulados.saldo-inicial-ars=1000000.00",
         "spring.datasource.hikari.connection-init-sql=SET SESSION innodb_lock_wait_timeout=10"})

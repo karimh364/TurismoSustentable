@@ -20,6 +20,8 @@ import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Collection;
+import java.util.TreeSet;
 
 /** Auditoría de estaciones y cambios de usuarios, sin serializar entidades completas. */
 @Service
@@ -107,6 +109,19 @@ public class AuditoriaAdministrativaService {
             throw new AccessDeniedException("Se requiere una sesión con permiso ADMIN.");
         }
         return sesion;
+    }
+
+    // Invocar antes de aplicar el cambio: el actor puede retirarse su propio ADMIN.
+    // La auditoría solo se confirma si también se confirma la transacción de roles.
+    public void registrarCambioRoles(Usuario administrador, int usuarioId,
+                                    Collection<String> anteriores, Collection<String> nuevos,
+                                    String motivo) {
+        sesionAdministrativa();
+        validarAdministrador(administrador);
+        String antes = serializar(Map.of("roles", new TreeSet<>(anteriores)));
+        String despues = serializar(Map.of("roles", new TreeSet<>(nuevos)));
+        trazabilidad.administracion(administrador, "USUARIO", usuarioId, "CAMBIAR_ROLES",
+                antes, despues, motivo, LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC));
     }
 
     private void validarAdministrador(Usuario administrador) {

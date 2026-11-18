@@ -86,6 +86,15 @@ class AuditoriaAdministrativaServiceTest {
     }
 
     @Test
+    void cambioDeRolesRegistraComposicionOrdenadaActorMotivoSinCredenciales() {
+        servicio.registrarCambioRoles(administrador, 17, List.of("CLIENTE", "ADMIN"),
+                List.of("CLIENTE", "TECNICO"), "Cambio de funciones");
+        verify(trazabilidad).administracion(eq(administrador), eq("USUARIO"), eq(17), eq("CAMBIAR_ROLES"),
+                eq("{\"roles\":[\"ADMIN\",\"CLIENTE\"]}"), eq("{\"roles\":[\"CLIENTE\",\"TECNICO\"]}"),
+                eq("Cambio de funciones"), eq(LocalDateTime.of(2026, 11, 16, 20, 0)));
+    }
+
+    @Test
     void sinSesionNoConsultaNiAudita() {
         SecurityContextHolder.clearContext();
         assertThrows(AccessDeniedException.class, servicio::administradorActual);

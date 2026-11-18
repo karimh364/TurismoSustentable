@@ -10,6 +10,31 @@ import java.util.Optional;
 import java.util.List;
 
 public interface AlquilerRepository extends JpaRepository<Alquiler, Integer> {
+    // No filtrar borrado lógico: ocultar un alquiler no elimina sus obligaciones.
+    @Query("select count(a) from Alquiler a where a.usuario.id = :usuarioId and ("
+            + "a.estadoContratacion.codigo in ('RESERVADO','EN_PROGRESO') "
+            + "or a.fechaHoraLiquidacion is null or a.costoFinalArs is null "
+            + "or exists (select d.id from AlquilerDetalle d where d.alquiler = a "
+            + "and d.estado.codigo in ('RESERVADO','PENDIENTE_RETIRO','EN_CURSO')) "
+            + "or exists (select p.id from Pago p where p.alquiler = a "
+            + "and p.estadoPago.codigo in ('CREADO','PENDIENTE')) "
+            + "or exists (select r.id from Reembolso r where r.pago.alquiler = a "
+            + "and r.estado in ('PENDIENTE','EN_PROCESO')))")
+    long contarOperacionesPendientesParaRetirarCliente(@Param("usuarioId") Integer usuarioId);
+
+    // Diferencia en ambos sentidos: deuda o importe todavía pendiente de reintegrar.
+    @Query(value = "select count(*) from alquiler a where a.usuario_id = :usuarioId "
+            + "and a.fecha_hora_liquidacion is not null and a.costo_final_ars <> ("
+            + "coalesce((select sum(p.monto_ars) from pago p "
+            + "join estado_pago ep on ep.id = p.estado_pago_id where p.alquiler_id = a.id "
+            + "and ep.codigo = 'APROBADO' and p.moneda = 'ARS' "
+            + "and p.fecha_confirmacion is not null), 0) - "
+            + "coalesce((select sum(r.monto_ars) from reembolso r "
+            + "join pago p2 on p2.id = r.pago_id where p2.alquiler_id = a.id "
+            + "and r.estado = 'CONFIRMADO' and r.moneda = 'ARS' "
+            + "and r.fecha_confirmacion is not null), 0))", nativeQuery = true)
+    long contarLiquidacionesSinSaldar(@Param("usuarioId") Integer usuarioId);
+
 
     @Query("select a.id from Alquiler a where a.estadoContratacion.codigo in ('RESERVADO','EN_PROGRESO') "
             + "and a.fechaHoraVencimientoReserva <= :ahora "
