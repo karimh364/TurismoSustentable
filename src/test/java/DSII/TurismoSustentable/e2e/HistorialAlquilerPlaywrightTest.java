@@ -323,11 +323,14 @@ class HistorialAlquilerPlaywrightTest {
             }
 
             Page pagina = cliente.pagina();
+            pagina.locator("#estaciones-container button[data-estacion-id='" + estacionId + "']").click();
+            assertThat(pagina.locator("#estacion-elegida")).containsText(ESTACION);
             for (String codigo : bicis) pagina.locator("#bicicletas-container article")
                     .filter(new Locator.FilterOptions().setHasText(codigo)).locator("input[type=checkbox]").check();
             pagina.locator("#duracion-reserva").fill("10");
             pagina.locator("#crear-reserva").click();
-            JsonNode datos = leer(esperar(pagina, "POST", BASE + "/api/alquileres", () -> boton(modal(pagina), "Reservar").click()), 201);
+            JsonNode datos = leer(esperar(pagina, "POST", BASE + "/api/alquileres",
+                    () -> boton(modal(pagina), "Confirmar reserva").click()), 201);
             id = datos.path("id").asInt();
             assertTrue(id > 0);
             System.out.println("Reserva demo E2E: alquiler #" + id);

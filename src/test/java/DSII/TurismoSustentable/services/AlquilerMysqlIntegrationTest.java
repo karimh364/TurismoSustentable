@@ -2569,11 +2569,9 @@ class AlquilerMysqlIntegrationTest {
             List<String> erroresJs = new ArrayList<>();
             page.onPageError(erroresJs::add);
             page.navigate(base + "/alquiler.html");
-            page.locator("#filtro-estacion option[value='" + estacionId + "']").waitFor(
-                    new com.microsoft.playwright.Locator.WaitForOptions().setState(com.microsoft.playwright.options.WaitForSelectorState.ATTACHED));
-            page.selectOption("#filtro-estacion",String.valueOf(estacionId));
-            page.locator("input[onchange='seleccionarBicicleta(" + bicicleta1Id + ")']").check();
-            page.locator("input[onchange='seleccionarBicicleta(" + bicicleta2Id + ")']").check();
+            page.locator("#estaciones-container button[data-estacion-id='" + estacionId + "']").click();
+            page.locator("#bicicletas-container input[data-bicicleta-id='" + bicicleta1Id + "']").check();
+            page.locator("#bicicletas-container input[data-bicicleta-id='" + bicicleta2Id + "']").check();
             page.fill("#duracion-reserva","45");
             page.click("#crear-reserva"); page.click(".swal2-confirm");
             page.waitForSelector(".swal2-title:text-is('Reserva creada')");
