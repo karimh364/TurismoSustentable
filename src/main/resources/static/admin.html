@@ -54,6 +54,7 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-estaciones">Estaciones</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bicicletas">Bicicletas</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-alquileres">Alquileres</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" id="auditoria-tab" type="button" data-bs-toggle="tab" data-bs-target="#tab-auditoria" role="tab" aria-controls="tab-auditoria" aria-selected="false">Auditoría</button></li>
     </ul>
 
     <div class="tab-content" id="adminTabContent">
@@ -136,6 +137,75 @@
                     </thead>
                     <tbody id="tabla-alquileres-body" style="overflow-wrap:anywhere"></tbody>
                 </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-auditoria" role="tabpanel" aria-labelledby="auditoria-tab">
+            <h4>Auditoría administrativa</h4>
+            <p class="text-muted" id="auditoria-nota-fechas">Las fechas se muestran tal como se registraron, sin convertir la zona horaria.</p>
+
+            <form id="auditoria-filtros" class="row g-3 align-items-end mb-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="auditoria-entidad">Entidad</label>
+                    <input id="auditoria-entidad" class="form-control" list="auditoria-entidades" maxlength="80" placeholder="Todas" autocomplete="off" aria-describedby="auditoria-ayuda-filtros">
+                    <datalist id="auditoria-entidades"></datalist>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="auditoria-accion">Acción</label>
+                    <input id="auditoria-accion" class="form-control" list="auditoria-acciones" maxlength="50" placeholder="Todas" autocomplete="off" aria-describedby="auditoria-ayuda-filtros">
+                    <datalist id="auditoria-acciones"></datalist>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="auditoria-administrador">Administrador</label>
+                    <select id="auditoria-administrador" class="form-select" aria-describedby="auditoria-administradores-estado" disabled>
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="col-12 d-flex flex-wrap gap-2">
+                    <button type="submit" class="btn btn-success">Aplicar filtros</button>
+                    <button type="button" id="auditoria-limpiar" class="btn btn-outline-secondary">Limpiar filtros</button>
+                </div>
+                <small id="auditoria-ayuda-filtros" class="text-muted">Elegí una sugerencia o escribí un código, por ejemplo: CAMBIAR_ROLES.</small>
+                <small id="auditoria-administradores-estado" class="text-muted mt-0" role="status"></small>
+            </form>
+
+            <section id="auditoria-detalle" class="card shadow-sm mb-3" aria-labelledby="auditoria-detalle-titulo" hidden>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <h5 id="auditoria-detalle-titulo" class="mb-0" tabindex="-1">Detalle del evento</h5>
+                        <button type="button" id="auditoria-detalle-cerrar" class="btn btn-sm btn-outline-secondary">Cerrar detalle</button>
+                    </div>
+                    <p id="auditoria-detalle-estado" role="status" class="mb-2"></p>
+                    <p id="auditoria-detalle-evento" class="text-break mb-1" hidden></p>
+                    <p id="auditoria-detalle-motivo" class="text-muted mb-2" hidden></p>
+                    <div id="auditoria-cambios-tabla" class="table-responsive" hidden>
+                        <table class="table table-sm align-middle">
+                            <caption class="visually-hidden">Cambios registrados en el evento</caption>
+                            <thead><tr><th scope="col">Campo</th><th scope="col">Antes</th><th scope="col">Después</th></tr></thead>
+                            <tbody id="auditoria-cambios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <p id="auditoria-estado" role="status" class="mb-2"></p>
+            <div id="auditoria-resultados" aria-busy="false">
+                <div class="table-responsive shadow-sm" id="auditoria-tabla" hidden>
+                    <table class="table table-striped table-hover bg-white align-middle" aria-describedby="auditoria-nota-fechas">
+                        <caption class="visually-hidden">Eventos de auditoría ordenados por ID, de mayor a menor</caption>
+                        <thead class="table-dark">
+                            <tr><th scope="col">ID</th><th scope="col">Administrador</th><th scope="col">Entidad</th><th scope="col">Acción</th><th scope="col">Fecha registrada</th><th scope="col">Detalle</th></tr>
+                        </thead>
+                        <tbody id="auditoria-eventos"></tbody>
+                    </table>
+                </div>
+                <nav id="auditoria-paginacion" class="mt-3" aria-label="Paginación de auditoría" hidden>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button" id="auditoria-anterior" class="btn btn-sm btn-outline-secondary" disabled>Anterior</button>
+                        <span id="auditoria-pagina" class="small text-muted"></span>
+                        <button type="button" id="auditoria-siguiente" class="btn btn-sm btn-outline-secondary" disabled>Siguiente</button>
+                    </div>
+                </nav>
             </div>
         </div>
     </div>
@@ -280,6 +350,7 @@
 <script src="js/roles-usuarios.js"></script>
 <script src="js/alquileres-vista.js"></script>
 <script src="js/alquileres-operaciones.js"></script>
+<script src="js/auditoria-admin.js"></script>
 <script src="js/admin.js"></script>
 
 </body>
