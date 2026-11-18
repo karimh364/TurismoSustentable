@@ -132,6 +132,7 @@ public class WebAuthorization {
                 .antMatchers(
                         HttpMethod.GET,
                         "/api/alquileres/*",
+                        "/api/alquileres/*/historial",
                         "/api/alquileres/*/liquidacion"
                 ).hasAnyAuthority("CLIENTE", "ADMIN")
 

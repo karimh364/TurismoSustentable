@@ -1,5 +1,8 @@
 package DSII.TurismoSustentable.dto;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import DSII.TurismoSustentable.models.Reembolso;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,7 +12,9 @@ public class ReembolsoDTO {
     private final Integer pagoId;
     private final BigDecimal montoArs;
     private final String estado;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaCreacion;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaConfirmacion;
 
     public ReembolsoDTO(Reembolso r) {

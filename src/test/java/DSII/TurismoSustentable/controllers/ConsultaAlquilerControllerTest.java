@@ -6,6 +6,7 @@ import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
 import DSII.TurismoSustentable.dto.LiquidacionAlquilerDTO;
+import DSII.TurismoSustentable.dto.HistorialEstadoAlquilerDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
 import DSII.TurismoSustentable.models.*;
@@ -91,6 +92,68 @@ class ConsultaAlquilerControllerTest {
         mockMvc.perform(get("/api/alquileres/50"))
                 .andExpect(status().isUnauthorized());
 
+        verifyNoInteractions(alquilerService);
+    }
+
+    @Test
+    void historialSinSesionResponde401SinConsultar() throws Exception {
+        mockMvc.perform(get("/api/alquileres/50/historial")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(alquilerService);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CLIENTE", "ADMIN"})
+    void historialEsConsultaPermitidaParaClienteYAdminSinDatosSensibles(String rol) throws Exception {
+        when(alquilerService.historialAlquiler(50)).thenReturn(List.of(new HistorialEstadoAlquilerDTO(
+                1, 50, null, "RESERVADO", 7, "qa.historial", "USUARIO", "Reserva creada.",
+                LocalDateTime.of(2026, 11, 18, 12, 0))));
+        mockMvc.perform(get("/api/alquileres/50/historial").with(user("qa").authorities(new SimpleGrantedAuthority(rol))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].alquilerId").value(50))
+                .andExpect(jsonPath("$[0].estadoAnterior").value(nullValue()))
+                .andExpect(jsonPath("$[0].estadoNuevo").value("RESERVADO"))
+                .andExpect(jsonPath("$[0].actorUsuarioId").value(7))
+                .andExpect(jsonPath("$[0].actorNickname").value("qa.historial"))
+                .andExpect(jsonPath("$[0].actorUsuario").doesNotExist())
+                .andExpect(jsonPath("$[0].password").doesNotExist());
+        verify(alquilerService).historialAlquiler(50);
+        verifyNoInteractions(liquidacionAlquilerService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "TECNICO")
+    void tecnicoNoPuedeConsultarHistorialDeAlquiler() throws Exception {
+        mockMvc.perform(get("/api/alquileres/50/historial")).andExpect(status().isForbidden());
+        verifyNoInteractions(alquilerService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void historialAjenoConserva403DelServicio() throws Exception {
+        when(alquilerService.historialAlquiler(50)).thenThrow(new AccessDeniedException("Alquiler ajeno."));
+        mockMvc.perform(get("/api/alquileres/50/historial")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void historialInexistenteConserva404() throws Exception {
+        when(alquilerService.historialAlquiler(50)).thenThrow(new EntityNotFoundException("No existe."));
+        mockMvc.perform(get("/api/alquileres/50/historial")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void historialIdInvalidoConserva400() throws Exception {
+        when(alquilerService.historialAlquiler(0)).thenThrow(new IllegalArgumentException("ID inválido."));
+        mockMvc.perform(get("/api/alquileres/0/historial")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void noExisteEndpointParaModificarHistoria() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .post("/api/alquileres/50/historial").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isMethodNotAllowed());
         verifyNoInteractions(alquilerService);
     }
 
@@ -479,7 +542,7 @@ class ConsultaAlquilerControllerTest {
         } else {
             resultado
                     .andExpect(jsonPath("$.fechaHoraLiquidacion")
-                            .value("2026-11-16T07:30:45"))
+                            .value("2026-11-16T04:30:45-03:00"))
                     .andExpect(jsonPath("$.costoFinalUsd")
                             .value(respuesta.getCostoFinalUsd()
                                     .doubleValue()))
@@ -710,9 +773,9 @@ class ConsultaAlquilerControllerTest {
                 .andExpect(jsonPath("$.estacionRetiroId").value(1))
                 .andExpect(jsonPath("$.estacionRetiro").value("Plaza QA"))
                 .andExpect(jsonPath("$.fechaHoraCreacion")
-                        .value("2026-11-10T12:00:00"))
+                        .value("2026-11-10T09:00:00-03:00"))
                 .andExpect(jsonPath("$.fechaHoraVencimientoReserva")
-                        .value("2026-11-10T12:15:00"))
+                        .value("2026-11-10T09:15:00-03:00"))
                 .andExpect(jsonPath("$.cotizacionArsPorUsd")
                         .value(1530.0))
                 .andExpect(jsonPath("$.fuenteCotizacion")

@@ -31,6 +31,7 @@ class IncidenciaServiceTest {
     @Mock UsuarioRepository usuarios;@Mock EstacionRepository estaciones;@Mock EstadoAlquilerDetalleRepository estadosDetalle;
     @Mock EstadoAlquilerRepository estadosAlquiler;@Mock EstadoBicicletaRepository estadosBici;
     @Mock HistorialEstadoDetalleRepository historiasDetalle;@Mock OrdenMantenimientoRepository ordenes;
+    @Mock HistorialEstadoAlquilerRepository historialCabecera;
     @Mock HistorialOrdenMantenimientoRepository historiasOrden;@Mock TipoMantenimientoRepository tiposOrden;
     @Mock EstadoOrdenMantenimientoRepository estadosOrden;@Mock TrazabilidadInventarioService traza;
     @Mock LiquidacionAlquilerService liquidacion;@Mock ReembolsoService reembolsos;
@@ -42,7 +43,8 @@ class IncidenciaServiceTest {
     @AfterAll static void cerrar(){factory.close();}
     @BeforeEach void preparar(){
         servicio=new IncidenciaService(incidencias,historias,alquileres,detalles,bicicletas,usuarios,estaciones,estadosDetalle,estadosAlquiler,estadosBici,historiasDetalle,
-                ordenes,historiasOrden,tiposOrden,estadosOrden,traza,new CalculadoraAlquiler(),liquidacion,factory.getValidator(),Clock.fixed(ahora.toInstant(ZoneOffset.UTC),ZoneOffset.UTC),new ObjectMapper());
+                ordenes,historiasOrden,tiposOrden,estadosOrden,traza,new CalculadoraAlquiler(),liquidacion,factory.getValidator(),Clock.fixed(ahora.toInstant(ZoneOffset.UTC),ZoneOffset.UTC),new ObjectMapper(),
+                new TrazabilidadAlquilerService(historialCabecera));
         ReflectionTestUtils.setField(servicio,"reembolsos",reembolsos);
         cliente=usuario(1,"CLIENTE");admin=usuario(2,"ADMIN");otro=usuario(3,"CLIENTE");tecnico=usuario(4,"TECNICO");
         e=new Estacion("Taller","Calle 1",2,new BigDecimal("-31.4"),new BigDecimal("-64.2"));ReflectionTestUtils.setField(e,"id",5);e.setEsPublica(false);
@@ -104,6 +106,9 @@ class IncidenciaServiceTest {
         assertEquals(Set.of("PERDIDA","ROBO").contains(tipo)?"EXTRAVIADA":"MANTENIMIENTO",b.getEstado().getCodigo());assertNull(b.getUbicacionActual());
         assertEquals("FINALIZADO",a.getEstadoContratacion().getCodigo());verify(liquidacion).liquidarSiCorresponde(a);verify(reembolsos).registrarPendientesSiCorresponde(a);
         verify(historias).save(argThat(h->"PENDIENTE".equals(h.getEstadoAnterior())&&"VALIDADA".equals(h.getEstadoNuevo())&&h.getFechaHoraCambio().equals(ahora)));
+        verify(historialCabecera).save(argThat(h->"EN_PROGRESO".equals(h.getEstadoAnterior().getCodigo())
+                && "FINALIZADO".equals(h.getEstadoNuevo().getCodigo()) && h.getActorUsuario()==admin
+                && h.getFechaHoraCambio().equals(ahora) && !h.getFechaHoraCambio().equals(d.getFechaHoraFinUso())));
         if(tipo.equals("AVERIA")||tipo.equals("ACCIDENTE")){assertEquals(1,abiertas.size());assertEquals("CREADA",abiertas.get(0).getEstado().getCodigo());}
         else verifyNoInteractions(historiasOrden);
     }
@@ -113,13 +118,13 @@ class IncidenciaServiceTest {
     @Test void validacionExigeCorteNoPosteriorAlReporte(){sesion(admin,"ADMIN");var r=decision("VALIDADA");r.fechaHoraCorteValidado=ahora.minusMinutes(59).atOffset(ZoneOffset.UTC);codigo(400,()->servicio.resolver(7,r));r.fechaHoraCorteValidado=null;codigo(400,()->servicio.resolver(7,r));}
     @Test void descartarNoAdmiteCorte(){sesion(admin,"ADMIN");var r=decision("DESCARTADA");r.fechaHoraCorteValidado=ahora.minusMinutes(75).atOffset(ZoneOffset.UTC);codigo(400,()->servicio.resolver(7,r));}
     @Test void descartarNoCierraUsoNiDeclaraCulpa(){sesion(admin,"ADMIN");servicio.resolver(7,decision("DESCARTADA"));assertEquals("EN_CURSO",d.getEstado().getCodigo());assertNull(d.getFechaHoraFinUso());assertEquals("EN_USO",b.getEstado().getCodigo());verifyNoInteractions(liquidacion,historiasDetalle);}
-    @Test void repeticionDeDecisionNoDuplicaEventos(){sesion(admin,"ADMIN");var r=decision("VALIDADA");servicio.resolver(7,r);servicio.resolver(7,r);verify(historias,times(1)).save(any());verify(historiasDetalle,times(1)).save(any());}
+    @Test void repeticionDeDecisionNoDuplicaEventos(){sesion(admin,"ADMIN");var r=decision("VALIDADA");servicio.resolver(7,r);servicio.resolver(7,r);verify(historias,times(1)).save(any());verify(historiasDetalle,times(1)).save(any());verify(historialCabecera,times(1)).save(any());}
     @Test void decisionDistintaNoSobrescribeLaAnterior(){sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));codigo(409,()->servicio.resolver(7,decision("DESCARTADA")));}
-    @Test void devolucionPreviaConservaFisicoYCobraHastaCorte(){devuelta();sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));assertEquals("DEVUELTO",d.getEstado().getCodigo());assertEquals(ahora.minusHours(1),d.getFechaHoraDevolucionReal());assertEquals(e,d.getEstacionDevolucion());assertEquals(new BigDecimal("6.00"),d.getSubtotalRealUsd());assertEquals(ahora.minusHours(1),a.getFechaHoraCierre());verifyNoInteractions(historiasDetalle);}
+    @Test void devolucionPreviaConservaFisicoYCobraHastaCorte(){devuelta();sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));assertEquals("DEVUELTO",d.getEstado().getCodigo());assertEquals(ahora.minusHours(1),d.getFechaHoraDevolucionReal());assertEquals(e,d.getEstacionDevolucion());assertEquals(new BigDecimal("6.00"),d.getSubtotalRealUsd());assertEquals(ahora.minusHours(1),a.getFechaHoraCierre());verifyNoInteractions(historiasDetalle,historialCabecera);}
     @Test void devolucionDescartadaUsaRecepcionNoHoraDeDecision(){devuelta();sesion(admin,"ADMIN");servicio.resolver(7,decision("DESCARTADA"));assertNull(d.getIncidenciaCorte());assertEquals(new BigDecimal("8.00"),d.getSubtotalRealUsd());assertEquals(ahora.minusHours(1),d.getFechaHoraFinUso());}
     @Test void liquidacionDefinitivaNoSeReabre(){devuelta();a.setFechaHoraLiquidacion(ahora.minusMinutes(30));sesion(admin,"ADMIN");codigo(409,()->servicio.resolver(7,decision("VALIDADA")));verifyNoInteractions(historias);}
     @Test void variasRevisionesMantienenCostoProvisional(){Incidencia otra=new Incidencia();ReflectionTestUtils.setField(otra,"id",8);otra.setEstadoRevision("PENDIENTE");otra.setRequiereRevisionEconomica(true);reportes.add(otra);sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));assertNull(d.getSubtotalRealUsd());assertNull(d.getSubtotalRealArs());}
-    @Test void noCambiaOtraBicicletaNiCierraCabeceraSiOtraSigueEnUso(){AlquilerDetalle otro=new AlquilerDetalle();otro.setEstado(new EstadoAlquilerDetalle("EN_CURSO"));when(detalles.buscarPorAlquiler(100)).thenReturn(List.of(d,otro));sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));assertEquals("EN_PROGRESO",a.getEstadoContratacion().getCodigo());verifyNoInteractions(liquidacion);}
+    @Test void noCambiaOtraBicicletaNiCierraCabeceraSiOtraSigueEnUso(){AlquilerDetalle otro=new AlquilerDetalle();otro.setEstado(new EstadoAlquilerDetalle("EN_CURSO"));when(detalles.buscarPorAlquiler(100)).thenReturn(List.of(d,otro));sesion(admin,"ADMIN");servicio.resolver(7,decision("VALIDADA"));assertEquals("EN_PROGRESO",a.getEstadoContratacion().getCodigo());verifyNoInteractions(liquidacion,historialCabecera);}
     @Test void otraIncidenciaNoReemplazaCorteDistinto(){Incidencia anterior=new Incidencia();ReflectionTestUtils.setField(anterior,"id",9);d.setIncidenciaCorte(anterior);d.setFechaHoraFinUso(ahora.minusMinutes(80));sesion(admin,"ADMIN");codigo(409,()->servicio.resolver(7,decision("VALIDADA")));}
     @Test void recepcionNormalGuardaHechoYVinculoSinResolver(){devuelta();servicio.registrarDevolucion(d,cliente,ahora.minusHours(1));assertEquals("PENDIENTE",i.getEstadoRevision());assertEquals(e,i.getEstacionRecepcion());assertEquals(cliente,i.getRecibidoPor());verify(historias).save(argThat(h->h.getEstadoAnterior()==null&&h.getEstadoNuevo()==null));}
     @Test void recuperacionRealDeExtraviadaExigeRevisionSinReabrirUso(){cerrada("PERDIDA");sesion(admin,"ADMIN");var r=servicio.recibir(7,recepcion());assertEquals("MANTENIMIENTO",b.getEstado().getCodigo());assertEquals(e,b.getUbicacionActual());assertEquals(ahora,r.fechaHoraRecepcionFisica);assertEquals("CERRADO_POR_INCIDENCIA",d.getEstado().getCodigo());assertNull(d.getFechaHoraDevolucionReal());assertEquals(1,abiertas.size());verifyNoInteractions(liquidacion,reembolsos);}

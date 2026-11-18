@@ -113,3 +113,52 @@ test('ambas páginas cargan operaciones después de vista y antes del consumidor
         assert.ok(texto.indexOf('js/alquileres-operaciones.js')<texto.indexOf('js/'+js));
     }
 });
+
+test('historial se ofrece a cliente y admin sin consultas anticipadas',()=>{
+    const e=entorno();
+    assert.match(e.ops.acciones(alquiler),/historial\(7\)/);
+    e.ops.configurar({id:2,roles:['ADMIN']},async()=>{},true);
+    assert.match(e.ops.acciones(alquiler,true),/historial\(7\)/);
+    assert.equal(e.llamadas.length,0);
+});
+test('historial consulta una vez y presenta creación, transiciones y actor sin HTML recibido',async()=>{
+    const e=entorno();
+    e.setGet(async()=>({data:[{id:1,alquilerId:7,estadoAnterior:null,estadoNuevo:'RESERVADO',
+        actorUsuarioId:1,actorNickname:'<img src=x onerror=alert(1)>',origen:'USUARIO',
+        observaciones:'<script>dato</script>',fechaHoraCambio:'2026-11-18T12:00:00'},
+        {id:2,alquilerId:7,estadoAnterior:'RESERVADO',estadoNuevo:'VENCIDO',origen:'SISTEMA',
+            actorUsuarioId:null,actorNickname:null,fechaHoraCambio:'2026-11-18T12:15:00'}]}));
+    await e.ops.historial(7);
+    assert.deepEqual(e.llamadas,[['GET','/api/alquileres/7/historial']]);
+    const modal=e.avisos[0][0];
+    assert.match(modal.html,/Creación/);assert.match(modal.html,/Vencido/);
+    assert.match(modal.html,/Proceso automático del sistema/);
+    assert.match(modal.html,/&lt;script&gt;/);assert.doesNotMatch(modal.html,/<img|<script>/);
+    assert.equal(e.recargas(),0);
+});
+test('historial vacío no fabrica movimientos',async()=>{
+    const e=entorno();await e.ops.historial(7);
+    assert.match(e.avisos[0][0].html,/No hay movimientos registrados/);
+    assert.doesNotMatch(e.avisos[0][0].html,/<li/);
+});
+test('historial inválido o de otro alquiler no se presenta como éxito',async()=>{
+    for(const data of [{eventos:[]},[null],[{alquilerId:8,estadoNuevo:'RESERVADO',origen:'USUARIO'}],
+            [{alquilerId:7,estadoNuevo:'SALDADO',origen:'SISTEMA'}]]) {
+        const e=entorno();e.setGet(async()=>({data}));await e.ops.historial(7);
+        assert.equal(e.avisos[0][0],'No se pudo completar');assert.equal(e.avisos[0][2],'error');
+    }
+});
+test('historial respeta 401/403 y no reintenta ni escribe',async()=>{
+    for(const status of [401,403]) {
+        const e=entorno();e.setGet(async()=>{throw {response:{status}}});await e.ops.historial(7);
+        assert.equal(e.llamadas.length,1);assert.equal(e.avisos.length,0);assert.equal(e.recargas(),0);
+    }
+});
+test('doble clic en historial no duplica GET; una apertura posterior consulta datos frescos',async()=>{
+    const e=entorno();let resolver;
+    e.setGet(()=>new Promise(r=>{resolver=r}));
+    const consulta=e.ops.historial(7);await e.ops.historial(7);assert.equal(e.llamadas.length,1);
+    resolver({data:[]});await consulta;
+    e.setGet(async()=>({data:[]}));await e.ops.historial(7);assert.equal(e.llamadas.length,2);
+    assert.equal(e.recargas(),0);
+});

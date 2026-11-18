@@ -35,7 +35,7 @@ const VistaAlquileres = (() => {
     function fecha(valor) {
         if (!valor) return '—';
 
-        // El backend entrega estas fechas en UTC.
+        // La API actual indica el desfase; las respuestas anteriores sin offset eran UTC.
         const cadena = String(valor);
         const iso = /(Z|[+-]\d{2}:\d{2})$/i.test(cadena)
             ? cadena
@@ -45,7 +45,7 @@ const VistaAlquileres = (() => {
 
         return Number.isNaN(resultado.getTime())
             ? 'Fecha no disponible'
-            : resultado.toLocaleString('es-AR');
+            : resultado.toLocaleString('es-AR', {timeZone: 'America/Argentina/Ushuaia'});
     }
 
     function importe(

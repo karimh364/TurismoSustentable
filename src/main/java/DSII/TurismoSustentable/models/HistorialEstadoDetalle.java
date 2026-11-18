@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalConverter;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -44,6 +46,7 @@ public class HistorialEstadoDetalle {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCambio;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -79,7 +82,7 @@ public class HistorialEstadoDetalle {
                 actorUsuario,
                 origen,
                 observaciones,
-                LocalDateTime.now()
+                LocalDateTime.now(java.time.ZoneOffset.UTC)
         );
     }
 

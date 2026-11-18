@@ -54,6 +54,7 @@ class RetiroAlquilerServiceTest {
     @Mock private PagoRepository pagoRepository;
     @Mock private ReembolsoRepository reembolsoRepository;
     @Mock private HistorialEstadoDetalleRepository historialRepository;
+    @Mock private HistorialEstadoAlquilerRepository historialCabecera;
     @Mock private TrazabilidadInventarioService trazabilidad;
 
     @InjectMocks
@@ -69,6 +70,7 @@ class RetiroAlquilerServiceTest {
     @BeforeEach
     void preparar() {
         SecurityContextHolder.clearContext();
+        ReflectionTestUtils.setField(servicio, "trazabilidadAlquiler", new TrazabilidadAlquilerService(historialCabecera));
         fijarReloj(AHORA);
 
         usuario = new Usuario();
@@ -188,6 +190,9 @@ class RetiroAlquilerServiceTest {
         verify(historialRepository).save(captor.capture());
 
         HistorialEstadoDetalle historia = captor.getValue();
+        verify(historialCabecera).save(argThat(h -> "RESERVADO".equals(h.getEstadoAnterior().getCodigo())
+                && "EN_PROGRESO".equals(h.getEstadoNuevo().getCodigo()) && h.getActorUsuario() == usuario
+                && AHORA.equals(h.getFechaHoraCambio())));
         assertSame(primero, historia.getAlquilerDetalle());
         assertEquals(
                 "PENDIENTE_RETIRO",
@@ -205,7 +210,7 @@ class RetiroAlquilerServiceTest {
                 ),
                 same(usuario),
                 anyString(),
-                eq(AHORA)
+                eq(AHORA.minusHours(3))
         );
 
         verify(detalleRepository).flush();
@@ -277,6 +282,7 @@ class RetiroAlquilerServiceTest {
 
         verify(historialRepository, times(2))
                 .save(any(HistorialEstadoDetalle.class));
+        verify(historialCabecera, times(1)).save(any(HistorialEstadoAlquiler.class));
         verify(detalleRepository, times(2)).flush();
     }
 

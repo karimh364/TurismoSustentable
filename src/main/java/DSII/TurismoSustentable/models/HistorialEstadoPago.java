@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalConverter;
+
 import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.time.LocalDateTime;
@@ -38,9 +40,11 @@ public class HistorialEstadoPago {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCambio;
 
     @Column(name = "fecha_hora_evento_externo", updatable = false)
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraEventoExterno;
 
     @ManyToOne(fetch = FetchType.LAZY)

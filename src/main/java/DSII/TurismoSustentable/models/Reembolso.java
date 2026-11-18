@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalConverter;
+
 import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
@@ -69,9 +71,11 @@ public class Reembolso {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaCreacion;
 
     @Column(name = "fecha_confirmacion")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaConfirmacion;
 
     @NotBlank

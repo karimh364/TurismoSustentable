@@ -53,6 +53,7 @@ class DevolucionAlquilerServiceTest {
     @Mock private EstadoOrdenMantenimientoRepository estadoOrdenRepository;
     @Mock private HistorialOrdenMantenimientoRepository historiaOrdenRepository;
     @Mock private HistorialEstadoDetalleRepository historiaDetalleRepository;
+    @Mock private HistorialEstadoAlquilerRepository historialCabecera;
     @Mock private TrazabilidadInventarioService trazabilidad;
     @Mock private PagoRepository pagoRepository;
     @Mock private ReembolsoRepository reembolsoRepository;
@@ -80,6 +81,7 @@ class DevolucionAlquilerServiceTest {
 
     @BeforeEach
     void preparar() {
+        ReflectionTestUtils.setField(servicio, "trazabilidadAlquiler", new TrazabilidadAlquilerService(historialCabecera));
         ReflectionTestUtils.setField(servicio, "validator", validadores.getValidator());
         ReflectionTestUtils.setField(servicio, "calculadoraAlquiler", new CalculadoraAlquiler());
         fijarReloj(AHORA);
@@ -170,6 +172,10 @@ class DevolucionAlquilerServiceTest {
         }).when(liquidacionAlquilerService).liquidarSiCorresponde(alquiler);
 
         servicio.devolverBicicleta(7, 31, solicitud);
+
+        verify(historialCabecera).save(argThat(h -> "EN_PROGRESO".equals(h.getEstadoAnterior().getCodigo())
+                && "FINALIZADO".equals(h.getEstadoNuevo().getCodigo()) && h.getActorUsuario() == actor
+                && AHORA.equals(h.getFechaHoraCambio())));
 
         verify(liquidacionAlquilerService).liquidarSiCorresponde(alquiler);
         verifyNoInteractions(pagoRepository, reembolsoRepository);

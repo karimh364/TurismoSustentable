@@ -1,6 +1,6 @@
-%% DER v5 de trabajo - actualizado el 15 de noviembre de 2026.
+%% DER v5 de trabajo - actualizado el 18 de noviembre de 2026.
 %% Base: DERv4.txt original de 21 entidades y reglas aprobadas RN-*.
-%% Modelo logico de 29 entidades; trazabilidad RN-TRZ-01 incorporada con aprobacion.
+%% Modelo logico de 30 entidades y 59 FK; historial de cabecera aprobado el 18/11/2026 (H1).
 %% No es SQL ni esquema fisico definitivo; los demas pendientes se conservan.
 %% Los comentarios de atributos indican nulabilidad o decisiones pendientes.
 %% Situacion financiera y espacios libres son calculados; no tablas nuevas.
@@ -20,6 +20,13 @@
 %% Saldo ficticio basado en movimientos persistidos; no agrega tabla de billetera ni saldo en USUARIO.
 %% Decision 2026-11-02: AUDITORIA_SISTEMA exclusiva de acciones administrativas ADMIN.
 %% Los historiales de dominio conservan sus actores humanos y procesos SISTEMA.
+%% H1: HISTORIAL_ESTADO_ALQUILER registra creacion y cambios reales de cabecera en la misma transaccion.
+%% Migracion 06: los DATETIME de alquiler/detalles/pago/reembolso y sus historiales se guardan en hora de Rio Grande.
+%% La API de alquiler declara el offset; UTC sigue siendo la referencia interna de calculo.
+%% Inventario: solo los eventos de alquiler identificados se alinean a la hora local. Los demas módulos no migran en 06.
+%% Anterior nulo solo en creacion -> RESERVADO; reintentos/segundos retiros no repiten estados iguales.
+%% Vencimiento: SISTEMA sin actor; resolucion de incidencia: fecha/actor de decision, no hora del hecho.
+%% Pagos y liquidacion no inventan estados operativos. Historial consultable por titular CLIENTE o ADMIN.
 %% RN-TRZ-01: HISTORIAL_INCIDENCIA y ampliacion/renombre del historial de orden.
 %% Historial de orden/incidencia: estados solo al crear o transicionar; ambos nulos en evento de datos.
 %% incidencia_corte_id es FK opcional y unica; la incidencia debe pertenecer al mismo detalle.
@@ -79,6 +86,11 @@ erDiagram
 
     INCIDENCIA ||..|{ HISTORIAL_INCIDENCIA : conserva_eventos
     USUARIO |o..o{ HISTORIAL_INCIDENCIA : actor_humano
+
+    ALQUILER ||..|{ HISTORIAL_ESTADO_ALQUILER : conserva_estados_de_cabecera
+    ESTADO_ALQUILER |o..o{ HISTORIAL_ESTADO_ALQUILER : estado_anterior
+    ESTADO_ALQUILER ||..o{ HISTORIAL_ESTADO_ALQUILER : estado_nuevo
+    USUARIO |o..o{ HISTORIAL_ESTADO_ALQUILER : actor_humano
 
     ALQUILER_DETALLE ||..|{ HISTORIAL_ESTADO_DETALLE : conserva_estados
     ESTADO_ALQUILER_DETALLE |o..o{ HISTORIAL_ESTADO_DETALLE : estado_anterior
@@ -278,6 +290,17 @@ erDiagram
         string origen_cierre "CLIENTE, ADMIN o SISTEMA; codigos propuestos"
         text motivo_cierre "Condicional; no sustituye el historial"
         int version
+    }
+
+    HISTORIAL_ESTADO_ALQUILER {
+        int id PK
+        int alquiler_id FK
+        int estado_anterior_id FK "Opcional solo para creacion de la reserva"
+        int estado_nuevo_id FK
+        datetime fecha_hora_cambio "Hora local de Rio Grande; instante real de la transicion de cabecera"
+        int actor_usuario_id FK "Opcional solo para origen SISTEMA"
+        string origen "USUARIO o SISTEMA; actor real, no rol fijo"
+        text observaciones
     }
 
     HISTORIAL_ESTADO_DETALLE {

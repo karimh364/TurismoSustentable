@@ -249,7 +249,7 @@ class RetiroAlquilerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.estado").value("EN_CURSO"))
                 .andExpect(jsonPath("$.fechaHoraRetiro")
-                        .value("2026-11-15T12:05:00"))
+                        .value("2026-11-15T09:05:00-03:00"))
                 .andExpect(jsonPath("$.precioPorHoraAplicadoUsd")
                         .value(10.0));
 
@@ -280,9 +280,9 @@ class RetiroAlquilerControllerTest {
                 .andExpect(jsonPath("$.duracionEstimadaSegundos")
                         .value(2700))
                 .andExpect(jsonPath("$.fechaHoraRetiro")
-                        .value("2026-11-15T12:05:00"))
+                        .value("2026-11-15T09:05:00-03:00"))
                 .andExpect(jsonPath("$.fechaHoraDevolucionEstimada")
-                        .value("2026-11-15T12:50:00"))
+                        .value("2026-11-15T09:50:00-03:00"))
                 .andExpect(jsonPath("$.fechaHoraDevolucionReal")
                         .value(nullValue()))
                 .andExpect(jsonPath("$.fechaHoraFinUso")

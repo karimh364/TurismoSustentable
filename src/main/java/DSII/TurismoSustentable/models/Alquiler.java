@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalConverter;
+
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -78,12 +80,14 @@ public class Alquiler {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraAplicacionCotizacion;
 
     @Column(
             name = "fecha_hora_actualizacion_fuente",
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraActualizacionFuente;
 
     @NotNull(message = "La fecha de creación del alquiler es obligatoria.")
@@ -92,6 +96,7 @@ public class Alquiler {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCreacion;
 
     @NotNull(message = "El vencimiento de la reserva es obligatorio.")
@@ -100,15 +105,19 @@ public class Alquiler {
             nullable = false,
             updatable = false
     )
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraVencimientoReserva;
 
     @Column(name = "fecha_hora_cierre")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCierre;
 
     @Column(name = "fecha_hora_cancelacion")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCancelacion;
 
     @Column(name = "fecha_hora_liquidacion")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraLiquidacion;
 
     @NotNull(message = "El costo estimado en USD es obligatorio.")

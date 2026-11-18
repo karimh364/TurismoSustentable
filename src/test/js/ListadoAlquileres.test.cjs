@@ -395,7 +395,7 @@ test('importe pendiente no es cero y falta de ARS no provoca conversión', () =>
     assert.equal(e.peticiones.length, 0);
 });
 
-test('fechas del alquiler se muestran desde UTC y conservan offsets', () => {
+test('fechas del alquiler se muestran en Río Grande y conservan el instante de los offsets', () => {
     const e = entorno('cliente');
     const fecha = '2026-11-10T12:00:00';
 
@@ -409,6 +409,10 @@ test('fechas del alquiler se muestran desde UTC y conservan offsets', () => {
         e.vista.fecha(valor);
         assert.equal(e.fechasInterpretadas.at(-1), valor);
     }
+    const esperado = new Date('2026-11-10T12:00:00Z')
+        .toLocaleString('es-AR', {timeZone: 'America/Argentina/Ushuaia'});
+    assert.equal(e.vista.fecha(fecha + 'Z'), esperado);
+    assert.equal(e.vista.fecha('2026-11-10T09:00:00-03:00'), esperado);
 
     assert.equal(
         e.vista.fecha('dato-inválido'),

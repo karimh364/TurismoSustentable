@@ -31,6 +31,7 @@ class OperacionReservaServiceTest {
     @Mock EstadoAlquilerDetalleRepository estadoAlquilerDetalleRepository;
     @Mock EstadoBicicletaRepository estadoBicicletaRepository;
     @Mock HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
+    @Mock HistorialEstadoAlquilerRepository historialCabecera;
     @Mock TrazabilidadInventarioService trazabilidadInventario;
     @Mock LiquidacionAlquilerService liquidacionAlquilerService;
     @Mock ReembolsoService reembolsoService;
@@ -45,6 +46,7 @@ class OperacionReservaServiceTest {
     private List<AlquilerDetalle> detalles;
 
     @BeforeEach void preparar() {
+        ReflectionTestUtils.setField(servicio,"trazabilidadAlquiler",new TrazabilidadAlquilerService(historialCabecera));
         validadores=Validation.buildDefaultValidatorFactory();
         ReflectionTestUtils.setField(servicio,"validator",validadores.getValidator()); ponerHora(AHORA);
         usuario=new Usuario(); usuario.setId(1); usuario.setActivo(true); usuario.setEmail("qa.cancelar@example.com");
@@ -91,6 +93,7 @@ class OperacionReservaServiceTest {
         assertEquals("RESERVADO",detalles.get(1).getEstado().getCodigo());
         assertEquals("RESERVADO",alquiler.getEstadoContratacion().getCodigo());
         verifyNoInteractions(liquidacionAlquilerService,reembolsoService);
+        verifyNoInteractions(historialCabecera);
     }
 
     @Test void cancelacionTotalCierraCostoSinUsoYDelegaLiquidacionYObligacion() {
@@ -101,6 +104,8 @@ class OperacionReservaServiceTest {
         verify(liquidacionAlquilerService).liquidarSiCorresponde(alquiler);
         verify(reembolsoService).registrarPendientesSiCorresponde(alquiler);
         verify(historialEstadoDetalleRepository,times(2)).save(any());
+        verify(historialCabecera).save(argThat(h -> "RESERVADO".equals(h.getEstadoAnterior().getCodigo())
+                && "CANCELADO".equals(h.getEstadoNuevo().getCodigo()) && h.getActorUsuario() == usuario));
     }
 
     @Test void enUsoNoPuedeCancelarse() {
@@ -136,11 +141,15 @@ class OperacionReservaServiceTest {
         assertEquals("SISTEMA",detalles.get(0).getOrigenCierre());
         verify(trazabilidadInventario,times(2)).estadoSistema(any(),any(),anyString(),any());
         verify(trazabilidadInventario,never()).estado(any(),any(),any(),anyString(),any());
+        verify(historialCabecera).save(argThat(h -> "VENCIDO".equals(h.getEstadoNuevo().getCodigo())
+                && "SISTEMA".equals(h.getOrigen()) && h.getActorUsuario() == null
+                && alquiler.getFechaHoraVencimientoReserva().equals(h.getFechaHoraCambio())));
     }
 
     @Test void vencerAntesDelLimiteNoEscribe() {
         assertEquals(0,servicio.vencerReserva(7));
         verifyNoInteractions(bicicletaRepository,historialEstadoDetalleRepository,trazabilidadInventario);
+        verifyNoInteractions(historialCabecera);
     }
 
     @Test void vencimientoSoloCierraPendientesNoElViajeEnCurso() {
@@ -152,6 +161,7 @@ class OperacionReservaServiceTest {
         assertEquals("EN_CURSO",detalles.get(0).getEstado().getCodigo());
         assertEquals("EN_PROGRESO",alquiler.getEstadoContratacion().getCodigo());
         verifyNoInteractions(liquidacionAlquilerService,reembolsoService);
+        verifyNoInteractions(historialCabecera);
     }
 
     @Test void cerrarUltimaPendienteTrasDevolucionPermiteLiquidarConjunto() {
@@ -195,6 +205,25 @@ class OperacionReservaServiceTest {
         when(alquilerDetalleRepository.existeOtraAsignacionVigente(1,1)).thenReturn(true);
         assertThrows(ConfiguracionSistemaException.class,()->servicio.cancelarReserva(7,1,null,false));
         verifyNoInteractions(historialEstadoDetalleRepository,trazabilidadInventario);
+    }
+
+    @Test void vencimientoDelJobRegistraUnaSolaHistoriaSinActor() {
+        ponerHora(alquiler.getFechaHoraVencimientoReserva());
+        assertEquals(2,servicio.vencerReserva(7));
+        assertEquals(0,servicio.vencerReserva(7));
+        verify(historialCabecera).save(argThat(h->"RESERVADO".equals(h.getEstadoAnterior().getCodigo())
+                && "VENCIDO".equals(h.getEstadoNuevo().getCodigo()) && h.getActorUsuario()==null
+                && "SISTEMA".equals(h.getOrigen())));
+    }
+
+    @Test void cancelacionAdministrativaTotalGuardaActorYMotivoEnCabecera() {
+        agregarAdmin();sesion("ADMIN");
+        CancelarDetalleDTO dto=new CancelarDetalleDTO();dto.setMotivo("Cierre por seguridad");dto.setEstadoBicicleta("INACTIVA");
+        servicio.cancelarReserva(7,1,dto,true);
+        verifyNoInteractions(historialCabecera);
+        servicio.cancelarReserva(7,2,dto,true);
+        verify(historialCabecera).save(argThat(h->"CANCELADO".equals(h.getEstadoNuevo().getCodigo())
+                && h.getActorUsuario()==usuario && h.getObservaciones().contains("Cierre por seguridad")));
     }
 
     private void agregarAdmin() { Rol r=new Rol("ADMIN"); ReflectionTestUtils.setField(r,"id",2); usuario.getUsuarioRoles().add(new UsuarioRol(usuario,r)); }

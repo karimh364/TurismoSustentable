@@ -46,6 +46,7 @@ public class IncidenciaService {
     private final Validator validator;
     private final Clock reloj;
     private final ObjectMapper json;
+    private final TrazabilidadAlquilerService trazabilidadAlquiler;
     @Autowired(required=false) private ReembolsoService reembolsos;
 
     public IncidenciaService(IncidenciaRepository incidencias,HistorialIncidenciaRepository historias,
@@ -55,12 +56,14 @@ public class IncidenciaService {
             HistorialEstadoDetalleRepository historiasDetalle,OrdenMantenimientoRepository ordenes,
             HistorialOrdenMantenimientoRepository historiasOrden,TipoMantenimientoRepository tiposOrden,
             EstadoOrdenMantenimientoRepository estadosOrden,TrazabilidadInventarioService traza,
-            CalculadoraAlquiler calculadora,LiquidacionAlquilerService liquidacion,Validator validator,Clock reloj,ObjectMapper json) {
+            CalculadoraAlquiler calculadora,LiquidacionAlquilerService liquidacion,Validator validator,Clock reloj,ObjectMapper json,
+            TrazabilidadAlquilerService trazabilidadAlquiler) {
         this.incidencias=incidencias;this.historias=historias;this.alquileres=alquileres;this.detalles=detalles;this.bicicletas=bicicletas;
         this.usuarios=usuarios;this.estaciones=estaciones;this.estadosDetalle=estadosDetalle;this.estadosAlquiler=estadosAlquiler;
         this.estadosBici=estadosBici;this.historiasDetalle=historiasDetalle;this.ordenes=ordenes;this.historiasOrden=historiasOrden;
         this.tiposOrden=tiposOrden;this.estadosOrden=estadosOrden;this.traza=traza;this.calculadora=calculadora;
         this.liquidacion=liquidacion;this.validator=validator;this.reloj=reloj;this.json=json;
+        this.trazabilidadAlquiler=trazabilidadAlquiler;
     }
 
     @PreAuthorize("hasAnyAuthority('CLIENTE','ADMIN')")
@@ -146,7 +149,9 @@ public class IncidenciaService {
         // Si volvió antes de decidir, DEVUELTO y su recepción real se conservan.
         if(d.getOrdenMantenimiento()!=null && i.getOrdenMantenimiento()==null) i.setOrdenMantenimiento(d.getOrdenMantenimiento());
         evento(i,"RESOLVER","PENDIENTE",dto.decision,c.actor,dto.motivo.trim(),antes,ahora);
-        normalizarImportes(d);cerrarYLiquidar(a,ahora);incidencias.flush();return salida(i);
+        normalizarImportes(d);cerrarYLiquidar(a,c.actor,
+                "Resolución de incidencia " + i.getId() + ". " + dto.motivo.trim(),ahora);
+        incidencias.flush();return salida(i);
     }
 
     @PreAuthorize("hasAuthority('ADMIN')")
@@ -260,12 +265,14 @@ public class IncidenciaService {
         if(usd.precision()-usd.scale()>18 || ars.precision()-ars.scale()>18) throw interno("El uso supera la capacidad monetaria del detalle.");
         d.setSubtotalRealUsd(usd);d.setSubtotalRealArs(ars);
     }
-    private void cerrarYLiquidar(Alquiler a,LocalDateTime ahora) {
+    private void cerrarYLiquidar(Alquiler a,Usuario actor,String motivo,LocalDateTime ahora) {
         List<AlquilerDetalle> lista=detalles.buscarPorAlquiler(a.getId());
         if(lista.isEmpty()) throw interno("El alquiler no tiene detalles.");
         if(lista.stream().allMatch(d->TERMINALES.contains(d.getEstado().getCodigo()))) {
             if(a.getFechaHoraCierre()==null) {
-                a.setEstadoContratacion(estadosAlquiler.findByCodigo("FINALIZADO").orElseThrow(()->interno("Falta FINALIZADO.")));
+                trazabilidadAlquiler.cambiarEstado(a,
+                        estadosAlquiler.findByCodigo("FINALIZADO").orElseThrow(()->interno("Falta FINALIZADO.")),
+                        actor,motivo,ahora);
                 a.setFechaHoraCierre(ahora);
             }
             liquidacion.liquidarSiCorresponde(a);

@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.models;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalConverter;
+
 import javax.persistence.*;
 import javax.validation.constraints.*;
 import java.math.BigDecimal;
@@ -91,18 +93,23 @@ public class AlquilerDetalle {
     private Integer duracionEstimadaSegundos;
 
     @Column(name = "fecha_hora_retiro")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraRetiro;
 
     @Column(name = "fecha_hora_devolucion_estimada")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraDevolucionEstimada;
 
     @Column(name = "fecha_hora_devolucion_real")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraDevolucionReal;
 
     @Column(name = "fecha_hora_fin_uso")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraFinUso;
 
     @Column(name = "fecha_hora_cierre_detalle")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaHoraCierreDetalle;
 
     @NotNull(message = "El subtotal estimado en USD es obligatorio.")
@@ -154,6 +161,7 @@ public class AlquilerDetalle {
     private String descripcionFalla;
 
     @Column(name = "fecha_reporte_falla")
+    @Convert(converter = FechaAlquilerLocalConverter.class)
     private LocalDateTime fechaReporteFalla;
 
     @ManyToOne(fetch = FetchType.LAZY)

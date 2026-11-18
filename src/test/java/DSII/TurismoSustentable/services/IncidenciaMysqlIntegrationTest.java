@@ -159,6 +159,11 @@ class IncidenciaMysqlIntegrationTest {
         var a=retirada(false);var i=servicio.reportar(reporte(a,0,"AVERIA"));var dto=decision(i,"VALIDADA");long antes=historias.count();
         var resultados=competir(()->{sesion(adminId);return servicio.resolver(i.id,dto).estadoRevision;},()->{sesion(adminId);return servicio.resolver(i.id,dto).estadoRevision;});
         assertEquals(List.of("VALIDADA","VALIDADA"),resultados);assertEquals(antes+1,historias.count());sesion(adminId);var fin=liquidacion.consultarLiquidacion(a.getId());assertEquals(new BigDecimal("11475.00"),fin.getCostoFinalArs());
+        var eventos=alquiler.historialAlquiler(a.getId());
+        assertEquals(3,eventos.size());
+        assertEquals("FINALIZADO",eventos.get(2).estadoNuevo);
+        assertEquals(adminId,eventos.get(2).actorUsuarioId);
+        assertEquals("USUARIO",eventos.get(2).origen);
     }
     @Test void reportesSqlIdenticosConcurrentesConservanUno()throws Exception{
         var a=retirada(false);var dto=reporte(a,0,"AVERIA");long antes=incidencias.count();

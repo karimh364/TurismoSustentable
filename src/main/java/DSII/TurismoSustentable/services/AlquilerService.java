@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.services;
 
+import DSII.TurismoSustentable.time.HoraRioGrande;
+
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
 import DSII.TurismoSustentable.dto.DevolverBicicletaDTO;
 import DSII.TurismoSustentable.dto.CancelarDetalleDTO;
@@ -39,7 +41,9 @@ import DSII.TurismoSustentable.repositories.AlquilerDetalleRepository;
 import DSII.TurismoSustentable.repositories.EstadoAlquilerRepository;
 import DSII.TurismoSustentable.repositories.EstadoAlquilerDetalleRepository;
 import DSII.TurismoSustentable.repositories.HistorialEstadoDetalleRepository;
+import DSII.TurismoSustentable.repositories.HistorialEstadoAlquilerRepository;
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
+import DSII.TurismoSustentable.dto.HistorialEstadoAlquilerDTO;
 import javax.persistence.EntityNotFoundException;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -95,6 +99,12 @@ public class AlquilerService {
 
     @Autowired
     private HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
+
+    @Autowired
+    private HistorialEstadoAlquilerRepository historialEstadoAlquilerRepository;
+
+    @Autowired
+    private TrazabilidadAlquilerService trazabilidadAlquiler;
 
     @Autowired
     private PagoRepository pagoRepository;
@@ -298,7 +308,25 @@ public class AlquilerService {
             isolation = Isolation.REPEATABLE_READ
     )
     public AlquilerCabeceraDTO obtenerAlquiler(Integer id) {
+        Alquiler alquiler = alquilerVisibleParaConsulta(id);
 
+        // Los detalles se consultan después de comprobar el acceso.
+        List<AlquilerDetalle> detalles = alquilerDetalleRepository.buscarPorAlquilerConDatos(id);
+        if (detalles.isEmpty()) {
+            throw new ConfiguracionSistemaException("El alquiler no tiene detalles registrados.");
+        }
+        return new AlquilerCabeceraDTO(alquiler, detalles);
+    }
+
+    @PreAuthorize("hasAnyAuthority('CLIENTE', 'ADMIN')")
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List<HistorialEstadoAlquilerDTO> historialAlquiler(Integer id) {
+        // Misma visibilidad que la cabecera; no leer eventos antes de autorizar.
+        alquilerVisibleParaConsulta(id);
+        return historialEstadoAlquilerRepository.consultarPorAlquiler(id);
+    }
+
+    private Alquiler alquilerVisibleParaConsulta(Integer id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException(
                     "Debe indicar un alquiler válido."
@@ -339,17 +367,7 @@ public class AlquilerService {
             );
         }
 
-        // Los detalles se consultan después de comprobar el acceso.
-        List<AlquilerDetalle> detalles = alquilerDetalleRepository
-                .buscarPorAlquilerConDatos(id);
-
-        if (detalles.isEmpty()) {
-            throw new ConfiguracionSistemaException(
-                    "El alquiler no tiene detalles registrados."
-            );
-        }
-
-        return new AlquilerCabeceraDTO(alquiler, detalles);
+        return alquiler;
     }
 
     @PreAuthorize("hasAuthority('CLIENTE')")
@@ -631,6 +649,7 @@ public class AlquilerService {
         }
 
         Alquiler cabeceraGuardada = alquilerRepository.save(cabecera);
+        trazabilidadAlquiler.registrarCreacion(cabeceraGuardada, usuario, ahora);
 
         for (AlquilerDetalle detalle : detalles) {
 
@@ -665,7 +684,8 @@ public class AlquilerService {
                     usuario,
                     "Reserva del alquiler "
                             + cabeceraGuardada.getId()
-                            + "."
+                            + ".",
+                    HoraRioGrande.paraBase(ahora)
             );
         }
 
@@ -904,7 +924,8 @@ public class AlquilerService {
         bicicleta.setEstado(enUso);
         bicicleta.setUbicacionActual(null);
 
-        alquiler.setEstadoContratacion(enProgreso);
+        trazabilidadAlquiler.cambiarEstado(alquiler, enProgreso, usuario,
+                "Primer retiro confirmado; detalle " + detalleId + ".", ahora);
 
         historialEstadoDetalleRepository.save(
                 new HistorialEstadoDetalle(
@@ -924,7 +945,7 @@ public class AlquilerService {
                 usuario,
                 "Retiro del alquiler " + alquilerId
                         + ", detalle " + detalleId + ".",
-                ahora
+                HoraRioGrande.paraBase(ahora)
         );
 
         // Las entidades consultadas están administradas por JPA.
@@ -1088,9 +1109,11 @@ public class AlquilerService {
         historialEstadoDetalleRepository.save(new HistorialEstadoDetalle(
                 detalle, anteriorDetalle, devuelto, actor, "USUARIO", condiciones, ahora));
         trazabilidadInventario.estado(bicicleta, anteriorBicicleta, actor,
-                "Devolución del alquiler " + alquilerId + ", detalle " + detalleId + ". " + condiciones, ahora);
+                "Devolución del alquiler " + alquilerId + ", detalle " + detalleId + ". " + condiciones,
+                HoraRioGrande.paraBase(ahora));
 
-        cerrarUsoDelConjuntoSiCorresponde(alquiler, ahora);
+        cerrarUsoDelConjuntoSiCorresponde(alquiler, actor,
+                "Cierre del conjunto tras la devolución del detalle " + detalleId + ".", ahora);
         // La liquidación se decide al cerrar el conjunto.
         // Devolver no genera cobros ni reembolsos.
         alquilerDetalleRepository.flush();
@@ -1173,6 +1196,8 @@ public class AlquilerService {
         if (pendientes.isEmpty()) return 0;
         EstadoAlquilerDetalle cerrado = estadoAlquilerDetalleRepository.findByCodigo(estado)
                 .orElseThrow(() -> new ConfiguracionSistemaException("Falta el estado de detalle " + estado));
+        String motivo = "VENCIDO".equals(estado) ? "Venció el plazo original de quince minutos sin retiro."
+                : administrativa ? solicitud.getMotivo() : "Cancelación voluntaria del cliente antes del retiro.";
         for (AlquilerDetalle d : pendientes) {
             Bicicleta bici = bicicletaRepository.buscarActivaPorIdConBloqueo(d.getBicicleta().getId())
                     .orElseThrow(() -> new ConfiguracionSistemaException("La bicicleta reservada no está disponible en inventario."));
@@ -1182,8 +1207,6 @@ public class AlquilerService {
                     || alquilerDetalleRepository.existeOtraAsignacionVigente(bici.getId(), d.getId())) {
                 throw new ConfiguracionSistemaException("La reserva no coincide con la asignación actual de la bicicleta.");
             }
-            String motivo = "VENCIDO".equals(estado) ? "Venció el plazo original de quince minutos sin retiro."
-                    : administrativa ? solicitud.getMotivo() : "Cancelación voluntaria del cliente antes del retiro.";
             boolean preventiva = preventivaVencidaEnDevolucion(bici, ahora);
             boolean ordenAbierta = !ordenMantenimientoRepository.buscarAbiertasPorBicicleta(bici.getId()).isEmpty();
             String destino = administrativa ? solicitud.getEstadoBicicleta()
@@ -1200,12 +1223,14 @@ public class AlquilerService {
             d.setMotivoCierre(motivo);
             historialEstadoDetalleRepository.save(new HistorialEstadoDetalle(d, anteriorDetalle, cerrado,
                     actor, actor == null ? "SISTEMA" : "USUARIO", motivo, ahora));
-            if (actor == null) trazabilidadInventario.estadoSistema(bici, anteriorBici, motivo, ahora);
-            else trazabilidadInventario.estado(bici, anteriorBici, actor, motivo, ahora);
+            String motivoInventario = "Alquiler " + alquiler.getId() + ", detalle " + d.getId() + ". " + motivo;
+            LocalDateTime horaInventario = HoraRioGrande.paraBase(ahora);
+            if (actor == null) trazabilidadInventario.estadoSistema(bici, anteriorBici, motivoInventario, horaInventario);
+            else trazabilidadInventario.estado(bici, anteriorBici, actor, motivoInventario, horaInventario);
             if (administrativa) trazabilidadInventario.administracion(actor, "ALQUILER_DETALLE", d.getId(),
                     "CANCELAR", anteriorDetalle.getCodigo(), cerrado.getCodigo() + ";bicicleta=" + destino, motivo);
         }
-        cerrarUsoDelConjuntoSiCorresponde(alquiler, ahora);
+        cerrarUsoDelConjuntoSiCorresponde(alquiler, actor, "Cierre del conjunto. " + motivo, ahora);
         alquilerDetalleRepository.flush();
         return pendientes.size();
     }
@@ -1277,6 +1302,8 @@ public class AlquilerService {
 
     private void cerrarUsoDelConjuntoSiCorresponde(
             Alquiler alquiler,
+            Usuario actor,
+            String motivo,
             LocalDateTime ahora
     ) {
         List<AlquilerDetalle> detalles =
@@ -1314,7 +1341,7 @@ public class AlquilerService {
                             "Falta el estado " + estadoCierre + "."
                     ));
 
-            alquiler.setEstadoContratacion(finalizado);
+            trazabilidadAlquiler.cambiarEstado(alquiler, finalizado, actor, motivo, ahora);
             alquiler.setFechaHoraCierre(ahora);
             if ("CANCELADO".equals(estadoCierre)) alquiler.setFechaHoraCancelacion(ahora);
 

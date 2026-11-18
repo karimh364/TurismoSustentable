@@ -77,6 +77,17 @@ public class AlquilerController {
         }
     }
 
+    @GetMapping("/alquileres/{id}/historial")
+    public ResponseEntity<Object> historialAlquiler(@PathVariable("id") Integer id) {
+        try {
+            return ResponseEntity.ok(alquilerService.historialAlquiler(id));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
     /**
      * CREAR ALQUILER
      * Ahora solo llama al servicio y maneja la respuesta.

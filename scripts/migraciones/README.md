@@ -5,6 +5,41 @@ un inicializador, una carga demo ni una configuracion de Flyway/Liquibase.
 Spring Boot no debe ejecutarlos automaticamente. El perfil refactor conserva
 `ddl-auto=validate` y `spring.sql.init.mode=never`.
 
+## Migracion 2026-11-18-06: hora de Rio Grande para alquileres
+
+Estado: **preparada, pendiente de aplicar**. Seguir la
+[guia 46](../../docs/practica-3/refactorizacion/46-hora-rio-grande-alquiler.md)
+antes de reiniciar el codigo nuevo. Incluye informe solo lectura, conversion
+de la foto local identificada y verificacion posterior. No ejecutar DDL/DML
+con la app levantada. No modificar la zona global de MariaDB ni restaurar la
+limpieza QA. Las migraciones anteriores conservan su significado historico.
+
+## Migracion 2026-11-18-05: historial de estado de la cabecera
+
+Estado: **preparada, pendiente de aplicar por el usuario**. No ejecutada por el
+asistente. Ver [SQL de creacion](2026-11-18-05-historial-estado-alquiler.sql) y
+[comprobaciones de solo lectura](2026-11-18-05-verificar-historial-alquiler.sql).
+
+App detenida, respaldo completo y revision de FK activada. Importar el archivo
+de creacion completo una sola vez. Se agrega historial_estado_alquiler con
+cuatro FK RESTRICT, indice por alquiler/id y controles de origen/actor y cambio
+de estado. No se alteran las 29 tablas anteriores ni se cargan eventos ficticios.
+El precontrol exige cero alquileres: el usuario ya descarto sus cuatro pruebas
+con el script especifico, conservando usuarios, inventario e historiales ajenos.
+Una lectura posterior confirmo 0 alquileres, 8 usuarios, 13 estaciones y 22 bicis.
+
+CREATE TABLE y los auxiliares son DDL con commit implicito: no prometer rollback
+de esquema. Si falla, detenerse y revisar mensaje/estructura antes de reimportar.
+La rutina auxiliar no es un endpoint ni una tabla del programa; se elimina al
+terminar. La nota de procedimiento inicialmente inexistente es esperada en el
+DROP PROCEDURE IF EXISTS. No cambiar a create-drop/update para evitar este paso.
+
+Resultado esperado: tabla vacia de ocho columnas, cuatro FK; 30 tablas y 59 FK en
+la foto local. Los nuevos alquileres registran su creacion y transiciones con la
+misma transaccion de negocio. La comprobacion requiere tambien arrancar con
+validate y recorrer creacion/retiro/cierre/cancelacion/vencimiento/incidencia.
+No reiniciar AUTO_INCREMENT: los siguientes IDs no tienen por que empezar en 1.
+
 ## Migracion 2026-11-17-01: alquiler anterior
 
 Estado: **ya aplicada manualmente por el usuario** en `turismo_sustentable`,

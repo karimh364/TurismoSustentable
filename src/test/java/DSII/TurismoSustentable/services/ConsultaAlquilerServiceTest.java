@@ -2,6 +2,7 @@ package DSII.TurismoSustentable.services;
 
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
 import DSII.TurismoSustentable.dto.AlquilerDetalleDTO;
+import DSII.TurismoSustentable.dto.HistorialEstadoAlquilerDTO;
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.*;
 import DSII.TurismoSustentable.repositories.*;
@@ -53,6 +54,9 @@ class ConsultaAlquilerServiceTest {
 
     @Mock
     private AlquilerDetalleRepository alquilerDetalleRepository;
+
+    @Mock
+    private HistorialEstadoAlquilerRepository historialCabecera;
 
     @Mock
     private BicicletaRepository bicicletaRepository;
@@ -741,6 +745,68 @@ class ConsultaAlquilerServiceTest {
     private void prepararUsuario() {
         when(usuarioRepository.findByEmail(EMAIL))
                 .thenReturn(Optional.of(usuario));
+    }
+
+    @Test
+    void historialPropioSeAutorizaAntesDeLeerYSoloEntregaEventosGuardados() {
+        prepararUsuario();
+        when(alquilerRepository.buscarAlquilerVisiblePorId(50)).thenReturn(Optional.of(alquiler));
+        HistorialEstadoAlquilerDTO inicial = new HistorialEstadoAlquilerDTO(9, 50, null, "RESERVADO",
+                1, "qa.historial", "USUARIO", "Reserva creada.", CREACION);
+        when(historialCabecera.consultarPorAlquiler(50)).thenReturn(List.of(inicial));
+
+        assertSame(inicial, servicio.historialAlquiler(50).get(0));
+        var orden = inOrder(usuarioRepository, alquilerRepository, historialCabecera);
+        orden.verify(usuarioRepository).findByEmail(EMAIL);
+        orden.verify(alquilerRepository).buscarAlquilerVisiblePorId(50);
+        orden.verify(historialCabecera).consultarPorAlquiler(50);
+        verifyNoInteractions(alquilerDetalleRepository);
+        verify(historialCabecera, never()).save(any());
+    }
+
+    @Test
+    void adminVigentePuedeConsultarHistoriaAjena() {
+        asignarRoles("ADMIN"); autenticar("ADMIN"); prepararUsuario();
+        Usuario titular = new Usuario(); titular.setId(2); alquiler.setUsuario(titular);
+        when(alquilerRepository.buscarAlquilerVisiblePorId(50)).thenReturn(Optional.of(alquiler));
+        when(historialCabecera.consultarPorAlquiler(50)).thenReturn(List.of());
+        assertTrue(servicio.historialAlquiler(50).isEmpty());
+        verify(historialCabecera).consultarPorAlquiler(50);
+    }
+
+    @Test
+    void clienteAjenoNoLeeNiUnEventoDelHistorial() {
+        prepararUsuario();
+        Usuario titular = new Usuario(); titular.setId(2); alquiler.setUsuario(titular);
+        when(alquilerRepository.buscarAlquilerVisiblePorId(50)).thenReturn(Optional.of(alquiler));
+        assertThrows(AccessDeniedException.class, () -> servicio.historialAlquiler(50));
+        verifyNoInteractions(historialCabecera);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"INACTIVA", "SIN_ROL", "TECNICO"})
+    void historialNoUsaRolesViejosNiCuentaInactiva(String caso) {
+        prepararUsuario();
+        if ("INACTIVA".equals(caso)) usuario.setActivo(false);
+        else asignarRoles("TECNICO".equals(caso) ? new String[]{"TECNICO"} : new String[]{});
+        assertThrows(AccessDeniedException.class, () -> servicio.historialAlquiler(50));
+        verifyNoInteractions(historialCabecera, alquilerRepository);
+    }
+
+    @Test
+    void historialDeAlquilerOcultoOInexistenteNoSeExpone() {
+        prepararUsuario();
+        when(alquilerRepository.buscarAlquilerVisiblePorId(50)).thenReturn(Optional.empty());
+        assertThrows(EntityNotFoundException.class, () -> servicio.historialAlquiler(50));
+        verifyNoInteractions(historialCabecera);
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(ints = {0, -1})
+    void historialRechazaIdInvalidoAntesDeLeer(Integer id) {
+        assertThrows(IllegalArgumentException.class, () -> servicio.historialAlquiler(id));
+        verifyNoInteractions(usuarioRepository, alquilerRepository, historialCabecera);
     }
 
     private void prepararConsultaCompleta() {

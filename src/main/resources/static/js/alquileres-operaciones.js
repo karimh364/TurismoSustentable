@@ -28,6 +28,7 @@ const OperacionesAlquiler = (() => {
     }
     function acciones(a, admin = false) {
         let html = boton('Liquidación y reembolsos', 'finanzas', a.id);
+        html += boton('Historial de estados', 'historial', a.id);
         if (propio(a) && !admin && a.detalles.some(d => ['RESERVADO', 'PENDIENTE_RETIRO'].includes(d.estado))) {
             html += boton('Pagar/consultar anticipo simulado', 'anticipo', a.id);
             html += boton('Cancelar pendientes', 'cancelar', a.id);
@@ -140,6 +141,32 @@ const OperacionesAlquiler = (() => {
             await Swal.fire('Cuenta simulada (sin dinero real)', 'Saldo disponible: ' + dinero(data.saldoDisponibleArs), 'info');
         });
     }
+    async function historial(a) {
+        return ejecutar('historial:' + id(a), async () => {
+            const {data} = await axios.get(`/api/alquileres/${id(a)}/historial`);
+            const estados = {RESERVADO: 'Reservado', EN_PROGRESO: 'En progreso',
+                FINALIZADO: 'Finalizado', CANCELADO: 'Cancelado', VENCIDO: 'Vencido'};
+            if (!Array.isArray(data) || data.some(h => !h || Number(h.alquilerId) !== id(a)
+                    || !Object.hasOwn(estados, h.estadoNuevo)
+                    || (h.estadoAnterior != null && !Object.hasOwn(estados, h.estadoAnterior))
+                    || !['USUARIO', 'SISTEMA'].includes(h.origen))) {
+                throw new Error('El servidor devolvió un historial de alquiler inválido.');
+            }
+            const eventos = data.map(h => {
+                const actor = h.origen === 'SISTEMA' ? 'Proceso automático del sistema'
+                    : `${h.actorNickname || 'Usuario'}${h.actorUsuarioId == null ? '' : ' (#' + id(h.actorUsuarioId) + ')'}`;
+                return `<li class="mb-3"><strong>${t(h.estadoAnterior == null ? 'Creación' : estados[h.estadoAnterior])}
+                    → ${t(estados[h.estadoNuevo])}</strong><br>
+                    <time>${t(VistaAlquileres.fecha(h.fechaHoraCambio))}</time><br>
+                    ${t(actor)}${h.observaciones ? '<br>' + t(h.observaciones) : ''}</li>`;
+            }).join('');
+            await Swal.fire({title: `Historial del alquiler #${id(a)}`, html: `
+                <p class="small">Estados del conjunto. Los movimientos de cada bicicleta se registran por separado.
+                Fechas en hora de Río Grande.</p>
+                ${data.length ? '<ol class="text-start ps-3">' + eventos + '</ol>' : '<p>No hay movimientos registrados.</p>'}`,
+                confirmButtonText: 'Cerrar', width: 'min(42rem, 95vw)'});
+        });
+    }
     async function finanzas(a) {
         return ejecutar('consulta:' + id(a), async () => {
             const {data} = await axios.get(`/api/pagos/reembolsos/${id(a)}`);
@@ -175,5 +202,5 @@ const OperacionesAlquiler = (() => {
         document.querySelectorAll('details[data-alquiler-detalles]').forEach(e => { e.open = ids.includes(e.dataset.alquilerDetalles); });
     }
     return {configurar, acciones, accionesDetalle, retirar, cancelar, cancelarAdmin, devolver, anticipo, adicional,
-        finanzas, reintegrar, saldo, abiertos, restaurarAbiertos};
+        finanzas, reintegrar, saldo, historial, abiertos, restaurarAbiertos};
 })();

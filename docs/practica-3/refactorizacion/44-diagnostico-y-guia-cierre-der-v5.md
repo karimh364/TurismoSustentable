@@ -558,7 +558,8 @@ No se vuelve a planificar lo anterior como funcionalidad faltante.
 | Orden | Bloque pendiente | Alcance / criterio de cierre |
 | --- | --- | --- |
 | B1 — comprobado en el alcance informado | Gestión administrativa de roles | GET/PUT de roles, protecciones, versión, auditoría y diálogo conectados; usuario confirmó compilación/tandas Java-JS y escenarios manuales de asignación, concurrencia de formulario, retiro/desbloqueo por reserva, orden y deuda, y ADMIN propio. Límites SQL y caso de último ADMIN descritos en sección 16. Sin tablas nuevas. |
-| B2 | Consulta administrativa de auditoría | DTO y consulta con filtros/paginación sobre AUDITORIA_SISTEMA, autorización ADMIN y prueba de exclusión CLIENTE/TECNICO. No permitir editar/borrar eventos ni exponer credenciales. Escritura ya existente no equivale a consulta implementada. |
+| H1 — implementado en código; comprobación pendiente | Historial de estado de la cabecera del alquiler | Entidad/repositorio/DTO, escritor transaccional compartido, creación/retiro/cierre/cancelación/vencimiento/incidencia, GET autorizado y diálogo en ambas pantallas conectados el 18/11. DER TXT/Mermaid actualizados. Limpieza QA realizada por el usuario; migración aditiva preparada, pendiente de importar. No declarar cerrado hasta compilar/probar y recorrer los escenarios de sección 18 y guía 45. |
+| B2 | Consulta administrativa de auditoría | Después de resolver H1: DTO y consulta con filtros/paginación sobre AUDITORIA_SISTEMA, autorización ADMIN y prueba de exclusión CLIENTE/TECNICO. No permitir editar/borrar eventos ni exponer credenciales. Escritura ya existente no equivale a consulta implementada. |
 | B3 | Comprobantes del circuito v5 | Reutilizar CorreoService/Mailjet, varias unidades e importes/fechas guardados; disparar para hechos confirmados sin inventar pagos ni enviar por una transacción revertida. Fallos de correo no revierten una operación ya confirmada. Actualmente solo están bienvenida y recuperación. |
 | B4 | Revisión final del backend/DER y protecciones HTTP | Contrastar campos/relaciones/restricciones restantes y consumidores, buscar referencias huérfanas, revisar permisos/propiedad, contratos y validaciones. Revisar CSRF/cabeceras con adaptación coordinada de consumidores y pruebas, no activar a ciegas ni declarar protección productiva completa. Proponer cada corrección según evidencia, sin DDL automático. |
 | F1 | Conexión de pantallas de gestión pendientes | Consumir la gestión de roles y auditoría nuevas desde ADMIN y el resumen estadístico existente. No declararlas completas por tener solo endpoints. |
@@ -743,5 +744,138 @@ solo por este escenario de deuda. El último ADMIN está cubierto por la tanda
 unitaria informada; no se forzó ese estado retirando roles de cuentas demo.
 
 Siguiente paso: guardar el avance de B1 y la pausa de integraciones pendiente
-con commit/push; después retomar B2, consulta administrativa de auditoría. La
+con commit/push; después retomar el orden vigente de sección 15. La
 sincronización de la tabla al reabrir un diálogo tras 409 permanece anotada en F2.
+
+## 17. Hallazgo de trazabilidad de cabecera y conservación de datos — 18/11
+
+La cabecera ALQUILER cambia su FK estado_alquiler_id sin un historial propio en
+el DER v5 ni en el código actuales. ESTADO_ALQUILER es un catálogo, no un registro
+de transiciones. HISTORIAL_ESTADO_DETALLE conserva las unidades, pero no sustituye
+un evento explícito de cabecera con fecha/actor. Se propone H1 antes de B2; no
+se agrega una historia de la propia AUDITORIA_SISTEMA, que ya es un registro de
+acciones administrativas y no tiene un ciclo de estados propio.
+
+Lectura de BD: cuatro alquileres existentes, tres FINALIZADO y uno CANCELADO, sin
+cabeceras activas. Conteos de referencia posteriores: ocho usuarios, trece
+estaciones y veintidós bicicletas. Son una foto del momento, no cantidades a
+imponer en el programa ni sustituto del precontrol antes de una limpieza.
+
+El usuario confirmó que esos alquileres son datos de prueba descartables y pidió
+conservar usuarios e inventario. Alcance a preparar: descartar solamente los
+alquileres 1–4 y los registros dependientes que corresponda revisar, manteniendo
+usuarios/Personas/roles/credenciales, catálogos, estaciones y bicicletas con sus
+datos actuales. No reiniciar la BD completa ni usar create-drop. No borrar
+automáticamente mantenimiento, auditoría o historial de inventario por estar
+relacionados temáticamente con una prueba; delimitar dependencias y preservar los
+registros ajenos. No reiniciar AUTO_INCREMENT para reutilizar identidades antiguas.
+
+La lectura de FK identificó el ciclo alquiler_detalle.incidencia_corte_id ->
+incidencia -> alquiler_detalle, además de pagos/reembolsos y sus historiales y
+vínculos a mantenimiento. Se requiere preparar y revisar la limpieza específica
+con app detenida y respaldo previo; no desactivar FK para borrar indiscriminadamente.
+La eliminación de pagos/reembolsos de prueba también elimina su participación en
+los saldos simulados derivados, sin modificar credenciales o roles de las cuentas.
+
+Con ese reinicio limitado de alquileres no se requiere crear eventos ficticios
+de inicialización: los nuevos alquileres deben registrar creación y transiciones
+reales desde el principio. El campo accion propuesto exclusivamente para
+distinguir inicializaciones históricas deja de ser necesario por ese motivo;
+concretar el diseño de H1 antes de crear archivos/esquema. No se ejecutaron
+borrados, actualizaciones ni DDL en esta definición; solo consultas de lectura.
+
+Preparación de limpieza: el usuario informó que detuvo la app y tiene el respaldo.
+Se preparó `scripts/demo/2026-11-18-limpiar-alquileres-qa-1-4.sql` para que lo
+importe manualmente, completo, desde phpMyAdmin. No se ejecutó el archivo ni se
+creó su procedimiento en la BD. La revisión de lectura confirmó los nombres de
+columnas, cuatro detalles terminales, cuatro pagos SIMULADA/PRUEBA aprobados,
+dos reembolsos confirmados y una incidencia VALIDADA. Los cuatro alquileres
+tienen saldo neto pendiente cero. Esto es revisión previa, no evidencia de una
+limpieza ejecutada ni una prueba de ejecución del procedimiento.
+
+El script aborta ante cambios de alcance, comprueba motores InnoDB, mantiene FK
+activadas y elimina las dependencias en orden dentro de una transacción con
+handler ROLLBACK/RESIGNAL. CREATE/DROP PROCEDURE son DDL fuera de esa transacción
+y gestionan solo el auxiliar de esta operación. No reinicia identificadores.
+Compara conteos de las veinte tablas conservadas antes de confirmar. Los
+historiales de inventario/mantenimiento y auditoría se preservan, aunque sus
+textos puedan mencionar las pruebas descartadas. Los nueve conjuntos propios
+de alquiler deben quedar vacíos; usuarios=8, estaciones=13 y bicicletas=22 son
+los conteos de referencia revisados. Ante un error, detenerse, informar el
+mensaje y comprobar el resultado antes de reintentar; un error de cliente
+posterior al COMMIT no demuestra que se haya revertido.
+
+Siguiente hito: el usuario ejecuta y comparte los conteos. Mantener la app
+detenida hasta integrar H1 y su migración de esquema; no crear alquileres nuevos
+entre la limpieza y la conexión del historial. La implementación de H1 y la
+actualización de DERv5.txt/Mermaid siguen pendientes de autorización explícita.
+
+Referencias del mecanismo de seguridad: documentación oficial de MariaDB sobre
+[handlers](https://mariadb.com/docs/server/reference/sql-statements/programmatic-compound-statements/declare-handler),
+[RESIGNAL](https://mariadb.com/docs/server/reference/sql-statements/programmatic-compound-statements/resignal)
+y [sentencias con commit implícito](https://mariadb.com/docs/server/reference/sql-statements/transactions/sql-statements-that-cause-an-implicit-commit).
+
+## 18. Implementación H1 autorizada — 18/11
+
+El usuario importó la limpieza y compartió nueve tablas del circuito vacías;
+8 usuarios, 8 personas, 9 asignaciones de rol, 13 estaciones y 22 bicicletas
+conservados. Mantenimiento: 2 órdenes/11 eventos; inventario: 36 eventos;
+auditoría: 35 eventos. Una lectura posterior del asistente corroboró cero
+alquileres y los conteos de usuarios/estaciones/bicicletas. No se volvió a
+ejecutar esa limpieza ni se reiniciaron identificadores.
+
+Con autorización explícita se implementó H1 de punta a punta. Referencia de
+archivos, decisiones, migración, compilación y pruebas:
+[45-historial-estado-alquiler.md](45-historial-estado-alquiler.md).
+
+HistorialEstadoAlquiler guarda FK de cabecera, estados anterior/nuevo,
+fechaHoraCambio UTC explícita, actorUsuario, origen y observaciones. Anterior
+nulo solo para crear RESERVADO; sin eventos de inicialización retrospectiva.
+Sin setters ni endpoints de edición/borrado. No se agrega una colección EAGER a
+Alquiler ni una dependencia inversa que cargue el historial en cada listado.
+
+TrazabilidadAlquilerService usa propagación MANDATORY: comparte la transacción
+de negocio, registra el cambio y actualiza la FK actual; no usa REQUIRES_NEW ni
+oculta errores. Las operaciones existentes mantienen sus bloqueos de cabecera.
+La creación registra null -> RESERVADO tras guardar la nueva cabecera; primer
+retiro cambia a EN_PROGRESO; cierre aplica las reglas actuales de FINALIZADO,
+CANCELADO o VENCIDO. IncidenciaService propaga actor y fecha de la decisión.
+La fecha de corte económico no reemplaza la fecha de ese movimiento. Segundo
+retiro, reintentos y decisiones posteriores a un cierre no repiten el evento.
+Pagos/reembolsos/liquidación y borrado lógico sin cambio operativo no agregan
+estados ficticios ni se modifican sus algoritmos.
+
+GET /api/alquileres/{id}/historial comparte visibilidad con la cabecera:
+CLIENTE titular o ADMIN vigente, cuenta activa, alquiler visible. TECNICO solo
+no accede; un CLIENTE no puede leer eventos ajenos. La consulta devuelve un DTO
+directo (incluye nickname/ID del actor, no entidad Usuario ni credenciales) en
+orden de inserción; evita cargar la colección EAGER de alquileres del actor.
+El diálogo compartido se abre desde Mis alquileres y Administración, bajo
+demanda, sin escrituras, sin recalcular importes ni consultar cada fila al listar.
+
+Se preparó la migración 2026-11-18-05: una tabla/cuatro FK, sin tocar tablas
+previas ni datos conservados. El TXT DERv5 y el Mermaid canónico quedan iguales,
+con 30 entidades y 59 relaciones FK. No se actualizan las imágenes históricas
+de la presentación como si fueran el nuevo diagrama.
+
+Estado de verificación al entregar: revisión estática y consultas de lectura;
+NO se ejecutaron migración, compilación, pruebas Java/JS ni arranque de app en
+este bloque. Eso queda al usuario conforme a lo pedido. Las suites SQL continúan
+@Disabled/validate; se ampliaron sus aserciones de persistencia/rollback/reintentos
+y decisión concurrente, sin reactivarlas. No declarar concurrencia real acreditada
+por los tests unitarios. B2 y demás pendientes siguen sin implementarse por H1.
+
+## 19. Convención horaria del circuito de alquiler — 18/11
+
+La prueba visual #11–#12 detectó reservas de inventario registradas en hora
+local mientras sus cabeceras, detalles y cierres usaban UTC. Se implementó
+la convención hora de Río Grande para las columnas de alquiler, pago/reembolso
+y sus historiales, y para los movimientos de inventario que genera AlquilerService.
+Java conserva UTC para comparar instantes; API y pantallas exponen hora de Río Grande.
+No se migran incidencias, mantenimiento, auditoría ni el resto de inventario.
+
+El informe SQL previo se ejecutó por lectura y confirmó la foto #5–#12:
+16 reservas de inventario a preservar y 23 movimientos de inventario a convertir.
+La migración de datos, las pruebas y el arranque con la convención nueva están
+pendientes. Ver [guía 46](46-hora-rio-grande-alquiler.md). No arrancar la versión
+nueva sobre la foto sin migrar; detener la aplicación antes del respaldo y el SQL.

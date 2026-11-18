@@ -86,6 +86,9 @@ class CrearReservaServiceTest {
     private HistorialEstadoDetalleRepository historialEstadoDetalleRepository;
 
     @Mock
+    private HistorialEstadoAlquilerRepository historialCabecera;
+
+    @Mock
     private CotizacionDolarService cotizacionDolarService;
 
     @Mock
@@ -113,6 +116,7 @@ class CrearReservaServiceTest {
     @BeforeEach
     void preparar() {
         SecurityContextHolder.clearContext();
+        ReflectionTestUtils.setField(servicio, "trazabilidadAlquiler", new TrazabilidadAlquilerService(historialCabecera));
 
         validatorFactory =
                 Validation.buildDefaultValidatorFactory();
@@ -226,6 +230,10 @@ class CrearReservaServiceTest {
         verify(alquilerRepository).save(cabeceraCaptor.capture());
 
         Alquiler cabecera = cabeceraCaptor.getValue();
+
+        verify(historialCabecera).save(argThat(h -> h.getAlquiler() == cabecera
+                && h.getEstadoAnterior() == null && "RESERVADO".equals(h.getEstadoNuevo().getCodigo())
+                && h.getActorUsuario() == usuario && AHORA.equals(h.getFechaHoraCambio())));
 
         assertSame(usuario, cabecera.getUsuario());
         assertSame(estacion, cabecera.getUbicacionRetiro());
@@ -361,7 +369,8 @@ class CrearReservaServiceTest {
                             "DISPONIBLE".equals(anterior.getCodigo())
                     ),
                     eq(usuario),
-                    eq("Reserva del alquiler 50.")
+                    eq("Reserva del alquiler 50."),
+                    eq(AHORA.minusHours(3))
             );
         }
 
@@ -660,6 +669,19 @@ class CrearReservaServiceTest {
         verify(transactionManager).rollback(transaccion);
     }
 
+    @Test
+    void falloDeHistoriaDeCabeceraRevierteLaReservaCompleta() {
+        prepararReservaHastaGuardarCabecera();
+        IllegalStateException fallo = new IllegalStateException("Fallo del historial de cabecera");
+        doThrow(fallo).when(historialCabecera).save(any());
+        assertSame(fallo, assertThrows(IllegalStateException.class,
+                () -> servicio.crearReserva(solicitud(List.of(2, 1), 1, 2700))));
+        verify(alquilerRepository).save(any(Alquiler.class));
+        verify(alquilerDetalleRepository, never()).save(any());
+        verify(transactionManager).rollback(transaccion);
+        verify(transactionManager, never()).commit(any());
+    }
+
     private void prepararUsuario() {
         when(usuarioRepository.findByEmail(EMAIL))
                 .thenReturn(Optional.of(usuario));
@@ -684,6 +706,12 @@ class CrearReservaServiceTest {
     }
 
     private void prepararReservaCompleta() {
+        prepararReservaHastaGuardarCabecera();
+        when(alquilerDetalleRepository.save(any(AlquilerDetalle.class)))
+                .thenAnswer(invocacion -> invocacion.getArgument(0));
+    }
+
+    private void prepararReservaHastaGuardarCabecera() {
         prepararUsuario();
 
         when(bicicletaRepository.buscarActivaPorIdConBloqueo(1))
@@ -720,9 +748,6 @@ class CrearReservaServiceTest {
                     alquiler.setId(50);
                     return alquiler;
                 });
-
-        when(alquilerDetalleRepository.save(any(AlquilerDetalle.class)))
-                .thenAnswer(invocacion -> invocacion.getArgument(0));
     }
 
     private CrearAlquilerDTO solicitud(

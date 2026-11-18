@@ -130,6 +130,9 @@ class AlquilerMysqlIntegrationTest {
     private HistorialEstadoPagoRepository historialPagoRepository;
 
     @Autowired
+    private HistorialEstadoAlquilerRepository historialCabeceraRepository;
+
+    @Autowired
     private HistorialEstadoReembolsoRepository historialReembolsoRepository;
 
     @Autowired
@@ -319,6 +322,14 @@ class AlquilerMysqlIntegrationTest {
         assertEquals(antes[1] + 2, despues[1]);
         assertEquals(antes[2] + 2, despues[2]);
         assertEquals(antes[3] + 2, despues[3]);
+        assertEquals(antes[4] + 1, despues[4]);
+
+        var eventos = alquilerService.historialAlquiler(alquilerId);
+        assertEquals(1, eventos.size());
+        assertNull(eventos.get(0).estadoAnterior);
+        assertEquals("RESERVADO", eventos.get(0).estadoNuevo);
+        assertEquals(usuarioId, eventos.get(0).actorUsuarioId);
+        assertEquals("USUARIO", eventos.get(0).origen);
 
         // Nueva transacción: no reutilizamos entidades de la reserva.
         transaccion.executeWithoutResult(estado -> {
@@ -339,6 +350,19 @@ class AlquilerMysqlIntegrationTest {
                     alquiler.getFechaHoraCreacion().plusMinutes(15),
                     alquiler.getFechaHoraVencimientoReserva()
             );
+
+            // JDBC nativo observa el DATETIME sin pasar por el conversor JPA.
+            String fechaFisica = (String) entityManager.createNativeQuery(
+                            "select cast(fecha_hora_creacion as char) from alquiler where id = :id")
+                    .setParameter("id", alquilerId).getSingleResult();
+            assertEquals(alquiler.getFechaHoraCreacion().minusHours(3),
+                    LocalDateTime.parse(fechaFisica.replace(' ', 'T')));
+
+            // El filtro JPQL recibe UTC y debe comparar contra la columna local, sin vencer antes.
+            LocalDateTime venceUtc = alquiler.getFechaHoraVencimientoReserva();
+            var pagina = org.springframework.data.domain.PageRequest.of(0, 100);
+            assertFalse(alquilerRepository.buscarReservasVencidas(venceUtc.minusSeconds(1), pagina).contains(alquilerId));
+            assertTrue(alquilerRepository.buscarReservasVencidas(venceUtc, pagina).contains(alquilerId));
 
             List<AlquilerDetalle> detalles =
                     alquilerDetalleRepository
@@ -438,7 +462,8 @@ class AlquilerMysqlIntegrationTest {
                 any(Bicicleta.class),
                 any(EstadoBicicleta.class),
                 any(Usuario.class),
-                anyString()
+                anyString(),
+                any(LocalDateTime.class)
         );
 
         IllegalStateException error = assertThrows(
@@ -1089,6 +1114,14 @@ class AlquilerMysqlIntegrationTest {
         comprobarRetiroMysql(
                 contrato, segundo, segundoInstante, 0L, 6
         );
+
+        var historia = alquilerService.historialAlquiler(contrato.getId());
+        assertEquals(2, historia.size());
+        assertEquals("RESERVADO", historia.get(0).estadoNuevo);
+        assertEquals("RESERVADO", historia.get(1).estadoAnterior);
+        assertEquals("EN_PROGRESO", historia.get(1).estadoNuevo);
+        assertEquals(LocalDateTime.ofInstant(primerInstante, ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS),
+                historia.get(1).fechaHoraCambio);
 
         // Repetir después del plazo no inicia un retiro nuevo.
         long[] antesDelReintento = contarRegistros();
@@ -2843,7 +2876,7 @@ class AlquilerMysqlIntegrationTest {
             assertEquals("EN_USO", ultima.getEstadoAnterior().getCodigo());
             assertEquals(estadoBicicleta, ultima.getEstadoNuevo().getCodigo());
             assertEquals(usuarioId, ultima.getActorUsuario().getId());
-            assertEquals(fecha, ultima.getFechaHoraCambio());
+            assertEquals(fecha.minusHours(3), ultima.getFechaHoraCambio());
         });
     }
 
@@ -3233,7 +3266,7 @@ class AlquilerMysqlIntegrationTest {
             );
             assertEquals("USUARIO", historiaBici.getOrigen());
             assertEquals(usuarioId, historiaBici.getActorUsuario().getId());
-            assertEquals(fecha, historiaBici.getFechaHoraCambio());
+            assertEquals(fecha.minusHours(3), historiaBici.getFechaHoraCambio());
         });
     }
 
@@ -3408,7 +3441,8 @@ class AlquilerMysqlIntegrationTest {
                         alquilerRepository.count(),
                         alquilerDetalleRepository.count(),
                         historialDetalleRepository.count(),
-                        historialBicicletaRepository.count()
+                        historialBicicletaRepository.count(),
+                        historialCabeceraRepository.count()
                 }
         );
     }

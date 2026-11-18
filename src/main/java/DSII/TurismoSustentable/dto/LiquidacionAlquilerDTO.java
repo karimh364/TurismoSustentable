@@ -1,5 +1,8 @@
 package DSII.TurismoSustentable.dto;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -8,6 +11,7 @@ public class LiquidacionAlquilerDTO {
     private final int alquilerId;
     private final Integer version;
     private final String situacionFinanciera;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraLiquidacion;
 
     private final BigDecimal costoFinalUsd;

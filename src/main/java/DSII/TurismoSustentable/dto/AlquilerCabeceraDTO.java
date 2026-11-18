@@ -1,5 +1,8 @@
 package DSII.TurismoSustentable.dto;
 
+import DSII.TurismoSustentable.time.FechaAlquilerLocalSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.Alquiler;
 import DSII.TurismoSustentable.models.AlquilerDetalle;
@@ -19,15 +22,22 @@ public class AlquilerCabeceraDTO {
     private final int estacionRetiroId;
     private final String estacionRetiro;
 
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraCreacion;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraVencimientoReserva;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraCierre;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraCancelacion;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraLiquidacion;
 
     private final BigDecimal cotizacionArsPorUsd;
     private final String fuenteCotizacion;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraAplicacionCotizacion;
+    @JsonSerialize(using = FechaAlquilerLocalSerializer.class)
     private final LocalDateTime fechaHoraActualizacionFuente;
 
     private final BigDecimal costoEstimadoUsd;
