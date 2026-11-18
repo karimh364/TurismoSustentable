@@ -1,12 +1,12 @@
 package DSII.TurismoSustentable.models;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.Digits;
-import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 import javax.validation.constraints.PositiveOrZero;
 
@@ -18,17 +18,19 @@ public class Alquiler {
     private int id;
 
     // Cabecera del alquiler. Las bicicletas se vinculan mediante sus detalles.
-    @ManyToOne(fetch = FetchType.LAZY)
+    @NotNull(message = "El usuario del alquiler es obligatorio.")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estacion_retiro_id")
     @NotNull(message = "La ubicación de retiro es obligatoria.")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "estacion_retiro_id", nullable = false)
     private Estacion ubicacionRetiro;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "estado_alquiler_id")
+    @NotNull(message = "El estado del alquiler es obligatorio.")
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "estado_alquiler_id", nullable = false)
     private EstadoAlquiler estadoContratacion;
 
     private boolean borradoAlquiler = false;
@@ -37,6 +39,7 @@ public class Alquiler {
     @Column(nullable = false)
     private Integer version;
 
+    @NotNull(message = "La cotización aplicada es obligatoria.")
     @DecimalMin(
             value = "0",
             inclusive = false,
@@ -49,6 +52,7 @@ public class Alquiler {
     )
     @Column(
             name = "cotizacion_ars_por_usd",
+            nullable = false,
             precision = 20,
             scale = 8,
             updatable = false
@@ -59,19 +63,19 @@ public class Alquiler {
             max = 100,
             message = "La fuente de cotización no puede superar los 100 caracteres."
     )
-    @Pattern(
-            regexp = "(?s).*\\S.*",
-            message = "La fuente de cotización no puede estar vacía."
-    )
+    @NotBlank(message = "La fuente de cotización es obligatoria.")
     @Column(
             name = "fuente_cotizacion",
+            nullable = false,
             length = 100,
             updatable = false
     )
     private String fuenteCotizacion;
 
+    @NotNull(message = "La fecha de aplicación de la cotización es obligatoria.")
     @Column(
             name = "fecha_hora_aplicacion_cotizacion",
+            nullable = false,
             updatable = false
     )
     private LocalDateTime fechaHoraAplicacionCotizacion;
@@ -82,14 +86,18 @@ public class Alquiler {
     )
     private LocalDateTime fechaHoraActualizacionFuente;
 
+    @NotNull(message = "La fecha de creación del alquiler es obligatoria.")
     @Column(
             name = "fecha_hora_creacion",
+            nullable = false,
             updatable = false
     )
     private LocalDateTime fechaHoraCreacion;
 
+    @NotNull(message = "El vencimiento de la reserva es obligatorio.")
     @Column(
             name = "fecha_hora_vencimiento_reserva",
+            nullable = false,
             updatable = false
     )
     private LocalDateTime fechaHoraVencimientoReserva;
@@ -103,6 +111,7 @@ public class Alquiler {
     @Column(name = "fecha_hora_liquidacion")
     private LocalDateTime fechaHoraLiquidacion;
 
+    @NotNull(message = "El costo estimado en USD es obligatorio.")
     @PositiveOrZero(message = "El costo estimado no puede ser negativo.")
     @Digits(
             integer = 19,
@@ -111,12 +120,14 @@ public class Alquiler {
     )
     @Column(
             name = "costo_estimado_usd",
+            nullable = false,
             precision = 21,
             scale = 2,
             updatable = false
     )
     private BigDecimal costoEstimadoUsd;
 
+    @NotNull(message = "El costo estimado en ARS es obligatorio.")
     @PositiveOrZero(message = "El costo estimado no puede ser negativo.")
     @Digits(
             integer = 19,
@@ -125,6 +136,7 @@ public class Alquiler {
     )
     @Column(
             name = "costo_estimado_ars",
+            nullable = false,
             precision = 21,
             scale = 2,
             updatable = false

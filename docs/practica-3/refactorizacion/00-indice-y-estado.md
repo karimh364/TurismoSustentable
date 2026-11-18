@@ -7,14 +7,27 @@ Actualizado: 17 de noviembre de 2026.
 El [diagnóstico y guía de cierre del DER v5](44-diagnostico-y-guia-cierre-der-v5.md)
 consolida el análisis de backend, consumidores web, esquema y datos actuales,
 pendientes y orden de trabajo antes de la exposición del miércoles 18 a las 19:30.
-La BD tiene 29 tablas y las 55 relaciones previstas, pero conserva dos FK y ocho
-columnas del alquiler anterior; no se declara una migración 100 % terminada.
-Las siete suites JS se ejecutaron en la revisión: 117 aprobadas, cero fallos.
-La revisión no ejecutó integraciones destructivas ni modificó código o datos.
-El primer subbloque manual preparado retira el control antiguo de alquiler activo
-de inventario/mantenimiento/incidencias, conservando el control por detalle.
-Las tareas propuestas de esa guía siguen pendientes hasta su implementación y
-comprobación; las notas siguientes conservan el estado histórico de cada etapa.
+Retirada la compatibilidad anterior de controles, listados, devolución, DTO, enum,
+entidades y consultas sin uso. El borrado lógico usa los estados v5. La migración
+manual ya ejecutada retiró dos FK y ocho columnas sin borrar filas: lectura
+posterior confirmó 29 tablas, 55 FK, cero columnas/relaciones antiguas y dos
+alquileres con sus detalles. Luego se reforzó la cabecera en Bean Validation/JPA
+y se aplicó la migración 02: ocho columnas NOT NULL y seis opcionales conservadas.
+La FK del estado mantiene su relación/reglas con nombre fk_alquiler_estado_v5.
+Lectura posterior: 29 tablas, 55 FK, dos alquileres y cero cabeceras incompletas.
+El arranque del 17/11 a las 21:23 completó JPA/Tomcat con refactor y validate,
+sin error de esquema o mapeo.
+
+El [SQL histórico y sus precauciones](../../../scripts/migraciones/README.md)
+quedan registrados; NO volver a importar ninguna de las dos migraciones en la
+base actual. La última tanda dirigida tuvo 144 casos Java aprobados en ocho
+suites, incluidos 17 de obligatoriedad; los 117 JS de limpieza web
+se aprobaron en otra ejecución. No sumar tandas solapadas ni declarar integración
+SQL nueva: esa regresión aislada sigue pendiente.
+
+No se declara cierre global: restan revisión física adicional, nombres/tipos, comprobantes
+v5 por correo, controles transversales, gestión de roles, consultas administrativas
+y pulido según la guía. Las notas siguientes conservan antecedentes históricos.
 
 ## Antecedentes y comprobaciones anteriores
 

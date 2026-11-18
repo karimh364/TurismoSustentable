@@ -1,6 +1,7 @@
 # Diagnóstico y guía de cierre de la migración al DER v5
 
 Fecha de referencia: 17 de noviembre de 2026.
+Actualización de cierre: 17/11, después del arranque informado de las 21:23.
 Presentación prevista: miércoles 18 de noviembre, 19:30 (Argentina).
 
 ## 1. Finalidad y alcance
@@ -10,8 +11,9 @@ alquiler anterior y conectar las funcionalidades aprobadas que todavía no llega
 a las pantallas. No iniciar otra refactorización general ni añadir entidades o
 reglas de negocio sin aprobación.
 
-Esta guía registra la revisión de solo lectura del 17/11 y el orden propuesto de
-trabajo. Sus tareas pendientes NO están implementadas por aparecer aquí. Los
+Esta guía registra la revisión inicial de solo lectura del 17/11, los cambios
+posteriores comprobados y el orden de trabajo restante. Sus tareas pendientes
+NO están implementadas por aparecer aquí. Los
 documentos anteriores conservan antecedentes cronológicos; esta guía no convierte
 una prueba histórica en una verificación actual ni declara el proyecto terminado.
 
@@ -28,21 +30,22 @@ Referencias: [DER v5](der-v5-propuesto.mmd), [diccionario](08-diccionario-estado
 | --- | --- | --- |
 | Identidad/acceso | PERSONA, documentos y catálogos, registro CLIENTE, múltiples roles, login, recuperación, sesión y edición administrativa | Gestión administrativa de asignación/retiro de roles; uniformar cuenta activa y roles vigentes en rutas conservadas |
 | Estaciones | Alta/edición/borrado lógico, pública/interna, capacidad, concurrencia, panel y mapa | Escapado de textos y uso del control común de sesión/roles en el mapa; precisión física de coordenadas |
-| Bicicletas | Tipo/tarifa, ubicación, traslados con motivo, estados, baja/eliminación, consulta de eliminadas e historia | Retirar controles y relaciones dependientes de la cabecera antigua |
-| Alquiler | Cabecera/detalles, reserva múltiple, retiro/devolución por unidad, cancelación y vencimiento, pantallas | Retirar por completo campos, enum, consultas, DTO, ruta de devolución, formularios y ramas de lectura anteriores |
+| Bicicletas | Tipo/tarifa, ubicación, traslados con motivo, estados, baja/eliminación, consulta de eliminadas e historia; dependencia del alquiler anterior retirada | Regresión integral y controles transversales pendientes |
+| Alquiler | Cabecera/detalles, reserva múltiple, retiro/devolución por unidad, cancelación y vencimiento, pantallas; retirada la compatibilidad anterior y sus ocho columnas/dos FK; cabecera obligatoria alineada en Java/BD | Revisión física restante, comprobantes v5 y cierre transversal; no declarar migración global terminada |
 | Finanzas | Anticipo, adicional, liquidación, deuda y reembolso simulados, idempotencia y pantallas | Regresión integral tras retirar legado; no confundir simulación con Mercado Pago real |
-| Incidencias | Reportar/revisar/cortar, recibir/recuperar, pérdida definitiva, conexión con mantenimiento y liquidación | Retirar consulta de alquiler anterior y pulir selección de informante/contexto de cuentas multirrol |
-| Mantenimiento | ADMIN gestiona, TECNICO asignado trabaja, historia, preventiva, habilitación posterior e inactivación de técnico | Retirar dependencia anterior; reparación exclusivamente en taller sigue siendo propuesta diferida |
+| Incidencias | Reportar/revisar/cortar, recibir/recuperar, pérdida definitiva, conexión con mantenimiento y liquidación; consulta anterior retirada | Pulir selección de informante/contexto de cuentas multirrol |
+| Mantenimiento | ADMIN gestiona, TECNICO asignado trabaja, historia, preventiva, habilitación posterior e inactivación de técnico; dependencia anterior retirada | Reparación exclusivamente en taller sigue siendo propuesta diferida |
 | Auditoría | Escritura administrativa e historiales de dominio implementados | Consulta administrativa general con filtros y pantalla; no exponerla a CLIENTE/TECNICO |
 | Estadísticas | Consultas migradas a detalles y tipo contratado, endpoint de resumen | Pantalla consumidora: no encontrada en la revisión |
-| Correo | Bienvenida y recuperación conservadas | Inicio tiene un método sin llamadas encontradas; finalización todavía depende del alquiler anterior. Adaptar comprobantes al circuito vigente y retirar lo reemplazado |
+| Correo | Bienvenida y recuperación conservadas; métodos exclusivos del alquiler anterior retirados | Implementar/conectar comprobantes v5 con varias unidades e importes guardados; no se consideran reemplazados por haber retirado los anteriores |
 
 La finalidad no es crear un CRUD de todas las tablas: historiales, pagos y estados
 deben seguir las operaciones y permisos del dominio, sin edición arbitraria.
 
-## 3. Comparación física con MariaDB
+## 3. Comparación física con MariaDB — diagnóstico inicial
 
-Lectura de information_schema de turismo_sustentable del 17/11:
+Foto de information_schema de turismo_sustentable del 17/11, ANTES de la
+migración. No es el estado posterior; consultar los cierres de las secciones 7 y 8:
 
 - 29 tablas, frente a 29 entidades del DER.
 - 55 relaciones previstas representadas, pero 57 FK físicas.
@@ -83,6 +86,13 @@ no acredita por sí solo fidelidad completa al DER ni corrección del circuito.
 ## 4. Pendientes concretos y orden de trabajo
 
 ### A. Retiro coordinado del alquiler anterior — prioridad principal
+
+Estado actualizado: cumplida la retirada de controles/listados/devolución antigua,
+DTO/enum, campos JPA y asociaciones/consultas dependientes. Ejecutada y comprobada
+la eliminación física de las ocho columnas y dos FK. El paso 5 (comprobantes v5)
+sigue pendiente, así como la regresión SQL aislada y otras diferencias físicas.
+La lista siguiente conserva el plan y sus criterios, no una lista íntegra de
+operaciones todavía sin hacer.
 
 1. Respaldar BD y código; comprobar nuevamente que no aparecieron alquileres
    anteriores desde el diagnóstico. No borrarlos si aparecen: resolver su
@@ -181,17 +191,140 @@ documentos 37 y 41–43. No sumar resultados de distintas tandas como si fueran 
 - No crear nuevas tablas, billeteras, infraestructura de correos o rediseño general
   como sustituto de cerrar los consumidores y relaciones existentes.
 
-## 7. Primer paso manual preparado
+## 7. Cierre verificado del alquiler anterior — 17/11
 
-Estado: instrucciones pendientes de aplicar por el usuario.
+### Código y consumidores
 
-Subbloque A.2: retirar existsByBicicletaAndEstado de BicicletaService,
-MantenimientoService e IncidenciaService; mantener contarAsignacionesActivas de
-AlquilerDetalleRepository (RESERVADO, PENDIENTE_RETIRO y EN_CURSO). Quitar la
-dependencia AlquilerRepository de los dos primeros y adaptar sus constructores y
-tests. IncidenciaService conserva AlquilerRepository para bloquear cabeceras.
-Eliminar exclusivamente la consulta antigua de AlquilerRepository.
+- Inventario, mantenimiento e incidencias comprueban asignaciones activas mediante
+  ALQUILER_DETALLE; retirada existsByBicicletaAndEstado y las inyecciones sin uso.
+- Los listados de CLIENTE/ADMIN devuelven AlquilerCabeceraDTO con detalles, sin
+  rama ANTERIOR. Las pantallas usan las fechas e importes guardados del v5.
+- Retirados modal/funciones web anteriores, PATCH /api/alquileres/finalizar/{id},
+  método finalizarAlquiler y su permiso. La devolución POST por detalle permanece.
+- Eliminados AlquilerDTO y las cinco pruebas exclusivas de la devolución antigua;
+  conservadas las pruebas del circuito vigente y agregadas pruebas de retirada
+  de ruta y rechazo para visitante/roles.
+- El borrado lógico solo permite FINALIZADO/CANCELADO/VENCIDO, rechaza estados
+  inválidos y conserva importes, detalles y movimientos; no ejecuta liquidaciones.
+- Retirados ocho campos, sus accesores, dos constructores y CodigoEstadoAlquiler;
+  eliminada Bicicleta.alquileres, que apuntaba al FK anterior. Se conserva
+  Usuario.alquileres, cuyo mappedBy usuario sigue siendo válido.
+- Retiradas consultas por nombre/listados anteriores sin consumidores y adaptadas
+  las pruebas de cotización, importes y reserva.
+- Retiradas plantillas/métodos de comprobante anterior; bienvenida y recuperación
+  permanecen. Los nuevos comprobantes de alquiler NO están implementados por ello.
 
-No retirar aún CodigoEstadoAlquiler, AlquilerDTO, campos físicos o asociaciones:
-todavía tienen otros consumidores y se eliminarán en sus pasos coordinados.
-No significa que A quede cerrado por completar este subbloque.
+### Tandas dirigidas comprobadas
+
+| Subbloque | Evidencia |
+| --- | --- |
+| Desacoplar inventario/mantenimiento/incidencias | 245 Java en siete XML, sin fallos/errores/omisiones |
+| Unificar contrato de listados | 137 Java en siete XML, sin fallos/errores/omisiones |
+| Limpieza del frontend | 117 JS aprobadas en las siete suites; resultado adjunto del usuario revisado |
+| Retirar devolución antigua del backend | 234 Java en diez XML, sin fallos/errores/omisiones |
+| Borrado lógico exclusivamente v5 | 232 Java en nueve XML, sin fallos/errores/omisiones |
+| Retirar campos/relaciones de entidades | clean compileTestJava informado correcto y 199 Java en diez XML corroborados, sin fallos/errores/omisiones |
+
+Son ejecuciones distintas con casos solapados: NO se suman ni acreditan una nueva
+integración SQL, una prueba visual global o regresión completa posterior.
+
+### Migración física ejecutada por el usuario
+
+Respaldo de estructura y datos confirmado antes del DDL, con la app detenida.
+La comprobación previa obtuvo dos alquileres, cero sin estado v5 y cero con datos
+en las columnas antiguas. Las dos FK se identificaron por information_schema.
+
+El usuario ejecutó un ALTER sobre turismo_sustentable.alquiler que retiró ambas
+FK y las ocho columnas. No se recreó la BD ni se desactivaron comprobaciones de FK.
+El [SQL histórico](../../../scripts/migraciones/2026-11-17-01-retirar-alquiler-anterior.sql)
+y sus [precauciones](../../../scripts/migraciones/README.md) quedan versionables.
+Ya está aplicado: NO importarlo otra vez ni aplicarlo a una BD nueva del modelo v5.
+
+Lectura posterior del asistente, sin modificaciones:
+
+| Comprobación | Resultado |
+| --- | ---: |
+| Tablas conservadas | 29 |
+| FK totales | 55 |
+| Columnas antiguas restantes | 0 |
+| Relaciones antiguas restantes | 0 |
+| Alquileres conservados | 2 |
+| Cabeceras sin detalles | 0 |
+
+Ambos alquileres permanecen FINALIZADO con un detalle cada uno. La lectura
+conserva cotización 2047,50 ARS/USD y estimados de 16380,00 ARS por alquiler;
+finales de 1547,00 ARS (#1) y 27,30 ARS (#2). Son datos de demostración, no tarifas
+generales ni nuevos valores impuestos por una migración.
+
+El arranque informado del 17/11 a las 20:00 completó JPA y Tomcat con refactor y
+validate, sin error de esquema o mapeo. El aviso open-in-view es un pendiente
+transversal; no indica fallo de arranque. El asistente no reinició la app ni
+ejecutó este DDL: corroboró la BD mediante SELECT.
+
+## 8. Obligatoriedad de cabecera comprobada — 17/11, 21:23
+
+Alquiler incorpora NotNull en sus relaciones y datos obligatorios, NotBlank en
+fuenteCotizacion y nullable=false/optional=false en los mapeos correspondientes.
+Se conservan las reglas previas de signo, escala y tamaño, los estimados cero
+válidos y los datos legítimamente pendientes. La versión autogestionada no lleva
+NotNull de Bean Validation. crearReserva completa la cabecera antes de validarla
+y guardarla; no se añadió otro servicio, endpoint o pantalla.
+
+AlquilerCabeceraValidacionTest aporta 17 casos: diez campos obligatorios, seis
+opcionales y una cabecera completa sin inventar cierre/liquidación/versión.
+El usuario ejecutó la compilación y pruebas. Ocho XML corroborados, 144 casos
+aprobados, cero fallos/errores/omisiones: esa suite y AlquilerCotizacionTest,
+AlquilerImportesTest, BorradoAlquilerServiceTest, ConsultaAlquilerServiceTest,
+CrearReservaServiceTest, DevolucionAlquilerServiceTest y RetiroAlquilerServiceTest.
+No se suman a las tandas anteriores ni acreditan integración SQL nueva.
+
+Migración 02 ejecutada manualmente por el usuario, con app detenida, respaldo
+completo confirmado (turismo_sustentable_pre_not_null_2026-11-17.sql) y cero
+cabeceras incompletas. Se preservan tipos, precisión, escala y charset/collation:
+
+| Columnas de ALQUILER | Resultado físico |
+| --- | --- |
+| estado_alquiler_id | int(11) NOT NULL |
+| cotizacion_ars_por_usd | decimal(20,8) NOT NULL |
+| fuente_cotizacion | varchar(100), utf8mb4/utf8mb4_general_ci, NOT NULL |
+| fecha_hora_aplicacion_cotizacion, fecha_hora_creacion, fecha_hora_vencimiento_reserva | datetime(6) NOT NULL |
+| costo_estimado_usd, costo_estimado_ars | decimal(21,2) NOT NULL |
+| fecha_hora_actualizacion_fuente, fecha_hora_cierre, fecha_hora_cancelacion, fecha_hora_liquidacion, costo_final_usd, costo_final_ars | NULL permitido, sin alterar tipos |
+
+Usuario y estación de retiro ya eran NOT NULL en la BD. No hubo rellenos de
+datos, defaults inventados o modificación de importes. NOT NULL no garantiza
+texto no vacío: NotBlank sigue cubriendo esa condición en Java.
+
+El primer ALTER propuesto falló con 1005/121: recrear la FK usando el nombre
+original produjo un conflicto durante la reconstrucción. InnoDB identificó
+el nombre duplicado; se comprobó que esquema anterior y datos permanecían.
+La sentencia corregida usa fk_alquiler_estado_v5, previamente libre, conservando
+estado_alquiler_id -> estado_alquiler.id y ambas reglas RESTRICT. Retirada y
+creación de la FK se hicieron en el mismo ALTER, sin desactivar controles.
+El [SQL definitivo histórico](../../../scripts/migraciones/2026-11-17-02-obligatoriedad-cabecera-alquiler.sql)
+registra únicamente la variante aplicada con éxito. NO volver a importarlo.
+
+Usuario y posterior lectura del asistente corroboraron las ocho columnas NO y
+tres FK de ALQUILER; lectura del asistente confirmó también las seis opcionales
+YES, 29 tablas, 55 FK, dos alquileres y cero cabeceras incompletas.
+Arranque informado a las 21:23: refactor, JPA y Tomcat correctos, aplicación
+iniciada en 4,941 segundos con validate. El asistente no ejecutó el ALTER,
+reinició la app ni repitió pruebas: inspeccionó SQL y XML en modo lectura.
+El arranque no sustituye las consultas de nulabilidad ni una regresión integral.
+
+## 9. Continuación y límites del cierre
+
+La retirada del alquiler anterior está comprobada en código y esquema para este
+alcance. 29 tablas y 55 FK NO implican fidelidad física total ni que todas las
+funcionalidades aprobadas estén conectadas.
+
+Obligatoriedad de cabecera concretada entre Bean Validation/JPA y BD; cierre,
+importes finales y fecha de actualización de fuente conservan su opcionalidad.
+Próximo paso: revisar nombres de hashes y precisión de coordenadas de forma
+explícita, además de las restricciones físicas restantes, sin mezclar cambios DDL.
+Cada cambio requiere comprobaciones previas, respaldo y pruebas acordes.
+
+Continúan comprobantes v5 por correo, controles de cuenta/roles vigentes,
+administración de roles, consulta de auditoría, pantalla estadística y pulido
+indicados en las secciones 2 y 4. Integraciones SQL se deben aislar antes de
+ejecutarlas; no usar TURISMO_TEST_MYSQL/create-drop sobre la demostración vigente.

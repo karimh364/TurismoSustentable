@@ -2,6 +2,23 @@
 
 Fecha: 11 de noviembre de 2026.
 
+## Actualización de cierre — 17/11
+
+La compatibilidad del alquiler anterior fue retirada de código y pantallas;
+la migración física manual retiró sus dos FK y ocho columnas. Comprobadas por
+lectura 29 tablas y 55 FK, con los dos alquileres y sus detalles conservados;
+arranque refactor/validate completado por el usuario. Después se reforzó la
+cabecera en Bean Validation/JPA y ocho columnas físicas pasaron a NOT NULL,
+con seis opcionales conservadas y FK de estado renombrada sin cambiar la relación.
+Última tanda dirigida: 144 Java aprobadas; nuevo arranque correcto a las 21:23.
+El estado consolidado,
+evidencia por tanda y pendientes reales están en la
+[guía 44](44-diagnostico-y-guia-cierre-der-v5.md). SQL histórico y precauciones en
+[scripts/migraciones](../../../scripts/migraciones/README.md): no reejecutarlo
+en la BD actual. No se declara integración SQL nueva ni fidelidad total al DER;
+siguen pendientes, entre otros, comprobantes de correo, alineación física
+adicional y controles transversales. Los apartados siguientes son antecedentes.
+
 ## Estado vigente — etapa 337 (16/11)
 
 Parte estadística de R03 migrada y comprobada: conteo por detalle EN_CURSO y
