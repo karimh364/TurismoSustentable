@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import DSII.TurismoSustentable.models.Usuario;
+import DSII.TurismoSustentable.repositories.projections.AccesoUsuarioProjection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Lock;
@@ -84,6 +85,20 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Integer> {
             "where u.email = :email and u.activo = true")
     Optional<Usuario> buscarActivoPorEmailConBloqueo(
             @Param("email") String email
+    );
+
+    // Lectura mínima para comprobar una sesión por su ID estable.
+    // No carga la entidad Usuario ni sus colecciones o credenciales.
+    @Query(
+            "select u.id as usuarioId, u.email as email, "
+                    + "u.activo as activo, r.codigo as rolCodigo "
+                    + "from Usuario u "
+                    + "left join u.usuarioRoles ur "
+                    + "left join ur.rol r "
+                    + "where u.id = :id"
+    )
+    List<AccesoUsuarioProjection> buscarAccesoVigentePorId(
+            @Param("id") Integer id
     );
 
 }

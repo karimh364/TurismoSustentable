@@ -7,10 +7,16 @@ import DSII.TurismoSustentable.models.Persona;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.GeneroRepository;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -18,6 +24,13 @@ import javax.persistence.LockModeType;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 @Service
 @Validated
@@ -27,25 +40,78 @@ public class UsuarioService {
     private final GeneroRepository generoRepository;
     private final EntityManager entityManager;
     private final AuditoriaAdministrativaService auditoria;
-    @org.springframework.beans.factory.annotation.Autowired
-    private MantenimientoService mantenimiento;
+    private final MantenimientoService mantenimiento;
+    private final Clock reloj;
 
     @PreAuthorize("hasAuthority('ADMIN')")
-    @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED,rollbackFor=Exception.class)
-    public void inactivarUsuario(Integer id,String motivo) {
-        mantenimiento.inactivarUsuario(id,motivo);
+    @Transactional(isolation = Isolation.READ_COMMITTED, rollbackFor = Exception.class)
+    public void inactivarUsuario(Integer id, String motivo) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El identificador no es válido.");
+        }
+        String razon = motivo == null ? null : motivo.trim();
+        if (razon != null && razon.length() > 2000) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El motivo admite hasta 2000 caracteres.");
+        }
+
+        Authentication sesion = SecurityContextHolder.getContext().getAuthentication();
+        if (sesion == null || !sesion.isAuthenticated()
+                || sesion.getAuthorities().stream().noneMatch(a -> "ADMIN".equals(a.getAuthority()))) {
+            throw new AccessDeniedException("Se requiere una sesión con permiso ADMIN.");
+        }
+        Integer actorId = usuarioRepository.buscarIdPorEmail(sesion.getName())
+                .orElseThrow(() -> new AccessDeniedException("La cuenta no existe."));
+
+        // Mismo orden que mantenimiento: cuentas por ID, luego bicicletas y órdenes.
+        SortedSet<Integer> ids = new TreeSet<>();
+        ids.add(actorId);
+        ids.add(id);
+        Map<Integer, Usuario> cuentas = new TreeMap<>();
+        for (Integer cuentaId : ids) {
+            cuentas.put(cuentaId, usuarioRepository.buscarPorIdConBloqueo(cuentaId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no existe.")));
+        }
+        Usuario administrador = cuentas.get(actorId);
+        if (!administrador.isActivo() || !sesion.getName().equals(administrador.getEmail())
+                || !tieneRol(administrador, "ADMIN")) {
+            throw new AccessDeniedException("Se requiere una cuenta activa con rol ADMIN vigente.");
+        }
+
+        Usuario objetivo = cuentas.get(id);
+        if (tieneRol(objetivo, "ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede inactivar a un usuario Administrador.");
+        }
+        if (!objetivo.isActivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario ya se encuentra inactivo.");
+        }
+
+        LocalDateTime ahora = LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC);
+        mantenimiento.prepararOrdenesPorInactivacion(objetivo, administrador, razon, ahora);
+        objetivo.setActivo(false);
+        usuarioRepository.flush();
+        auditoria.registrarInactivacionUsuario(administrador, objetivo.getId(), razon, ahora);
+    }
+
+    private boolean tieneRol(Usuario usuario, String codigo) {
+        return usuario.getUsuarioRoles().stream()
+                .anyMatch(ur -> codigo.equals(ur.getRol().getCodigo()));
     }
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             GeneroRepository generoRepository,
             EntityManager entityManager,
-            AuditoriaAdministrativaService auditoria
+            AuditoriaAdministrativaService auditoria,
+            MantenimientoService mantenimiento,
+            Clock reloj
     ) {
         this.usuarioRepository = usuarioRepository;
         this.generoRepository = generoRepository;
         this.entityManager = entityManager;
         this.auditoria = auditoria;
+        this.mantenimiento = mantenimiento;
+        this.reloj = reloj;
     }
 
     @Transactional

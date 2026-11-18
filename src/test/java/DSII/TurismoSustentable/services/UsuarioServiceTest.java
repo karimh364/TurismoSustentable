@@ -13,7 +13,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
+import org.junit.jupiter.api.AfterEach;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
@@ -24,6 +29,8 @@ import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,6 +51,12 @@ class UsuarioServiceTest {
 
     @Mock
     private AuditoriaAdministrativaService auditoria;
+
+    @Mock
+    private MantenimientoService mantenimiento;
+
+    @Mock
+    private Clock reloj;
 
     @InjectMocks
     private UsuarioService usuarioService;
@@ -95,6 +108,153 @@ class UsuarioServiceTest {
         datos.setGeneroId(2);
 
         generoNuevo = new Genero("OTRO");
+    }
+
+    @AfterEach
+    void limpiarSesion() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void inactivaCuentaTrasPrepararOrdenesYAuditaSinBorrarSusDatos() {
+        prepararInactivacion();
+        String email = usuario.getEmail();
+        Persona persona = usuario.getPersona();
+        doAnswer(inv -> { assertTrue(usuario.isActivo()); return null; })
+                .when(mantenimiento).prepararOrdenesPorInactivacion(
+                        eq(usuario), eq(administrador), eq("Licencia"), any(LocalDateTime.class));
+
+        usuarioService.inactivarUsuario(1, " Licencia ");
+
+        assertFalse(usuario.isActivo());
+        assertEquals(email, usuario.getEmail());
+        assertSame(persona, usuario.getPersona());
+        assertEquals("hash-simulado-para-test", usuario.getPassword());
+        assertEquals("CLIENTE", usuario.getUsuarioRoles().iterator().next().getRol().getCodigo());
+        var orden = inOrder(usuarioRepository, mantenimiento, auditoria);
+        orden.verify(usuarioRepository).buscarIdPorEmail(administrador.getEmail());
+        orden.verify(usuarioRepository).buscarPorIdConBloqueo(1);
+        orden.verify(usuarioRepository).buscarPorIdConBloqueo(99);
+        orden.verify(mantenimiento).prepararOrdenesPorInactivacion(
+                usuario, administrador, "Licencia", fechaInactivacion());
+        orden.verify(usuarioRepository).flush();
+        orden.verify(auditoria).registrarInactivacionUsuario(
+                administrador, 1, "Licencia", fechaInactivacion());
+        verify(usuarioRepository, never()).delete(any());
+    }
+
+    @Test
+    void protegeAdminAunqueTambienSeaTecnicoSinPrepararOrdenes() {
+        prepararInactivacion();
+        for (String codigo : List.of("ADMIN", "TECNICO")) {
+            Rol rol = new Rol(codigo);
+            ReflectionTestUtils.setField(rol, "id", "ADMIN".equals(codigo) ? 3 : 4);
+            usuario.getUsuarioRoles().add(new UsuarioRol(usuario, rol));
+        }
+        var error = assertThrows(ResponseStatusException.class,
+                () -> usuarioService.inactivarUsuario(1, "QA"));
+        assertEquals(409, error.getStatus().value());
+        assertEquals("No se puede inactivar a un usuario Administrador.", error.getReason());
+        comprobarInactivacionSinEscrituras();
+    }
+
+    @Test
+    void noInactivaCuentaYaInactiva() {
+        prepararInactivacion();
+        usuario.setActivo(false);
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> usuarioService.inactivarUsuario(1, null)).getStatus().value());
+        comprobarInactivacionSinEscrituras();
+    }
+
+    @Test
+    void inactivacionDeUsuarioInexistenteDa404() {
+        prepararInactivacion();
+        when(usuarioRepository.buscarPorIdConBloqueo(1)).thenReturn(Optional.empty());
+        assertEquals(404, assertThrows(ResponseStatusException.class,
+                () -> usuarioService.inactivarUsuario(1, null)).getStatus().value());
+        comprobarInactivacionSinEscrituras();
+    }
+
+    @Test
+    void inactivacionExigeSesionAdminAntesDeConsultarCuentas() {
+        SecurityContextHolder.clearContext();
+        assertThrows(AccessDeniedException.class, () -> usuarioService.inactivarUsuario(1, null));
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                "cliente@example.com", null, AuthorityUtils.createAuthorityList("CLIENTE")));
+        assertThrows(AccessDeniedException.class, () -> usuarioService.inactivarUsuario(1, null));
+        verifyNoInteractions(usuarioRepository, mantenimiento);
+    }
+
+    @Test
+    void adminRevocadoOInactivoNoPuedeInactivarAunqueSesionConserveAutoridad() {
+        prepararInactivacion();
+        administrador.getUsuarioRoles().clear();
+        assertThrows(AccessDeniedException.class, () -> usuarioService.inactivarUsuario(1, "QA"));
+        comprobarInactivacionSinEscrituras();
+        prepararInactivacion();
+        administrador.setActivo(false);
+        assertThrows(AccessDeniedException.class, () -> usuarioService.inactivarUsuario(1, "QA"));
+        comprobarInactivacionSinEscrituras();
+    }
+
+    @Test
+    void inactivacionValidaIdYLongitudAntesDePrepararOrdenes() {
+        for (Integer id : java.util.Arrays.asList(null, 0, -1)) {
+            assertEquals(400, assertThrows(ResponseStatusException.class,
+                    () -> usuarioService.inactivarUsuario(id, null)).getStatus().value());
+        }
+        assertEquals(400, assertThrows(ResponseStatusException.class,
+                () -> usuarioService.inactivarUsuario(1, "x".repeat(2001))).getStatus().value());
+        verifyNoInteractions(usuarioRepository, mantenimiento);
+    }
+
+    @Test
+    void falloAlPrepararOrdenesImpideInactivacionYAuditoria() {
+        prepararInactivacion();
+        doThrow(new IllegalStateException("Fallo de mantenimiento")).when(mantenimiento)
+                .prepararOrdenesPorInactivacion(any(), any(), any(), any());
+        assertThrows(IllegalStateException.class, () -> usuarioService.inactivarUsuario(1, "QA"));
+        assertTrue(usuario.isActivo());
+        verify(usuarioRepository, never()).flush();
+        verify(auditoria, never()).registrarInactivacionUsuario(any(), anyInt(), any(), any());
+    }
+
+    @Test
+    void falloAuditoriaDeInactivacionSePropagaParaRevertirLaTransaccion() {
+        prepararInactivacion();
+        doThrow(new IllegalStateException("Fallo de auditoría")).when(auditoria)
+                .registrarInactivacionUsuario(any(), anyInt(), any(), any());
+        assertThrows(IllegalStateException.class, () -> usuarioService.inactivarUsuario(1, "QA"));
+        verify(usuarioRepository).flush();
+        // La reversión real de entidades se comprueba en integración, no con mocks.
+    }
+
+    private void prepararInactivacion() {
+        administrador.setEmail("admin.inactivacion@example.com");
+        administrador.setActivo(true);
+        if (administrador.getUsuarioRoles().isEmpty()) {
+            Rol rol = new Rol("ADMIN");
+            ReflectionTestUtils.setField(rol, "id", 3);
+            administrador.getUsuarioRoles().add(new UsuarioRol(administrador, rol));
+        }
+        usuario.setActivo(true);
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
+                administrador.getEmail(), null, AuthorityUtils.createAuthorityList("ADMIN")));
+        lenient().when(usuarioRepository.buscarIdPorEmail(administrador.getEmail())).thenReturn(Optional.of(99));
+        lenient().when(usuarioRepository.buscarPorIdConBloqueo(99)).thenReturn(Optional.of(administrador));
+        lenient().when(usuarioRepository.buscarPorIdConBloqueo(1)).thenReturn(Optional.of(usuario));
+        lenient().when(reloj.instant()).thenReturn(fechaInactivacion().toInstant(ZoneOffset.UTC));
+    }
+
+    private LocalDateTime fechaInactivacion() {
+        return LocalDateTime.of(2026, 11, 18, 12, 0);
+    }
+
+    private void comprobarInactivacionSinEscrituras() {
+        verifyNoInteractions(mantenimiento);
+        verify(usuarioRepository, never()).flush();
+        verify(auditoria, never()).registrarInactivacionUsuario(any(), anyInt(), any(), any());
     }
 
     @Test

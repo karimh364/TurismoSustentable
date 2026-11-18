@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.models.Genero;
@@ -31,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         WebAuthorization.class,
         SecurityConfig.class
 })
+@Import(SesionVigenteMockConfig.class)
 class CatalogoControllerTest {
 
     @Autowired

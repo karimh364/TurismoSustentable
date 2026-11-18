@@ -1,4 +1,7 @@
 package DSII.TurismoSustentable.controllers;
+
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.configurations.*;
 import DSII.TurismoSustentable.services.MantenimientoService;
 import DSII.TurismoSustentable.exceptions.*;
@@ -22,6 +25,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @WebMvcTest(MantenimientoController.class)
 @ContextConfiguration(classes={MantenimientoController.class,WebAuthorization.class,SecurityConfig.class,GlobalExceptionHandler.class})
 @ActiveProfiles("refactor")
+@Import(SesionVigenteMockConfig.class)
 class MantenimientoControllerTest {
     @Autowired MockMvc http;
     @MockBean MantenimientoService servicio;

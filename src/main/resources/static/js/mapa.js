@@ -1,3 +1,5 @@
+let comprobandoAccesoMapa = false;
+
 document.addEventListener("DOMContentLoaded", function() {
 
     // 1. Inicializar el mapa centrado en Río Grande (Ajustado)
@@ -89,7 +91,7 @@ document.addEventListener("DOMContentLoaded", function() {
                             <hr class="my-2">
                             <p class="mb-1"><strong>Disponibles:</strong> ${estacion.bicicletasDisponibles}</p>
                             <p class="text-muted mb-2"><small>Espacios libres: ${estacion.espaciosLibres}</small></p>
-                            <button class="btn btn-sm btn-success w-100 fw-bold" onclick="alquilarBici(${estacion.id})">
+                            <button class="btn btn-sm btn-success w-100 fw-bold" onclick="alquilarBici(${estacion.id}, this)">
                                 <i class="fas fa-bicycle"></i> Ver Bicicletas
                             </button>
                         </div>
@@ -99,26 +101,48 @@ document.addEventListener("DOMContentLoaded", function() {
         .catch(error => console.error('Error cargando estaciones:', error));
 });
 
-function alquilarBici(estacionId) {
+async function alquilarBici(estacionId, boton) {
+    if (comprobandoAccesoMapa) return;
 
-    const estaLogueado =
-        sessionStorage.getItem('usuarioLogueado') === 'true';
-
-    if (!estaLogueado) {
-
-        Swal.fire({
-            title: 'Iniciá sesión',
-            text: 'Necesitás iniciar sesión para consultar y alquilar bicicletas.',
-            icon: 'info',
-            confirmButtonText: 'Ir al ingreso',
+    if (!Number.isInteger(estacionId) || estacionId <= 0) {
+        await Swal.fire({
+            icon: 'error',
+            title: 'No se pudo seleccionar la estación',
+            text: 'Recargá el mapa e intentá nuevamente.',
             confirmButtonColor: '#198754'
-        }).then(resultado => {
+        });
+        return;
+    }
 
-            if (resultado.isConfirmed) {
+    comprobandoAccesoMapa = true;
 
+    const estadoBoton = boton
+        ? { html: boton.innerHTML, disabled: boton.disabled }
+        : null;
+
+    if (boton) {
+        boton.disabled = true;
+        boton.setAttribute('aria-busy', 'true');
+        boton.innerHTML = 'Comprobando acceso…';
+    }
+
+    try {
+        // Consulta al servidor; no decide por marcas de sessionStorage.
+        const usuario = await obtenerUsuarioActual();
+
+        if (!usuario) {
+            const resultado = await Swal.fire({
+                title: 'Iniciá sesión',
+                text: 'Necesitás iniciar sesión para acceder al alquiler de bicicletas.',
+                icon: 'info',
+                confirmButtonText: 'Ir al ingreso',
+                confirmButtonColor: '#198754'
+            });
+
+            if (resultado?.isConfirmed) {
                 document
                     .getElementById('login-anchor')
-                    .scrollIntoView({
+                    ?.scrollIntoView({
                         behavior: 'smooth',
                         block: 'start'
                     });
@@ -129,11 +153,46 @@ function alquilarBici(estacionId) {
                         ?.focus();
                 }, 600);
             }
+
+            return;
+        }
+
+        if (!rolesDelUsuario(usuario).includes('CLIENTE')) {
+            await Swal.fire({
+                icon: 'warning',
+                title: 'Acceso no permitido',
+                text: 'Para acceder al alquiler necesitás el rol de cliente. Tu sesión sigue activa.',
+                confirmButtonColor: '#198754'
+            });
+            return;
+        }
+
+        // Esto conserva una selección, no un permiso de acceso.
+        sessionStorage.setItem(
+            'estacionSeleccionada',
+            String(estacionId)
+        );
+
+        window.location.href =
+            `alquiler.html?estacionId=${estacionId}`;
+
+    } catch (error) {
+        if (manejarErrorSesion(error)) return;
+
+        await Swal.fire({
+            icon: 'error',
+            title: 'No se pudo comprobar el acceso',
+            text: 'No pudimos confirmar tu acceso con el servidor. Intentá nuevamente.',
+            confirmButtonColor: '#198754'
         });
 
-        return;
-    }
+    } finally {
+        comprobandoAccesoMapa = false;
 
-    sessionStorage.setItem('estacionSeleccionada', estacionId);
-    window.location.href = `alquiler.html?estacionId=${estacionId}`;
+        if (boton) {
+            boton.innerHTML = estadoBoton.html;
+            boton.disabled = estadoBoton.disabled;
+            boton.removeAttribute('aria-busy');
+        }
+    }
 }

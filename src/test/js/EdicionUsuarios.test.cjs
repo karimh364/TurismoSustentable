@@ -31,7 +31,7 @@ function entorno() {
             {id: 7, codigo: 'MASCULINO', nombre: 'Masculino'},
             {id: 99, codigo: 'PREFIERO_NO_DECIR', nombre: 'Prefiero no decir'}]
     };
-    const peticiones = [], avisos = [], sesiones = [];
+    const peticiones = [], avisos = [], sesiones = [], dialogos = [];
     const modal = {mostrado: 0, ocultado: 0,
         show() { this.mostrado++; }, hide() { this.ocultado++; }};
     let get = async url => {
@@ -41,6 +41,8 @@ function entorno() {
         throw new Error('GET inesperado: ' + url);
     };
     let put = async () => ({data: {}});
+    let eliminar = async () => ({status: 204});
+    let decision = {isConfirmed: true, value: 'Prueba de inactivación'};
     const contexto = vm.createContext({
         console: {error() {}},
         document: {addEventListener() {}, getElementById: campo},
@@ -51,19 +53,72 @@ function entorno() {
         },
         axios: {
             async get(url) { peticiones.push({metodo: 'GET', url}); return get(url); },
-            async put(url, data) { peticiones.push({metodo: 'PUT', url, data}); return put(url, data); }
+            async put(url, data) { peticiones.push({metodo: 'PUT', url, data}); return put(url, data); },
+            async delete(url, opciones) {
+                peticiones.push({metodo: 'DELETE', url, data: opciones.data});
+                return eliminar(url, opciones);
+            }
         },
         bootstrap: {Modal: {getOrCreateInstance: () => modal, getInstance: () => modal}},
-        Swal: {async fire(opciones) { avisos.push(opciones); return {isConfirmed: true}; }},
+        Swal: {async fire(...argumentos) {
+            avisos.push(argumentos[0]); dialogos.push(argumentos); return decision;
+        }},
         manejarErrorSesion(error) {
             if ([401, 403].includes(error.response?.status)) { sesiones.push(error); return true; }
             return false;
         }
     });
     vm.runInContext(fuente, contexto, {filename: 'admin.js'});
-    return {contexto, campo, datos, peticiones, avisos, sesiones, modal,
-        setGet: f => get = f, setPut: f => put = f};
+    return {contexto, campo, datos, peticiones, avisos, sesiones, dialogos, modal,
+        setGet: f => get = f, setPut: f => put = f,
+        setDelete: f => eliminar = f, setDecision: d => decision = d};
 }
+
+test('inactivación confirmada muestra un mensaje neutral y actualiza el listado', async () => {
+    const e = entorno();
+    await e.contexto.borrarUsuario(2);
+    assert.deepEqual(e.dialogos.at(-1), [
+        'Usuario inactivado',
+        'La cuenta ya no puede acceder al sistema. Sus datos y registros históricos se conservan.',
+        'success'
+    ]);
+    assert.equal(e.peticiones.filter(p => p.metodo === 'DELETE').length, 1);
+    assert.equal(e.peticiones.filter(p => p.metodo === 'GET' && p.url === '/api/usuarios').length, 1);
+    assert.equal(e.sesiones.length, 0);
+});
+
+test('inactivar ADMIN muestra el 409 específico sin refrescar ni anunciar éxito', async () => {
+    const e = entorno();
+    const mensaje = 'No se puede inactivar a un usuario Administrador.';
+    e.setDelete(async () => { throw {response: {status: 409, data: mensaje}}; });
+    await e.contexto.borrarUsuario(2);
+    assert.deepEqual(e.dialogos.at(-1), ['No se pudo inactivar', mensaje, 'error']);
+    assert.deepEqual(JSON.parse(JSON.stringify(e.peticiones)), [
+        {metodo: 'DELETE', url: '/api/usuarios/2', data: {motivo: 'Prueba de inactivación'}}
+    ]);
+    assert.equal(e.sesiones.length, 0);
+    assert.equal(e.dialogos.length, 2);
+});
+
+test('inactivar con 401 o 403 conserva el manejo de sesión y no anuncia éxito', async () => {
+    for (const estado of [401, 403]) {
+        const e = entorno();
+        e.setDelete(async () => { throw {response: {status: estado}}; });
+        await e.contexto.borrarUsuario(2);
+        assert.equal(e.sesiones.length, 1);
+        assert.equal(e.dialogos.length, 1); // Solo el diálogo de confirmación.
+        assert.equal(e.peticiones.length, 1);
+        assert.equal(e.peticiones[0].metodo, 'DELETE');
+    }
+});
+
+test('cancelar la inactivación no envía escrituras', async () => {
+    const e = entorno();
+    e.setDecision({isConfirmed: false});
+    await e.contexto.borrarUsuario(2);
+    assert.equal(e.peticiones.length, 0);
+    assert.equal(e.dialogos.length, 1);
+});
 
 test('edición carga catálogo real y selecciona el ID correspondiente al código recibido', async () => {
     const e = entorno();

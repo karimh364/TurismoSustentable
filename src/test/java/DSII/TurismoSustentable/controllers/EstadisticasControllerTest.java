@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.exceptions.GlobalExceptionHandler;
@@ -32,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SecurityConfig.class,
         GlobalExceptionHandler.class
 })
+@Import(SesionVigenteMockConfig.class)
 class EstadisticasControllerTest {
 
     private static final String RESUMEN =

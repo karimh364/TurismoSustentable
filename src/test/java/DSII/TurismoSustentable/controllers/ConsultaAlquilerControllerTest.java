@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.controllers;
 
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.configurations.SecurityConfig;
 import DSII.TurismoSustentable.configurations.WebAuthorization;
 import DSII.TurismoSustentable.dto.AlquilerCabeceraDTO;
@@ -52,6 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         SecurityConfig.class,
         GlobalExceptionHandler.class
 })
+@Import(SesionVigenteMockConfig.class)
 class ConsultaAlquilerControllerTest {
 
     private static final String LISTADO_PROPIO =

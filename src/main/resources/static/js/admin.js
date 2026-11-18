@@ -64,7 +64,7 @@ async function borrarUsuario(id) {
         try {
             await axios.delete(`/api/usuarios/${id}`,{data:{motivo:decision.value.trim()}});
             cargarUsuarios();
-            Swal.fire('Usuario inactivado', 'Se conservan sus datos y las órdenes cerradas. Las abiertas se desasignan; las que estaban en proceso quedan pausadas.', 'success');
+            Swal.fire('Usuario inactivado', 'La cuenta ya no puede acceder al sistema. Sus datos y registros históricos se conservan.', 'success');
         } catch (e) {
             if (manejarErrorSesion(e)) return;
             Swal.fire('No se pudo inactivar', typeof e.response?.data==='string'?e.response.data:'Intentá nuevamente.', 'error');

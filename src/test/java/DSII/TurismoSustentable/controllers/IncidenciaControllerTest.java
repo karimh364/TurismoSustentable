@@ -1,4 +1,7 @@
 package DSII.TurismoSustentable.controllers;
+
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.configurations.*;
 import DSII.TurismoSustentable.services.IncidenciaService;
 import DSII.TurismoSustentable.exceptions.*;
@@ -23,6 +26,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 @WebMvcTest(IncidenciaController.class)
 @ContextConfiguration(classes={IncidenciaController.class,WebAuthorization.class,SecurityConfig.class,GlobalExceptionHandler.class})
 @ActiveProfiles("refactor")
+@Import(SesionVigenteMockConfig.class)
 class IncidenciaControllerTest {
     @Autowired MockMvc http;@MockBean IncidenciaService servicio;@MockBean UserDetailsService usuarios;
     static final String REPORTE="{\"alquilerId\":1,\"detalleId\":2,\"versionDetalle\":0,\"tipo\":\"AVERIA\",\"descripcion\":\"Freno dañado\",\"fechaHoraHechoInformada\":\"2026-11-16T10:45:00-03:00\"}";

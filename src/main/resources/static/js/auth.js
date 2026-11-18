@@ -120,7 +120,7 @@ window.addEventListener('pageshow', evento => {
         'mantenimiento.html': ['ADMIN','TECNICO'],
         'incidencias.html': ['ADMIN','CLIENTE'],
         'alquiler.html': ['CLIENTE'],
-        'mis_alquileres.html': ['ADMIN', 'CLIENTE']
+        'mis_alquileres.html': ['CLIENTE']
     };
     if (permisos[pagina]) requerirSesion(permisos[pagina]);
 });

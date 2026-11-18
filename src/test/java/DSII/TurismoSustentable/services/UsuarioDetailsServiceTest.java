@@ -8,6 +8,7 @@ import DSII.TurismoSustentable.models.TipoDocumento;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.models.UsuarioRol;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
+import DSII.TurismoSustentable.security.UsuarioAutenticado;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,6 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -147,6 +149,34 @@ class UsuarioDetailsServiceTest {
 
         verify(usuarioRepository, times(2))
                 .findByNicknameIgnoreCase(NICKNAME);
+    }
+
+    @Test
+    void conservaIdEstableAunqueSeBorreLaCredencialDeSesion() {
+        Usuario usuario = crearUsuario();
+        agregarRol(usuario, 1, "CLIENTE");
+        prepararBusqueda(usuario);
+
+        UserDetails resultado =
+                usuarioDetailsService.loadUserByUsername(NICKNAME);
+
+        assertTrue(resultado instanceof UsuarioAutenticado);
+
+        UsuarioAutenticado autenticado =
+                (UsuarioAutenticado) resultado;
+
+        assertEquals(17, autenticado.getUsuarioId());
+        assertEquals(EMAIL, autenticado.getUsername());
+        assertEquals(Set.of("CLIENTE"), autoridades(autenticado));
+
+        autenticado.eraseCredentials();
+
+        assertNull(autenticado.getPassword());
+        assertEquals(17, autenticado.getUsuarioId());
+        assertEquals(EMAIL, autenticado.getUsername());
+
+        // Borrar la credencial de sesión no modifica el hash persistido.
+        assertEquals(HASH, usuario.getPassword());
     }
 
     private Usuario crearUsuario() {

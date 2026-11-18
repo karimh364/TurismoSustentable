@@ -124,6 +124,23 @@ class MantenimientoMysqlIntegrationTest {
         var d=comando(p);d.setTecnicoId(tecId);p=operar(p,"asignar",d);p=finalizar(p,"APTA");
         sesion(adminId,"ADMIN");p=operar(p,"habilitar",habilitar(p));assertEquals("DISPONIBLE",p.estadoBicicleta);
     }
+    @Test void inactivacionSqlProtegeAdminCon409SinEscrituras(){
+        long antes=contarHistorias();long auditorias=contarAuditoria();
+        var error=assertThrows(ResponseStatusException.class,()->usuarioService.inactivarUsuario(adminId,"QA"));
+        assertEquals(409,error.getStatus().value());
+        assertEquals("No se puede inactivar a un usuario Administrador.",error.getReason());
+        tx.executeWithoutResult(t->assertTrue(em.find(Usuario.class,adminId).isActivo()));
+        assertEquals(antes,contarHistorias());assertEquals(auditorias,contarAuditoria());
+    }
+    @Test void inactivacionSqlDeClienteSinOrdenesAuditaUnaSolaVez(){
+        long antes=contarHistorias();long auditorias=contarAuditoria();
+        usuarioService.inactivarUsuario(clienteId,"Prueba de cuenta inactiva");
+        tx.executeWithoutResult(t->assertFalse(em.find(Usuario.class,clienteId).isActivo()));
+        assertEquals(antes,contarHistorias());assertEquals(auditorias+1,contarAuditoria());
+        assertEquals(400,assertThrows(ResponseStatusException.class,
+                ()->usuarioService.inactivarUsuario(clienteId,"Reintento")).getStatus().value());
+        assertEquals(auditorias+1,contarAuditoria());
+    }
     @Test void bajaTecnicoSqlEsAtomicaConservaCerradasYTrabajo(){
         var creada=crear(bicis.get(0),"CORRECTIVO",tecId);
         var proceso=crear(bicis.get(1),"CORRECTIVO",tecId);sesion(tecId,"TECNICO");proceso=operar(proceso,"iniciar",comando(proceso));

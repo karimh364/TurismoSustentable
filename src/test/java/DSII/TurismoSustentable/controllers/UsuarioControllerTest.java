@@ -43,7 +43,15 @@ class UsuarioControllerTest {
         verifyNoInteractions(usuarioRepository);
     }
     @Test void noOcultaProteccionDeCuentasAdmin() {
-        doThrow(new AccessDeniedException("No se puede eliminar a un usuario Administrador.")).when(usuarioService).inactivarUsuario(17,null);
+        String mensaje="No se puede inactivar a un usuario Administrador.";
+        doThrow(new ResponseStatusException(HttpStatus.CONFLICT,mensaje)).when(usuarioService).inactivarUsuario(17,null);
+        var respuesta=controller.eliminarUsuarioLogico(17,null);
+        assertEquals(HttpStatus.CONFLICT,respuesta.getStatusCode());
+        assertEquals(mensaje,respuesta.getBody());
+        verifyNoInteractions(usuarioRepository);
+    }
+    @Test void faltaRealDePermisosSigueSiendo403() {
+        doThrow(new AccessDeniedException("Se requiere ADMIN vigente.")).when(usuarioService).inactivarUsuario(17,null);
         assertEquals(HttpStatus.FORBIDDEN,controller.eliminarUsuarioLogico(17,null).getStatusCode());
         verifyNoInteractions(usuarioRepository);
     }

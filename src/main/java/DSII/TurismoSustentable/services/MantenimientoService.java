@@ -220,30 +220,35 @@ public class MantenimientoService {
         return new TipoBicicletaDTO(tipo);
     }
 
-    // Invocada únicamente por UsuarioService dentro de la baja transaccional.
-    @Transactional(propagation=Propagation.MANDATORY,readOnly=false)
-    public void inactivarUsuario(Integer id,String razon) {
-        if(razon!=null && razon.length()>2000) throw malo("El motivo admite hasta 2000 caracteres.");
-        Map<Integer,Usuario> cuentas=cuentas("ADMIN",positivo(id)); Usuario actor=actorEn(cuentas), objetivo=cuentas.get(id);
-        if(tieneRol(objetivo,"ADMIN")) throw new AccessDeniedException("No se puede eliminar a un usuario Administrador.");
-        if(!objetivo.isActivo()) throw malo("El usuario ya se encuentra inactivo.");
-        LocalDateTime ahora=ahora();
-        List<OrdenMantenimiento> afectadas=new ArrayList<>();
-        for(Integer biciId:ordenes.buscarBicicletasAbiertasDeTecnico(id)) {
-            Bicicleta b=bicicleta(biciId);
-            for(OrdenMantenimiento o:abiertas(b)) if(o.getTecnico()!=null && o.getTecnico().getId()==id) afectadas.add(o);
-        }
-        if(!afectadas.isEmpty()) motivo(razon);
-        for(OrdenMantenimiento o:afectadas) {
-            fechas(o,ahora); String antes=datos(o); EstadoOrdenMantenimiento anterior=o.getEstado();
-            if("EN_PROCESO".equals(anterior.getCodigo())) {
-                o.setEstado(estado("PAUSADA")); o.setMotivoPausaCancelacion(razon);
+    // UsuarioService ya bloqueó actor/objetivo y validó la inactivación.
+    // Solo prepara órdenes; no modifica la cuenta ni registra su auditoría.
+    @Transactional(propagation = Propagation.MANDATORY, readOnly = false)
+    public void prepararOrdenesPorInactivacion(Usuario objetivo, Usuario actor,
+                                             String razon, LocalDateTime ahora) {
+        exigirRol(actor, "ADMIN");
+        Integer id = positivo(objetivo.getId());
+        List<OrdenMantenimiento> afectadas = new ArrayList<>();
+        for (Integer biciId : ordenes.buscarBicicletasAbiertasDeTecnico(id)) {
+            Bicicleta bicicleta = bicicleta(biciId); // Bloquear antes de sus órdenes.
+            for (OrdenMantenimiento orden : abiertas(bicicleta)) {
+                if (orden.getTecnico() != null && orden.getTecnico().getId() == id) {
+                    afectadas.add(orden);
+                }
             }
-            o.setTecnico(null);
-            registrar(o,"DESASIGNAR_POR_INACTIVACION",anterior,o.getEstado(),actor,razon,antes,ahora);
         }
-        objetivo.setActivo(false); usuarios.flush();
-        traza.administracion(actor,"USUARIO",id,"INACTIVAR","activo=true","activo=false",razon,ahora);
+        if (!afectadas.isEmpty()) motivo(razon);
+        for (OrdenMantenimiento orden : afectadas) {
+            fechas(orden, ahora);
+            String antes = datos(orden);
+            EstadoOrdenMantenimiento anterior = orden.getEstado();
+            if ("EN_PROCESO".equals(anterior.getCodigo())) {
+                orden.setEstado(estado("PAUSADA"));
+                orden.setMotivoPausaCancelacion(razon);
+            }
+            orden.setTecnico(null);
+            registrar(orden, "DESASIGNAR_POR_INACTIVACION", anterior, orden.getEstado(),
+                    actor, razon, antes, ahora);
+        }
     }
 
     // El proceso automático bloquea la bicicleta; nunca altera reservas, viajes o INACTIVA.

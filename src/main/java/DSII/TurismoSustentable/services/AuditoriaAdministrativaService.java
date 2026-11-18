@@ -21,7 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/** Auditoría de estaciones y edición de usuarios, sin serializar entidades completas. */
+/** Auditoría de estaciones y cambios de usuarios, sin serializar entidades completas. */
 @Service
 @Transactional(propagation = Propagation.MANDATORY)
 public class AuditoriaAdministrativaService {
@@ -89,6 +89,15 @@ public class AuditoriaAdministrativaService {
         trazabilidad.administracion(administrador, entidad, id, accion,
                 anteriores, nuevos, null,
                 LocalDateTime.ofInstant(reloj.instant(), ZoneOffset.UTC));
+    }
+
+    // Mantiene el formato histórico y la misma fecha que las órdenes afectadas.
+    public void registrarInactivacionUsuario(Usuario administrador, int usuarioId,
+                                            String motivo, LocalDateTime fecha) {
+        sesionAdministrativa();
+        validarAdministrador(administrador);
+        trazabilidad.administracion(administrador, "USUARIO", usuarioId, "INACTIVAR",
+                "activo=true", "activo=false", motivo, fecha);
     }
 
     private Authentication sesionAdministrativa() {

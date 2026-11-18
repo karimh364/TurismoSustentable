@@ -3,7 +3,7 @@ package DSII.TurismoSustentable.services;
 import DSII.TurismoSustentable.models.Usuario;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.User;
+import DSII.TurismoSustentable.security.UsuarioAutenticado;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -53,14 +53,12 @@ public class UsuarioDetailsService implements UserDetailsService {
             );
         }
 
-        // Conservamos la identidad interna que usan los demás servicios.
-        return new User(
+        // Conservamos el email utilizado por los servicios y añadimos el ID estable.
+        return new UsuarioAutenticado(
+                usuario.getId(),
                 usuario.getEmail(),
                 usuario.getPassword(),
                 usuario.isActivo(),
-                true,
-                true,
-                true,
                 AuthorityUtils.createAuthorityList(autoridades)
         );
     }

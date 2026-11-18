@@ -243,28 +243,39 @@ class MantenimientoServiceTest {
         assertTrue(servicio.aplicarPreventiva(20));assertFalse(servicio.aplicarPreventiva(20));
         verify(historias).save(argThat(h->h.getActorUsuario()==null&&"SISTEMA".equals(h.getOrigen())));assertEquals("MANTENIMIENTO",bici.getEstado().getCodigo());
     }
-    @Test void inactivarPausaYDesasignaSinBorrarTrabajo(){
+    @Test void preparaOrdenesSinInactivarCuentaNiBorrarTrabajo(){
         enProceso();orden.setDiagnostico("Conservar");orden.setCostoRepuestos(new BigDecimal("12.50"));
         when(ordenes.buscarBicicletasAbiertasDeTecnico(2)).thenReturn(List.of(20));
-        servicio.inactivarUsuario(2,"Ausencia");
-        assertFalse(tec.isActivo());assertNull(orden.getTecnico());assertEquals("PAUSADA",orden.getEstado().getCodigo());
+        servicio.prepararOrdenesPorInactivacion(tec,admin,"Ausencia",ahora);
+        assertTrue(tec.isActivo());assertNull(orden.getTecnico());assertEquals("PAUSADA",orden.getEstado().getCodigo());
         assertEquals("Conservar",orden.getDiagnostico());assertEquals(ahora.minusHours(1),orden.getFechaInicio());assertNull(orden.getFechaFin());
         verify(historias).save(argThat(h->h.getActorUsuario()==admin&&h.getValoresAnteriores().contains("\"tecnicoId\":2")&&h.getValoresNuevos().contains("\"tecnicoId\":null")));
+        verify(usuarios,never()).flush();
+        verify(traza,never()).administracion(any(),eq("USUARIO"),anyInt(),anyString(),anyString(),anyString(),any(),any());
     }
     @ParameterizedTest @ValueSource(strings={"CREADA","PAUSADA"})
     void desasignarNoInventaTransicionMismoEstado(String estado){
         orden.setEstado(new EstadoOrdenMantenimiento(estado));if(estado.equals("PAUSADA"))orden.setFechaInicio(ahora.minusHours(1));
         when(ordenes.buscarBicicletasAbiertasDeTecnico(2)).thenReturn(List.of(20));
-        servicio.inactivarUsuario(2,"Ausencia");
+        servicio.prepararOrdenesPorInactivacion(tec,admin,"Ausencia",ahora);
         assertEquals(estado,orden.getEstado().getCodigo());verify(historias).save(argThat(h->h.getEstadoAnterior()==null&&h.getEstadoNuevo()==null));
     }
-    @Test void sinMotivoNoInactivaTecnicoConOrdenes(){enProceso();when(ordenes.buscarBicicletasAbiertasDeTecnico(2)).thenReturn(List.of(20));assertCodigo(400,()->servicio.inactivarUsuario(2,null));assertTrue(tec.isActivo());assertNotNull(orden.getTecnico());}
-    @Test void adminProtegidoAunqueSeaTambienTecnico(){Rol r=new Rol("TECNICO");ReflectionTestUtils.setField(r,"id",9);admin.getUsuarioRoles().add(new UsuarioRol(admin,r));assertThrows(AccessDeniedException.class,()->servicio.inactivarUsuario(1,"Ausencia"));assertTrue(admin.isActivo());}
-    @Test void noInactivaUsuarioYaInactivo(){cliente.setActivo(false);assertCodigo(400,()->servicio.inactivarUsuario(4,null));verifyNoInteractions(historias);}
-    @Test void inactivarUsuarioInexistenteDa404(){assertCodigo(404,()->servicio.inactivarUsuario(99,"QA"));verifyNoInteractions(historias);}
-    @Test void inactivaClienteConservandoSusDatos(){
-        String email=cliente.getEmail();var persona=cliente.getPersona();servicio.inactivarUsuario(4,null);
-        assertFalse(cliente.isActivo());assertEquals(email,cliente.getEmail());assertSame(persona,cliente.getPersona());verifyNoInteractions(historias);verify(usuarios,never()).delete(any());
+    @Test void sinMotivoNoModificaOrdenesAbiertas(){enProceso();when(ordenes.buscarBicicletasAbiertasDeTecnico(2)).thenReturn(List.of(20));assertCodigo(400,()->servicio.prepararOrdenesPorInactivacion(tec,admin,null,ahora));assertTrue(tec.isActivo());assertNotNull(orden.getTecnico());verifyNoInteractions(historias);}
+    @Test void sinOrdenesNoModificaLaCuentaNiEscribeHistorias(){
+        servicio.prepararOrdenesPorInactivacion(cliente,admin,null,ahora);
+        assertTrue(cliente.isActivo());verifyNoInteractions(historias,traza);
+        verify(usuarios,never()).flush();verify(usuarios,never()).delete(any());
+    }
+    @Test void preparaOrdenesAunqueYaSeHayaRetiradoElRolTecnico(){
+        tec.getUsuarioRoles().clear();
+        when(ordenes.buscarBicicletasAbiertasDeTecnico(2)).thenReturn(List.of(20));
+        servicio.prepararOrdenesPorInactivacion(tec,admin,"Ausencia",ahora);
+        assertNull(orden.getTecnico());assertTrue(tec.isActivo());verify(historias).save(any());
+    }
+    @Test void preparacionExigeActorAdminVigenteAntesDeConsultarOrdenes(){
+        admin.getUsuarioRoles().clear();
+        assertThrows(AccessDeniedException.class,()->servicio.prepararOrdenesPorInactivacion(tec,admin,"QA",ahora));
+        verifyNoInteractions(historias);verify(ordenes,never()).buscarBicicletasAbiertasDeTecnico(anyInt());
     }
     @Test void consultaTecnicaNoExponeOtraOrden(){sesion(otro,"TECNICO");assertThrows(AccessDeniedException.class,()->servicio.consultar(10));verifyNoInteractions(historias);}
     private void enProceso(){orden.setEstado(new EstadoOrdenMantenimiento("EN_PROCESO"));orden.setFechaInicio(ahora.minusHours(1));}

@@ -57,6 +57,27 @@ class AuditoriaAdministrativaServiceTest {
     }
 
     @Test
+    void auditaInactivacionConMotivoYFechaCompartidaSinDatosPersonales() {
+        LocalDateTime fecha = LocalDateTime.of(2026, 11, 18, 12, 0);
+        servicio.registrarInactivacionUsuario(administrador, 17, "Licencia", fecha);
+        verify(trazabilidad).administracion(administrador, "USUARIO", 17, "INACTIVAR",
+                "activo=true", "activo=false", "Licencia", fecha);
+        verifyNoInteractions(usuarios);
+    }
+
+    @Test
+    void inactivacionNoSeAuditaSinPermisoOConAdminInactivo() {
+        sesion("CLIENTE");
+        assertThrows(AccessDeniedException.class, () -> servicio.registrarInactivacionUsuario(
+                administrador, 17, "QA", LocalDateTime.now(reloj)));
+        sesion("ADMIN");
+        administrador.setActivo(false);
+        assertThrows(AccessDeniedException.class, () -> servicio.registrarInactivacionUsuario(
+                administrador, 17, "QA", LocalDateTime.now(reloj)));
+        verifyNoInteractions(trazabilidad);
+    }
+
+    @Test
     void identificaAdministradorDesdeSesionYRolPersistido() {
         when(usuarios.buscarPorEmailConDatosYRoles("admin.auditoria@example.com"))
                 .thenReturn(Optional.of(administrador));

@@ -122,6 +122,56 @@ test('rol insuficiente informa y redirige, pero no borra la sesión válida', as
     assert.deepEqual(e.redirecciones, ['index.html']);
 });
 
+for (const caso of [
+    { nombre: 'CLIENTE', roles: ['CLIENTE'], permitido: true },
+    { nombre: 'ADMIN y CLIENTE', roles: ['ADMIN', 'CLIENTE'], permitido: true },
+    { nombre: 'ADMIN sin CLIENTE', roles: ['ADMIN'], permitido: false },
+    { nombre: 'TECNICO sin CLIENTE', roles: ['TECNICO'], permitido: false }
+]) {
+    test(`Mis alquileres al cargar: ${caso.nombre}`, async () => {
+        const e = entorno();
+        let configuraciones = 0;
+        let consultas = 0;
+        e.contexto.axios.get = async () => ({
+            data: { nombre: 'QA', roles: caso.roles }
+        });
+        e.contexto.OperacionesAlquiler = {
+            configurar() { configuraciones++; }
+        };
+        e.cargar('mis_alquileres.js');
+        e.contexto.cargarNombreUsuario = async () => {};
+        e.contexto.cargarAlquileres = async () => { consultas++; };
+        e.contexto.cargarPendientesFinancieros = async () => { consultas++; };
+
+        await e.eventos.DOMContentLoaded();
+
+        assert.equal(configuraciones, caso.permitido ? 1 : 0);
+        assert.equal(consultas, caso.permitido ? 2 : 0);
+        assert.deepEqual(e.redirecciones, caso.permitido ? [] : ['index.html']);
+        assert.equal(e.datos.get('usuarioLogueado'), 'true');
+        assert.equal(e.avisos.length, caso.permitido ? 0 : 1);
+    });
+
+    test(`Mis alquileres restaurado con Atrás: ${caso.nombre}`, async () => {
+        const e = entorno();
+        e.contexto.window.location.pathname = '/mis_alquileres.html';
+        let consultas = 0;
+        e.contexto.axios.get = async () => {
+            consultas++;
+            return { data: { nombre: 'QA', roles: caso.roles } };
+        };
+
+        e.eventos.pageshow({ persisted: true });
+        // El navegador no espera la promesa del listener; dejamos resolver el perfil.
+        await new Promise(resolve => setImmediate(resolve));
+
+        assert.equal(consultas, 1);
+        assert.deepEqual(e.redirecciones, caso.permitido ? [] : ['index.html']);
+        assert.equal(e.datos.get('usuarioLogueado'), 'true');
+        assert.equal(e.avisos.length, caso.permitido ? 0 : 1);
+    });
+}
+
 test('401 repetidos de operaciones protegidas generan una sola redirección', () => {
     const e = entorno({ usuarioLogueado: 'true' });
     assert.equal(e.contexto.manejarErrorSesion(errorHTTP(401)), true);

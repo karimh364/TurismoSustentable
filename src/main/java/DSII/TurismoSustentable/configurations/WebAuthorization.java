@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.configurations;
 
+import DSII.TurismoSustentable.security.AccesoSesionService;
+import DSII.TurismoSustentable.security.SesionVigenteFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -8,6 +10,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
 import org.springframework.security.web.WebAttributes;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.savedrequest.NullRequestCache;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -18,52 +27,52 @@ import org.springframework.http.HttpMethod;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class WebAuthorization {
 
+    private static final RequestMatcher RUTAS_PUBLICAS =
+            new OrRequestMatcher(
+                    new AntPathRequestMatcher("/"),
+                    new AntPathRequestMatcher("/index.html"),
+                    new AntPathRequestMatcher("/registro.html"),
+                    new AntPathRequestMatcher("/recuperar-password.html"),
+                    new AntPathRequestMatcher("/restablecer-password.html"),
+                    new AntPathRequestMatcher("/css/**"),
+                    new AntPathRequestMatcher("/js/**"),
+                    new AntPathRequestMatcher("/img/**"),
+                    new AntPathRequestMatcher("/*.ico"),
+
+                    new AntPathRequestMatcher("/api/usuarios", "POST"),
+                    new AntPathRequestMatcher("/api/login", "POST"),
+                    new AntPathRequestMatcher("/api/logout", "POST"),
+                    new AntPathRequestMatcher("/api/password/solicitar", "POST"),
+                    new AntPathRequestMatcher("/api/password/restablecer", "POST"),
+
+                    new AntPathRequestMatcher("/api/estaciones", "GET"),
+                    new AntPathRequestMatcher("/api/catalogos/generos", "GET"),
+                    new AntPathRequestMatcher("/api/catalogos/tipos-documento", "GET"),
+                    new AntPathRequestMatcher("/api/catalogos/paises", "GET")
+            );
+
+    private static final RequestMatcher PAGINAS_PRIVADAS =
+            new OrRequestMatcher(
+                    new AntPathRequestMatcher("/admin.html"),
+                    new AntPathRequestMatcher("/incidencias.html"),
+                    new AntPathRequestMatcher("/mantenimiento.html"),
+                    new AntPathRequestMatcher("/alquiler.html"),
+                    new AntPathRequestMatcher("/mis_alquileres.html")
+            );
+
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            AccesoSesionService accesoSesionService
+    ) throws Exception {
 
-// REGLAS DE AUTORIZACIÓN
+        // REGLAS DE AUTORIZACIÓN
         http.authorizeRequests()
-
-                // 1. RECURSOS PÚBLICOS
-                .antMatchers(
-                        "/",
-                        "/index.html",
-                        "/registro.html",
-                        "/recuperar-password.html",
-                        "/restablecer-password.html",
-                        "/css/**",
-                        "/js/**",
-                        "/img/**",
-                        "/*.ico"
-                ).permitAll()
-
-                // 2. AUTENTICACIÓN Y REGISTRO
-                .antMatchers(
-                        HttpMethod.POST,
-                        "/api/usuarios",
-                        "/api/login",
-                        "/api/logout",
-                        "/api/password/solicitar",
-                        "/api/password/restablecer"
-                ).permitAll()
-
-                // El mapa público necesita consultar las estaciones
-                .antMatchers(
-                        HttpMethod.GET,
-                        "/api/estaciones"
-                ).permitAll()
-
-                // Catálogos necesarios para el registro público.
-                .antMatchers(
-                        HttpMethod.GET,
-                        "/api/catalogos/generos",
-                        "/api/catalogos/tipos-documento",
-                        "/api/catalogos/paises"
-                ).permitAll()
+                .requestMatchers(RUTAS_PUBLICAS).permitAll()
 
                 // 3. PÁGINAS PRIVADAS
                 .antMatchers("/alquiler.html").hasAuthority("CLIENTE")
-                .antMatchers("/mis_alquileres.html").hasAnyAuthority("ADMIN", "CLIENTE")
+                .antMatchers("/mis_alquileres.html").hasAuthority("CLIENTE")
                 .antMatchers("/mantenimiento.html").hasAnyAuthority("ADMIN","TECNICO")
                 .antMatchers("/incidencias.html").hasAnyAuthority("ADMIN","CLIENTE")
 
@@ -222,20 +231,34 @@ public class WebAuthorization {
         http.formLogin().failureHandler((req, res, exc) ->
                 res.sendError(HttpServletResponse.SC_UNAUTHORIZED));
 
+        // El flujo REST no recupera peticiones guardadas después del login.
+        http.requestCache().requestCache(new NullRequestCache());
+
+        RequestMatcher rutasAComprobar =
+                new AndRequestMatcher(
+                        new OrRequestMatcher(
+                                new AntPathRequestMatcher("/api/**"),
+                                PAGINAS_PRIVADAS
+                        ),
+                        new NegatedRequestMatcher(RUTAS_PUBLICAS)
+                );
+
+        // Se ejecuta con el contexto de sesión cargado y antes de autorizar.
+        http.addFilterBefore(
+                new SesionVigenteFilter(
+                        accesoSesionService,
+                        rutasAComprobar
+                ),
+                AnonymousAuthenticationFilter.class
+        );
+
         return http.build();
     }
 
     // Solo las páginas privadas redirigen; las APIs conservan 401/403.
     private boolean esPaginaPrivada(HttpServletRequest request) {
-        if (!"GET".equals(request.getMethod())) {
-            return false;
-        }
-        String ruta = request.getServletPath();
-        return "/admin.html".equals(ruta)
-                || "/incidencias.html".equals(ruta)
-                || "/mantenimiento.html".equals(ruta)
-                || "/alquiler.html".equals(ruta)
-                || "/mis_alquileres.html".equals(ruta);
+        return "GET".equals(request.getMethod())
+                && PAGINAS_PRIVADAS.matches(request);
     }
 
     // Función de utilidad requerida por el successHandler

@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.configurations;
 
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import java.math.BigDecimal;
 
 import DSII.TurismoSustentable.controllers.EstacionController;
@@ -61,6 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         WebAuthorization.class,
         SecurityConfig.class
 })
+@Import(SesionVigenteMockConfig.class)
 class WebAuthorizationTest {
 
     private static final String EMAIL = "ana@example.com";
@@ -112,6 +115,32 @@ class WebAuthorizationTest {
                         .content("{\"version\":0,\"motivo\":\"Retiro QA\",\"salidaFisicaConfirmada\":true}"))
                 .andExpect(status().isUnauthorized());
         verifyNoInteractions(bicicletaService);
+    }
+
+    @Test
+    @WithMockUser(authorities = "ADMIN")
+    void cuentaAdminProtegidaDevuelve409ConExplicacion() throws Exception {
+        String mensaje = "No se puede inactivar a un usuario Administrador.";
+        doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.CONFLICT, mensaje))
+                .when(usuarioService).inactivarUsuario(17, "QA");
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/usuarios/17").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"motivo\":\"QA\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(content().string(mensaje));
+        verify(usuarioService).inactivarUsuario(17, "QA");
+    }
+
+    @Test
+    @WithMockUser(authorities = "CLIENTE")
+    void clienteNoPuedeInactivarUsuariosAunqueEnvieUnMotivo() throws Exception {
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                        .delete("/api/usuarios/17").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"motivo\":\"QA\"}"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(usuarioService);
     }
 
     @Test

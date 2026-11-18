@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.configurations;
 
+import DSII.TurismoSustentable.security.SesionVigenteMockConfig;
+import org.springframework.context.annotation.Import;
 import DSII.TurismoSustentable.controllers.AlquilerController;
 import DSII.TurismoSustentable.dto.CrearAlquilerDTO;
 import DSII.TurismoSustentable.repositories.AlquilerRepository;
@@ -28,6 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         WebAuthorization.class,
         SecurityConfig.class
 })
+@Import(SesionVigenteMockConfig.class)
 class AutorizacionAlquilerTest {
 
     private static final String SOLICITUD =

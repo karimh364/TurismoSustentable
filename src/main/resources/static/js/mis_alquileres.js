@@ -4,7 +4,7 @@ let monedaActual = 'USD';
 
 document.addEventListener("DOMContentLoaded", async function() {
 
-    const usuario = await requerirSesion(['ADMIN', 'CLIENTE']);
+    const usuario = await requerirSesion(['CLIENTE']);
     if (!usuario) return;
     const botonSaldo = document.getElementById('consultar-saldo-simulado');
     if (botonSaldo) botonSaldo.hidden = !rolesDelUsuario(usuario).includes('CLIENTE');

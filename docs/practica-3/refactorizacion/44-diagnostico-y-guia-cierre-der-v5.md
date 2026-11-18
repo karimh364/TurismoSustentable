@@ -425,3 +425,82 @@ Continúan comprobantes v5 por correo, controles de cuenta/roles vigentes,
 administración de roles, consulta de auditoría, pantalla estadística y pulido
 indicados en las secciones 2 y 4. Integraciones SQL se deben aislar antes de
 ejecutarlas; no usar TURISMO_TEST_MYSQL/create-drop sobre la demostración vigente.
+
+## 12. Ajuste de acceso a Mis alquileres — 18/11
+
+Aprobado por el usuario: `/mis_alquileres.html` requiere CLIENTE. ADMIN sin
+CLIENTE conserva la gestión desde `/admin.html`, pero no entra a la vista
+personal; ADMIN + CLIENTE conserva ambos accesos. TECNICO sin CLIENTE tampoco
+entra. Un rechazo por rol no cierra una sesión válida.
+
+Aplicado en WebAuthorization, en la carga inicial de mis_alquileres.js y en la
+comprobación de auth.js al restaurar una página con Atrás. No se modifican las
+consultas administrativas ni los permisos de los endpoints de consulta existentes,
+las operaciones de alquiler, las entidades ni el esquema. El listado personal
+continúa filtrado por el usuario conectado; permitir consulta no autoriza alquilar.
+
+Se agregaron cuatro pruebas HTTP con el filtro/servicio de vigencia reales y
+repositorio simulado: rechazo sin logout, acceso CLIENTE/multirrol, retirada de
+CLIENTE conservando ADMIN y acceso anónimo. También ocho casos JavaScript de
+carga inicial/restauración con los cuatro perfiles. Ejecución de estas pruebas y
+verificación manual del ajuste pendientes del usuario; no se reutilizan como
+evidencia los resultados aprobados antes de este cambio. No requiere migración SQL.
+
+## 13. Separación de la inactivación de usuarios — 18/11
+
+Bloque autorizado por el usuario al preparar la prueba de sesión de una cuenta
+inactiva. La regla que protege las cuentas ADMIN se conserva, pero pertenece a
+UsuarioService, no a mantenimiento. No se habilita inactivar administradores.
+
+- UsuarioService coordina la inactivación con READ_COMMITTED y rollback ante
+  excepciones. Comprueba ADMIN en sesión y en la cuenta bloqueada vigente; adquiere
+  los bloqueos de actor/objetivo en orden de ID, antes de bicicletas/órdenes.
+  Valida existencia, estado y protección de la cuenta; normaliza el motivo,
+  prepara órdenes, cambia activo, hace flush y solicita la auditoría de usuario.
+- MantenimientoService reemplaza inactivarUsuario por
+  prepararOrdenesPorInactivacion, con propagación MANDATORY. Solo pausa las órdenes
+  EN_PROCESO y desasigna las abiertas, conservando trabajo, costos, fechas y
+  cerradas. Se consultan asignaciones incluso si se retiró TECNICO previamente.
+  Sus historiales y auditorías de órdenes siguen en mantenimiento; no altera
+  activo ni registra INACTIVAR de USUARIO.
+- AuditoriaAdministrativaService registra INACTIVAR de USUARIO utilizando la
+  trazabilidad existente: actor, motivo y snapshots históricos activo=true/false.
+  UsuarioService comparte una única fecha UTC del Clock existente con órdenes y
+  auditoría; no se agregan tablas, catálogos, endpoints ni inicializadores.
+- Cuenta objetivo ADMIN devuelve 409 con «No se puede inactivar a un usuario
+  Administrador.». Falta de permisos sigue siendo 403 y sesión ausente 401 en el
+  filtro HTTP. El controlador y admin.js existentes ya transmiten/muestran el
+  mensaje 409; no se modifica auth.js ni se interpreta como logout.
+
+Pruebas adaptadas: UsuarioServiceTest, MantenimientoServiceTest,
+AuditoriaAdministrativaServiceTest, UsuarioControllerTest, WebAuthorizationTest
+y EdicionUsuarios.test.cjs. Se agregan dos escenarios SQL en
+MantenimientoMysqlIntegrationTest; se conservan sus escenarios de rollback tras
+escrituras y concurrencia entre inicio técnico e inactivación.
+
+Estado al implementar: revisión estática de llamadas y diferencias; compilación,
+ejecución de pruebas y prueba manual pendientes del usuario. No se ejecutaron
+tests ni escrituras SQL. La integración citada conserva create-drop y URL
+turismo_sustentable: NO habilitar TURISMO_TEST_MYSQL sobre los datos de demostración;
+aislar primero esa prueba en un trabajo separado.
+
+Preparación indicada al implementar: qa.sesion quedó con ADMIN después de la retirada de
+CLIENTE. Devolverle CLIENTE y retirar únicamente ADMIN antes de intentar
+inactivarla. Mantener su sesión abierta en un contexto separado del de admin.demo;
+este último inactiva qa.sesion desde Usuarios. En la siguiente petición protegida
+de la cuenta temporal se espera sesión invalidada y redirección al ingreso;
+admin.demo debe seguir operativo. No modificar roles ni estado de las cuentas
+de demostración. En ese momento todavía no se había ejecutado esta preparación.
+
+Actualización de evidencia manual, informada por el usuario el 18/11: el intento
+de inactivar qa.sesion con ADMIN mostró el mensaje específico de cuenta protegida
+y mantuvo ambas cuentas activas. Tras preparar qa.sesion como CLIENTE sin ADMIN,
+admin.demo pudo inactivarla. La recarga de Mis alquileres en su sesión existente
+redirigió al ingreso con «Necesitás iniciar sesión para acceder a esa página»;
+el nuevo login fue rechazado con el aviso genérico de credenciales incorrectas,
+y admin.demo continuó navegando. No se atribuyen a esta prueba los escenarios de
+integración/rollback/concurrencia todavía pendientes de ejecutar.
+
+Se reemplazó el aviso de éxito fijo sobre órdenes de técnicos por un mensaje
+neutral de cuenta inactivada y conservación de datos/historiales. Se agregó su
+caso en EdicionUsuarios.test.cjs; ejecución de esta nueva prueba pendiente del usuario.
