@@ -4,6 +4,10 @@ import javax.persistence.*;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.DecimalMin;
+import javax.validation.constraints.DecimalMax;
+import javax.validation.constraints.Digits;
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -36,10 +40,18 @@ public class Estacion {
     private Integer version;
 
     @NotNull(message = "La latitud es obligatoria")
-    private Double latitud;
+    @DecimalMin(value = "-90", message = "La latitud debe estar entre -90 y 90.")
+    @DecimalMax(value = "90", message = "La latitud debe estar entre -90 y 90.")
+    @Digits(integer = 3, fraction = 6, message = "La latitud admite hasta 6 decimales.")
+    @Column(name = "latitud", nullable = false, precision = 9, scale = 6)
+    private BigDecimal latitud;
 
     @NotNull(message = "La longitud es obligatoria")
-    private Double longitud;
+    @DecimalMin(value = "-180", message = "La longitud debe estar entre -180 y 180.")
+    @DecimalMax(value = "180", message = "La longitud debe estar entre -180 y 180.")
+    @Digits(integer = 3, fraction = 6, message = "La longitud admite hasta 6 decimales.")
+    @Column(name = "longitud", nullable = false, precision = 9, scale = 6)
+    private BigDecimal longitud;
 
     // Relación: Una Estación puede tener muchas bicicletas "estacionadas" aquí.
     @OneToMany(mappedBy = "ubicacionActual", fetch = FetchType.LAZY)
@@ -50,7 +62,7 @@ public class Estacion {
     }
 
     // Constructor
-    public Estacion(String nombre, String direccion, int capacidad, Double latitud, Double longitud) {
+    public Estacion(String nombre, String direccion, int capacidad, BigDecimal latitud, BigDecimal longitud) {
         this.nombre = nombre;
         this.direccion = direccion;
         this.capacidad = capacidad;
@@ -88,19 +100,19 @@ public class Estacion {
         this.capacidad = capacidad;
     }
 
-    public Double getLatitud() {
+    public BigDecimal getLatitud() {
         return latitud;
     }
 
-    public void setLatitud(Double latitud) {
+    public void setLatitud(BigDecimal latitud) {
         this.latitud = latitud;
     }
 
-    public Double getLongitud() {
+    public BigDecimal getLongitud() {
         return longitud;
     }
 
-    public void setLongitud(Double longitud) {
+    public void setLongitud(BigDecimal longitud) {
         this.longitud = longitud;
     }
 

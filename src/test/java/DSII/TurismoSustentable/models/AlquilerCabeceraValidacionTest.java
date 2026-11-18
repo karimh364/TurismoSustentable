@@ -85,8 +85,8 @@ class AlquilerCabeceraValidacionTest {
                         "Plaza QA",
                         "Calle Prueba 100",
                         5,
-                        -53.7876,
-                        -67.7002
+                        new BigDecimal("-53.7876"),
+                        new BigDecimal("-67.7002")
                 )
         );
         alquiler.setCotizacionArsPorUsd(

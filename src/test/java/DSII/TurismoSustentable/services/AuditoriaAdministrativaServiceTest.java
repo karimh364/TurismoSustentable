@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.services;
 
+import java.math.BigDecimal;
+
 import DSII.TurismoSustentable.exceptions.ConfiguracionSistemaException;
 import DSII.TurismoSustentable.models.*;
 import DSII.TurismoSustentable.repositories.UsuarioRepository;
@@ -166,7 +168,7 @@ class AuditoriaAdministrativaServiceTest {
 
     @Test
     void snapshotDeEstacionNoIncluyeVersionNiColecciones() throws Exception {
-        Estacion estacion = new Estacion("Taller QA", "Calle 1", 2, 0.0, 0.0);
+        Estacion estacion = new Estacion("Taller QA", "Calle 1", 2, new BigDecimal("0.0"), new BigDecimal("0.0"));
         ReflectionTestUtils.setField(estacion, "id", 5);
         estacion.setEsPublica(false);
         var datos = json.readTree(servicio.datos(estacion));

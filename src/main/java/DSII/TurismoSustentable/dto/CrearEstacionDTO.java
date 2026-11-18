@@ -1,6 +1,7 @@
 package DSII.TurismoSustentable.dto;
 
 import javax.validation.constraints.*;
+import java.math.BigDecimal;
 
 public class CrearEstacionDTO {
 
@@ -31,7 +32,8 @@ public class CrearEstacionDTO {
             value = "90.0",
             message = "La latitud debe estar entre -90 y 90."
     )
-    private Double latitud;
+    @Digits(integer = 3, fraction = 6, message = "La latitud admite hasta 6 decimales.")
+    private BigDecimal latitud;
 
     @NotNull(message = "La longitud es obligatoria.")
     @DecimalMin(
@@ -42,7 +44,8 @@ public class CrearEstacionDTO {
             value = "180.0",
             message = "La longitud debe estar entre -180 y 180."
     )
-    private Double longitud;
+    @Digits(integer = 3, fraction = 6, message = "La longitud admite hasta 6 decimales.")
+    private BigDecimal longitud;
 
     @NotNull(
             message = "Indicá si la estación es pública o una estación de uso interno."
@@ -80,19 +83,19 @@ public class CrearEstacionDTO {
         this.capacidad = capacidad;
     }
 
-    public Double getLatitud() {
+    public BigDecimal getLatitud() {
         return latitud;
     }
 
-    public void setLatitud(Double latitud) {
+    public void setLatitud(BigDecimal latitud) {
         this.latitud = latitud;
     }
 
-    public Double getLongitud() {
+    public BigDecimal getLongitud() {
         return longitud;
     }
 
-    public void setLongitud(Double longitud) {
+    public void setLongitud(BigDecimal longitud) {
         this.longitud = longitud;
     }
 

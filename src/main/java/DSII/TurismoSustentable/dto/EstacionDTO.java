@@ -1,6 +1,7 @@
 package DSII.TurismoSustentable.dto;
 
 import DSII.TurismoSustentable.models.Estacion;
+import java.math.BigDecimal;
 
 public class EstacionDTO {
 
@@ -10,8 +11,8 @@ public class EstacionDTO {
     private int capacidad;
     private boolean esPublica;
     private Integer version;
-    private Double latitud;
-    private Double longitud;
+    private BigDecimal latitud;
+    private BigDecimal longitud;
     private int bicicletasDisponibles;
     private int espaciosLibres;
 
@@ -72,11 +73,11 @@ public class EstacionDTO {
         return capacidad;
     }
 
-    public Double getLatitud() {
+    public BigDecimal getLatitud() {
         return latitud;
     }
 
-    public Double getLongitud() {
+    public BigDecimal getLongitud() {
         return longitud;
     }
 

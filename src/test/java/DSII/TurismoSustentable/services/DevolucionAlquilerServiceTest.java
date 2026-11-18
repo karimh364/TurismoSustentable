@@ -96,7 +96,7 @@ class DevolucionAlquilerServiceTest {
         alquiler.setCotizacionArsPorUsd(new BigDecimal("1530.00"));
         alquiler.setCostoEstimadoUsd(new BigDecimal("18.00"));
         alquiler.setCostoEstimadoArs(new BigDecimal("27540.00"));
-        destino = new Estacion("Destino QA", "Calle QA", 2, 0.0, 0.0);
+        destino = new Estacion("Destino QA", "Calle QA", 2, new BigDecimal("0.0"), new BigDecimal("0.0"));
         destino.setEsPublica(true);
         ReflectionTestUtils.setField(destino, "id", 200);
         TipoBicicleta tipo = new TipoBicicleta("PASEO", new BigDecimal("99.00"), 3);

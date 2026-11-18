@@ -60,14 +60,88 @@ Started TurismoSustentableApplication, sin error de esquema/mapeo.
 La comprobacion de nulabilidad es la consulta SQL; el arranque validate por si
 solo no acredita todas las restricciones del DER.
 
-En Java, Alquiler refuerza Bean Validation y mapeo JPA. Las ocho suites de la
-ultima tanda del usuario tienen 144 casos, todos aprobados, sin errores u
+En Java, Alquiler refuerza Bean Validation y mapeo JPA. Las ocho suites de esta
+tanda del usuario tienen 144 casos, todos aprobados, sin errores u
 omisiones; incluyen 17 de AlquilerCabeceraValidacionTest. No es integracion SQL.
+
+## Migracion 2026-11-17-03: nombres de hashes de USUARIO
+
+Estado: **ya aplicada manualmente por el usuario**. El
+[SQL historico](2026-11-17-03-renombrar-hashes-usuario.sql) registra el cambio;
+**no volver a importarlo sobre la BD actual**.
+
+Se renombraron password -> password_hash y token_recuperacion ->
+token_recuperacion_hash. CHANGE COLUMN conserva VARCHAR(255) obligatorio y
+VARCHAR(64) opcional, utf8mb4/utf8mb4_general_ci, asi como el indice unico del
+token UK_71sx3rqqapq5lx93qck2pq4t2. No se modifican los algoritmos ni se
+recalculan hashes. No se cambia el vencimiento del token ni se agregan columnas.
+
+Solo se adaptaron los dos mapeos Column de Usuario y las dos referencias a la
+columna de contrasena en scripts/demo/cuentas-demo.sql; no se reimporto la demo.
+Atributos Java, getters/setters, consultas derivadas, DTO de entrada, login y
+recuperacion conservan sus contratos. El campo password del formulario sigue
+siendo la contrasena de entrada, no el nombre fisico de la columna.
+
+Se indico detener la app y guardar un respaldo completo previo fuera del repo
+(turismo_sustentable_pre_hashes_2026-11-17.sql); el asistente no inspecciono la
+exportacion. Antes se comprobaron seis usuarios y cero hashes ausentes.
+El usuario compartio el resultado posterior y una lectura del asistente
+corroboro solo los nombres nuevos, tipos/nulabilidad/collation conservados,
+el indice unico del token y seis usuarios con cero hashes ausentes.
+
+Doce XML de la tanda del usuario: 102 casos aprobados, cero fallos/errores/
+omisiones, sobre usuarios, recuperacion, autenticacion, autorizacion y contrato
+de salida. Arranque refactor/validate informado a las 21:44, JPA/Tomcat correctos.
+El usuario confirmo login de cliente.demo con su contrasena habitual. Esta prueba
+manual no acredita un restablecimiento real por correo ni integracion SQL nueva.
+
+## Migracion 2026-11-17-04: coordenadas de ESTACION
+
+Estado: **ya aplicada manualmente por el usuario**. El
+[SQL de coordenadas](2026-11-17-04-coordenadas-estacion-decimal.sql) contiene
+el registro historico del precontrol, ALTER y postcontrol. **No volver a
+importarlo en la BD actual ni aplicarlo a una BD nueva del modelo vigente.**
+
+Precision fisica elegida para este bloque: DECIMAL(9,6) NOT NULL en ambas
+coordenadas (hasta tres enteros y seis decimales). La entidad Estacion y los DTO
+de alta/edicion/salida usan BigDecimal, sin sobrecargas Double de compatibilidad.
+Los rangos siguen siendo [-90,90] y [-180,180]; entidad y entradas rechazan
+precision excesiva con Digits, sin redondear. El tipo decimal SQL por si solo no
+impone esos rangos geograficos. JSON sigue entregando numeros, no cadenas.
+
+Panel y mapa adaptados para conservar el cero y no inventar una ubicacion cuando
+falta una coordenada. La carga demo usa DECIMAL(9,6) tambien en su tabla temporal;
+no se reimporta inventario existente. No cambia el circuito de capacidad o uso.
+
+El SELECT de solo lectura del asistente, repetido antes de migrar, obtuvo 12 estaciones,
+cero coordenadas ausentes/fuera de rango y cero pares que cambian al convertir
+a DECIMAL(9,6) y de vuelta a DOUBLE. Se indico app detenida y respaldo completo
+actualizado fuera del repo (turismo_sustentable_pre_coordenadas_2026-11-17.sql);
+el asistente no inspecciono la exportacion ni ejecuto el ALTER.
+En otro entorno se exige ese control antes del DDL: si alguna coordenada cambia,
+detenerse y resolverlo explicitamente; omitirlo puede causar redondeos.
+
+Compilacion y pruebas ejecutadas por el usuario. Once XML corroborados:
+331 casos Java aprobados, cero fallos/errores/omisiones, incluyendo entidad/DTO,
+HTTP y regresion de estaciones, inventario, alquiler, mantenimiento e incidencias.
+JavaScript aprobado segun el resultado informado por el usuario; no se suma a
+tandas anteriores ni se declara una nueva integracion SQL automatizada.
+
+El usuario compartio el postcontrol: dos DECIMAL(9,6) NOT NULL, 12 estaciones,
+29 tablas, 55 FK y las mismas coordenadas con ceros finales de escala.
+Luego confirmo la prueba manual de alta/edicion, rechazo de siete decimales y
+mapa. Lectura posterior del asistente: QA Coordenadas, ID 13, Calle Prueba 123,
+capacidad 1, publica, sin borrado, version 1; -53.787602 / -67.700201.
+Auditorias 16 CREAR y 17 ACTUALIZAR de admin.demo conservan la latitud inicial
+-53.787601 y su cambio a -53.787602. Quedan 13 estaciones por la nueva prueba,
+29 tablas y 55 FK. Los conteos son fotos de demostracion, no reglas permanentes.
 
 ## Condiciones para otro entorno
 
 - No aplicar estas migraciones a una BD nueva creada con las entidades actuales:
-  no contiene las columnas antiguas y ya tiene el mapeo obligatorio de cabecera.
+  no contiene las columnas antiguas, ya tiene el mapeo obligatorio de cabecera
+  y los nombres de hashes actuales de USUARIO. La migracion 04 solo corresponde
+  si las coordenadas siguen siendo DOUBLE y pasan su propio precontrol.
 - No aplicar a una restauracion/instalacion antigua sin verificar esquema,
   referencias y contenido; los nombres de FK pueden ser distintos.
 - Obtener respaldo completo y detener las escrituras de la aplicacion antes de
@@ -105,6 +179,7 @@ con el perfil refactor y configuracion validate, sin error de esquema/mapeo.
 No equivale a una regresion SQL integral ni a fidelidad fisica total al DER.
 
 Para continuar, consultar el [diagnostico y guia de cierre](../../docs/practica-3/refactorizacion/44-diagnostico-y-guia-cierre-der-v5.md).
-La nulabilidad de esta cabecera queda alineada; siguen separados los cambios de
-nombres de hashes, coordenadas y revision restante de restricciones del DER.
+La nulabilidad de cabecera, los nombres de hashes y las coordenadas quedan
+alineados en este alcance, con sus comprobaciones documentadas. Sigue la revision
+restante de restricciones del DER y funcionalidades/consumidores pendientes.
 Las integraciones opt-in que usan create-drop no deben ejecutarse contra esta BD.

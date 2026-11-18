@@ -220,8 +220,8 @@ class AlquilerMysqlIntegrationTest {
                     "Plaza MySQL " + documento,
                     "Calle QA 100",
                     3,
-                    -31.4,
-                    -64.2
+                    new BigDecimal("-31.4"),
+                    new BigDecimal("-64.2")
             );
             estacion.setEsPublica(true);
             entityManager.persist(estacion);

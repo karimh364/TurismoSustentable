@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.services;
 
+import java.math.BigDecimal;
+
 import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
@@ -53,8 +55,8 @@ class EstacionServiceTest {
                 "Plaza Original",
                 "Calle 1",
                 6,
-                -34.0,
-                -58.0
+                new BigDecimal("-34.0"),
+                new BigDecimal("-58.0")
         );
 
         ReflectionTestUtils.setField(estacion, "id", 1);
@@ -64,8 +66,8 @@ class EstacionServiceTest {
         datos.setNombre(" Plaza Nueva ");
         datos.setDireccion(" Calle 2 ");
         datos.setCapacidad(8);
-        datos.setLatitud(0.0);
-        datos.setLongitud(0.0);
+        datos.setLatitud(new BigDecimal("0.0"));
+        datos.setLongitud(new BigDecimal("0.0"));
         datos.setVersion(0);
     }
 
@@ -85,8 +87,8 @@ class EstacionServiceTest {
         assertEquals("Plaza Nueva", resultado.getNombre());
         assertEquals("Calle 2", resultado.getDireccion());
         assertEquals(8, resultado.getCapacidad());
-        assertEquals(Double.valueOf(0.0), resultado.getLatitud());
-        assertEquals(Double.valueOf(0.0), resultado.getLongitud());
+        assertEquals(new BigDecimal("0.0"), resultado.getLatitud());
+        assertEquals(new BigDecimal("0.0"), resultado.getLongitud());
         assertEquals(Integer.valueOf(0), resultado.getVersion());
 
         assertFalse(estacion.isBorradoEstacion());
@@ -196,7 +198,7 @@ class EstacionServiceTest {
     @Test
     void lecturaAdministrativaIncluyeUbicacionesInternas() {
         Estacion taller = new Estacion(
-                "Taller QA", "Calle 2", 8, 0.0, 0.0
+                "Taller QA", "Calle 2", 8, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
 
         taller.setEsPublica(false);
@@ -352,8 +354,8 @@ class EstacionServiceTest {
         alta.setNombre("  Estación   QA  ");
         alta.setDireccion("  Calle   QA  ");
         alta.setCapacidad(4);
-        alta.setLatitud(0.0);
-        alta.setLongitud(0.0);
+        alta.setLatitud(new BigDecimal("0.0"));
+        alta.setLongitud(new BigDecimal("0.0"));
         alta.setEsPublica(esPublica);
         return alta;
     }
@@ -387,8 +389,8 @@ class EstacionServiceTest {
         assertEquals("Estación QA", resultado.getNombre());
         assertEquals("Calle QA", resultado.getDireccion());
         assertEquals(4, resultado.getCapacidad());
-        assertEquals(Double.valueOf(0.0), resultado.getLatitud());
-        assertEquals(Double.valueOf(0.0), resultado.getLongitud());
+        assertEquals(new BigDecimal("0.0"), resultado.getLatitud());
+        assertEquals(new BigDecimal("0.0"), resultado.getLongitud());
         assertEquals(esPublica, resultado.isEsPublica());
         assertEquals(Integer.valueOf(0), resultado.getVersion());
         assertEquals(0, resultado.getBicicletasDisponibles());
@@ -411,8 +413,8 @@ class EstacionServiceTest {
         assertEquals("Plaza Original", estacion.getNombre());
         assertEquals("Calle 1", estacion.getDireccion());
         assertEquals(6, estacion.getCapacidad());
-        assertEquals(Double.valueOf(-34.0), estacion.getLatitud());
-        assertEquals(Double.valueOf(-58.0), estacion.getLongitud());
+        assertEquals(new BigDecimal("-34.0"), estacion.getLatitud());
+        assertEquals(new BigDecimal("-58.0"), estacion.getLongitud());
         assertEquals(Integer.valueOf(0), estacion.getVersion());
         assertFalse(estacion.isBorradoEstacion());
 

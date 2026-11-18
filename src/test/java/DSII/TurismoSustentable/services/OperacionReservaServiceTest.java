@@ -50,7 +50,7 @@ class OperacionReservaServiceTest {
         usuario=new Usuario(); usuario.setId(1); usuario.setActivo(true); usuario.setEmail("qa.cancelar@example.com");
         Rol rol=new Rol("CLIENTE"); ReflectionTestUtils.setField(rol,"id",1);
         usuario.getUsuarioRoles().add(new UsuarioRol(usuario,rol)); sesion("CLIENTE");
-        Estacion estacion=new Estacion("Plaza QA","Calle QA",4,0.0,0.0);
+        Estacion estacion=new Estacion("Plaza QA","Calle QA",4,new BigDecimal("0.0"),new BigDecimal("0.0"));
         estacion.setEsPublica(true); ReflectionTestUtils.setField(estacion,"id",1);
         alquiler=new Alquiler(); alquiler.setId(7); alquiler.setUsuario(usuario); alquiler.setUbicacionRetiro(estacion);
         alquiler.setEstadoContratacion(new EstadoAlquiler("RESERVADO")); alquiler.setFechaHoraCreacion(AHORA.minusMinutes(5));

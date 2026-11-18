@@ -70,7 +70,11 @@ public class    Usuario {
             max = 255,
             message = "El hash de la contraseña no puede superar los 255 caracteres."
     )
-    @Column(nullable = false, length = 255)
+    @Column(
+            name = "password_hash",
+            nullable = false,
+            length = 255
+    )
     private String password;
 
     @OneToMany(mappedBy = "usuario", fetch = FetchType.LAZY)
@@ -93,7 +97,7 @@ public class    Usuario {
     private Integer version;
 
     @Column(
-            name = "token_recuperacion",
+            name = "token_recuperacion_hash",
             length = 64,
             unique = true
     )

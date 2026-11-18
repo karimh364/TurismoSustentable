@@ -758,7 +758,7 @@ class ConsultaAlquilerControllerTest {
         usuario.setId(1);
 
         Estacion estacion = new Estacion(
-                "Plaza QA", "Calle QA", 10, 0.0, 0.0
+                "Plaza QA", "Calle QA", 10, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
         estacion.setEsPublica(true);
         ReflectionTestUtils.setField(estacion, "id", 1);

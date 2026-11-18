@@ -45,7 +45,7 @@ class IncidenciaServiceTest {
                 ordenes,historiasOrden,tiposOrden,estadosOrden,traza,new CalculadoraAlquiler(),liquidacion,factory.getValidator(),Clock.fixed(ahora.toInstant(ZoneOffset.UTC),ZoneOffset.UTC),new ObjectMapper());
         ReflectionTestUtils.setField(servicio,"reembolsos",reembolsos);
         cliente=usuario(1,"CLIENTE");admin=usuario(2,"ADMIN");otro=usuario(3,"CLIENTE");tecnico=usuario(4,"TECNICO");
-        e=new Estacion("Taller","Calle 1",2,-31.4,-64.2);ReflectionTestUtils.setField(e,"id",5);e.setEsPublica(false);
+        e=new Estacion("Taller","Calle 1",2,new BigDecimal("-31.4"),new BigDecimal("-64.2"));ReflectionTestUtils.setField(e,"id",5);e.setEsPublica(false);
         TipoBicicleta tipo=new TipoBicicleta("PASEO",new BigDecimal("8.00"),3);ReflectionTestUtils.setField(tipo,"id",2);
         b=new Bicicleta("INC-01",tipo,new EstadoBicicleta("EN_USO"),null);ReflectionTestUtils.setField(b,"id",20);ReflectionTestUtils.setField(b,"version",0);
         a=new Alquiler();ReflectionTestUtils.setField(a,"id",100);a.setUsuario(cliente);a.setEstadoContratacion(new EstadoAlquiler("EN_PROGRESO"));a.setCotizacionArsPorUsd(new BigDecimal("1530.00"));

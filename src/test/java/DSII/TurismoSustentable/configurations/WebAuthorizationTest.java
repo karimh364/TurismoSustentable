@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.configurations;
 
+import java.math.BigDecimal;
+
 import DSII.TurismoSustentable.controllers.EstacionController;
 import DSII.TurismoSustentable.controllers.BicicletaController;
 import DSII.TurismoSustentable.services.BicicletaService;
@@ -423,7 +425,7 @@ class WebAuthorizationTest {
     )
     void administradorPuedeCrearEstaciones() throws Exception {
         Estacion estacion = new Estacion(
-                "Plaza QA", "Calle QA", 6, 0.0, 0.0
+                "Plaza QA", "Calle QA", 6, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
         estacion.setEsPublica(true);
 

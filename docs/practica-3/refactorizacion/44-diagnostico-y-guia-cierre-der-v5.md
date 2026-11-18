@@ -1,7 +1,7 @@
 # Diagnóstico y guía de cierre de la migración al DER v5
 
 Fecha de referencia: 17 de noviembre de 2026.
-Actualización de cierre: 17/11, después del arranque informado de las 21:23.
+Actualización de cierre: 17/11, después de las migraciones 03/04 y la prueba manual de QA Coordenadas.
 Presentación prevista: miércoles 18 de noviembre, 19:30 (Argentina).
 
 ## 1. Finalidad y alcance
@@ -29,7 +29,7 @@ Referencias: [DER v5](der-v5-propuesto.mmd), [diccionario](08-diccionario-estado
 | Módulo | Implementado y conectado | Cierre pendiente |
 | --- | --- | --- |
 | Identidad/acceso | PERSONA, documentos y catálogos, registro CLIENTE, múltiples roles, login, recuperación, sesión y edición administrativa | Gestión administrativa de asignación/retiro de roles; uniformar cuenta activa y roles vigentes en rutas conservadas |
-| Estaciones | Alta/edición/borrado lógico, pública/interna, capacidad, concurrencia, panel y mapa | Escapado de textos y uso del control común de sesión/roles en el mapa; precisión física de coordenadas |
+| Estaciones | Alta/edición/borrado lógico, pública/interna, capacidad, concurrencia, panel y mapa; coordenadas BigDecimal/DECIMAL(9,6) verificadas en código, BD y prueba manual | Escapado de textos y uso del control común de sesión/roles en el mapa; revisión transversal restante |
 | Bicicletas | Tipo/tarifa, ubicación, traslados con motivo, estados, baja/eliminación, consulta de eliminadas e historia; dependencia del alquiler anterior retirada | Regresión integral y controles transversales pendientes |
 | Alquiler | Cabecera/detalles, reserva múltiple, retiro/devolución por unidad, cancelación y vencimiento, pantallas; retirada la compatibilidad anterior y sus ocho columnas/dos FK; cabecera obligatoria alineada en Java/BD | Revisión física restante, comprobantes v5 y cierre transversal; no declarar migración global terminada |
 | Finanzas | Anticipo, adicional, liquidación, deuda y reembolso simulados, idempotencia y pantallas | Regresión integral tras retirar legado; no confundir simulación con Mercado Pago real |
@@ -312,7 +312,102 @@ iniciada en 4,941 segundos con validate. El asistente no ejecutó el ALTER,
 reinició la app ni repitió pruebas: inspeccionó SQL y XML en modo lectura.
 El arranque no sustituye las consultas de nulabilidad ni una regresión integral.
 
-## 9. Continuación y límites del cierre
+## 9. Nombres de hashes alineados y acceso comprobado — 17/11, 21:44
+
+Migración 03 ejecutada manualmente por el usuario: USUARIO.password pasa a
+password_hash y token_recuperacion a token_recuperacion_hash. No se recalculan
+hashes ni se cambian contraseñas: se conservan BCrypt y SHA-256 del flujo actual.
+Tipos y nulabilidad: varchar(255) NOT NULL y varchar(64) opcional, ambos
+utf8mb4/utf8mb4_general_ci. El índice único del token conserva nombre
+UK_71sx3rqqapq5lx93qck2pq4t2 y ahora apunta a token_recuperacion_hash.
+
+Cambios de código limitados a dos mapeos Column de Usuario y las dos referencias
+SQL de scripts/demo/cuentas-demo.sql. No se renombraron atributos, accesores,
+parámetros HTTP o consultas derivadas; no se reimportaron las cuentas demo.
+El [SQL histórico](../../../scripts/migraciones/2026-11-17-03-renombrar-hashes-usuario.sql)
+está ya aplicado: no importarlo nuevamente ni usarlo como inicializador.
+Se indicó app detenida y respaldo completo previo fuera del repositorio; el
+asistente no inspeccionó el archivo de exportación ni ejecutó el DDL.
+
+Usuario y posterior lectura del asistente corroboraron los nombres nuevos,
+tipos/nulabilidad, índice único y seis usuarios con cero hashes ausentes.
+Doce XML: 102 pruebas aprobadas, cero fallos/errores/omisiones, en
+WebAuthenticationTest, WebAuthorizationTest, RecuperacionPasswordControllerTest,
+UsuarioControllerTest, ContratoSalidaDTOTest, RegistroUsuarioDTOTest,
+SolicitarRecuperacionDTOTest, UsuarioDTOTest, RecuperacionPasswordServiceTest,
+RegistroUsuarioServiceTest, UsuarioDetailsServiceTest y UsuarioServiceTest.
+No sumar esta tanda a ejecuciones anteriores solapadas.
+
+Arranque informado a las 21:44 con refactor/validate, JPA y Tomcat correctos,
+aplicación iniciada en 4,075 segundos. El usuario confirmó acceso de cliente.demo
+con su contraseña habitual. No se afirma restablecimiento manual real por correo
+ni regresión SQL integral; el asistente no volvió a ejecutar pruebas o la app.
+
+## 10. Coordenadas decimales — migración y pruebas verificadas
+
+Bloque delegado explícitamente por el usuario. DECIMAL(9,6) NOT NULL concreta la
+precisión física que el DER dejaba abierta: hasta tres enteros y seis decimales.
+No es una nueva regla sobre ubicación de estaciones. Migración 04 aplicada
+manualmente por el usuario, sin ejecución de DDL desde el asistente.
+
+- Estacion usa BigDecimal en atributos, constructor y accesores, Column(9,6),
+  NotNull, rangos geográficos y Digits. Se retira Double sin sobrecarga transitoria.
+- CrearEstacionDTO/ActualizarEstacionDTO usan BigDecimal con los mismos rangos y
+  máximo de seis decimales. No hay setScale ni redondeo de entradas inválidas.
+- EstacionDTO conserva BigDecimal; los números JSON siguen siendo números y
+  los servicios/auditoría transportan el valor sin conversiones nuevas.
+- Formulario ADMIN informa precisión/rangos y rechaza entradas inválidas antes
+  de enviar, sin usar parseFloat para aceptar prefijos parciales. El backend
+  mantiene su validación independiente y los errores se muestran con el
+  manejador existente. El listado conserva el cero mediante operador nulo.
+- Mapa usa coordenadas numéricas finitas en rango, incluido cero; si faltan o son
+  inválidas no fabrica un punto de Río Grande. No cambia la política de sesión,
+  permisos, ventanas emergentes o sitios turísticos estáticos de ese consumidor.
+- SQL demo de inventario usa decimal también en su tabla temporal; no se importa.
+
+Fixtures de veinte archivos de pruebas adaptadas al constructor/accesores
+BigDecimal, sin eliminar casos o cambiar reglas de alquiler/mantenimiento/
+incidencias. Se agregaron EstacionCoordenadasTest y tres casos HTTP adicionales
+de precisión/contrato/error, y CoordenadasEstaciones.test.cjs para alta/edición,
+rechazos, mensajes, mapa y cero. El usuario ejecutó compilación y pruebas.
+Once XML corroborados: 331 casos aprobados, cero fallos/errores/omisiones:
+WebAuthorizationTest (21), EstacionControllerTest (29), EstacionCoordenadasTest (21),
+AuditoriaAdministrativaServiceTest (15), BicicletaServiceTest (35),
+CrearReservaServiceTest (22), DevolucionAlquilerServiceTest (33),
+EstacionServiceTest (17), IncidenciaServiceTest (54), MantenimientoServiceTest (58)
+y RetiroAlquilerServiceTest (26). JavaScript aprobado según confirmación del
+usuario; no se suma a tandas anteriores ni se declara integración SQL nueva.
+
+Precontrol SQL de solo lectura repetido antes del cambio: doce estaciones, cero nulas/fuera de rango y
+cero pares con cambio al convertir a DECIMAL(9,6) y retornar a DOUBLE.
+El [SQL 04 histórico](../../../scripts/migraciones/2026-11-17-04-coordenadas-estacion-decimal.sql)
+ya está aplicado: NO volver a importarlo ni usarlo como inicializador. Se indicó
+app detenida y respaldo actualizado fuera del repositorio; el asistente no
+inspeccionó la exportación. En otro entorno se exige verificar tipo y precontrol
+antes de migrar; los comentarios no son guardas automáticas.
+
+Postcontrol compartido por el usuario: dos DECIMAL(9,6) NOT NULL, doce estaciones,
+29 tablas, 55 FK y las mismas ubicaciones con la nueva escala. Luego el usuario
+confirmó alta/edición, rechazo de siete decimales y mapa funcionando.
+Lectura posterior del asistente verificó:
+
+| Dato de demostración | Resultado |
+| --- | --- |
+| Estación | ID 13, QA Coordenadas, Calle Prueba 123 |
+| Capacidad / uso / borrado | 1 / pública / sin borrado lógico |
+| Latitud / longitud actuales | -53.787602 / -67.700201 |
+| Versión | 1 |
+| Auditoría 16, CREAR, admin.demo | Latitud inicial -53.787601, longitud -67.700201 |
+| Auditoría 17, ACTUALIZAR, admin.demo | Latitud -53.787601 -> -53.787602; longitud conservada |
+| Conteos después de la prueba | 13 estaciones, 29 tablas, 55 FK |
+
+Las trece estaciones incluyen el alta QA: no son una regla del dominio. El mapa
+y el rechazo de siete decimales fueron comprobados manualmente por el usuario;
+el asistente corroboró BD/auditoría y leyó XML, no operó el navegador ni repitió
+pruebas. El log de las 21:44 fue ANTERIOR a coordenadas y no se usa como evidencia
+de su arranque; el funcionamiento posterior consta por la prueba manual informada.
+
+## 11. Continuación y límites del cierre
 
 La retirada del alquiler anterior está comprobada en código y esquema para este
 alcance. 29 tablas y 55 FK NO implican fidelidad física total ni que todas las
@@ -320,8 +415,10 @@ funcionalidades aprobadas estén conectadas.
 
 Obligatoriedad de cabecera concretada entre Bean Validation/JPA y BD; cierre,
 importes finales y fecha de actualización de fuente conservan su opcionalidad.
-Próximo paso: revisar nombres de hashes y precisión de coordenadas de forma
-explícita, además de las restricciones físicas restantes, sin mezclar cambios DDL.
+Los nombres de hashes de USUARIO y las coordenadas ya coinciden con el DER en
+este alcance, con código, migraciones y pruebas comprobadas. Guardar el avance
+de hashes/coordenadas con commit/push; después revisar las restricciones físicas
+restantes y los controles/consumidores pendientes sin mezclar otros cambios DDL.
 Cada cambio requiere comprobaciones previas, respaldo y pruebas acordes.
 
 Continúan comprobantes v5 por correo, controles de cuenta/roles vigentes,

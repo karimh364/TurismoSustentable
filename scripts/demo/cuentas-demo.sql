@@ -53,7 +53,7 @@ BEGIN
         WHERE u.nickname<>d.nickname OR u.email<>d.email
            OR p.numero_documento<>d.documento OR p.tipo_documento_id<>v_documento
            OR p.pais_emisor_id<>v_pais OR u.activo<>b'1'
-           OR BINARY u.password<>BINARY v_hash
+           OR BINARY u.password_hash<>BINARY v_hash
     ) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Existe una cuenta de demo con otros datos. No se modifico: revisar antes de continuar.';
     END IF;
@@ -80,7 +80,7 @@ BEGIN
     FROM demo_cuentas_tmp d
     WHERE NOT EXISTS (SELECT 1 FROM usuario u WHERE u.nickname=d.nickname);
 
-    INSERT INTO usuario (activo,email,fecha_registro,nickname,password,version,persona_id)
+    INSERT INTO usuario (activo,email,fecha_registro,nickname,password_hash,version,persona_id)
     SELECT b'1',d.email,UTC_TIMESTAMP(6),d.nickname,v_hash,0,p.id
     FROM demo_cuentas_tmp d
     JOIN persona p ON p.numero_documento=d.documento

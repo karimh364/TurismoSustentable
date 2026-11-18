@@ -1,5 +1,7 @@
 package DSII.TurismoSustentable.controllers;
 
+import java.math.BigDecimal;
+
 import DSII.TurismoSustentable.dto.ActualizarEstacionDTO;
 import DSII.TurismoSustentable.dto.CrearEstacionDTO;
 import DSII.TurismoSustentable.dto.EstacionDTO;
@@ -67,7 +69,7 @@ class EstacionControllerTest {
             throws Exception {
 
         Estacion estacion = new Estacion(
-                "Plaza Nueva", "Calle 2", 8, 0.0, 0.0
+                "Plaza Nueva", "Calle 2", 8, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
 
         ReflectionTestUtils.setField(estacion, "id", 1);
@@ -257,7 +259,7 @@ class EstacionControllerTest {
             throws Exception {
 
         Estacion taller = new Estacion(
-                "Taller QA", "Calle 2", 8, 0.0, 0.0
+                "Taller QA", "Calle 2", 8, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
 
         taller.setEsPublica(false);
@@ -556,6 +558,63 @@ class EstacionControllerTest {
         ));
     }
 
+    @Test
+    void altaConservaSeisDecimalesEnEntradaYSalidaNumericas() throws Exception {
+        BigDecimal latitud = new BigDecimal("-53.123456");
+        BigDecimal longitud = new BigDecimal("-67.654321");
+        Estacion creada = new Estacion("Plaza QA", "Calle QA", 6, latitud, longitud);
+        when(estacionService.crearEstacion(any(CrearEstacionDTO.class)))
+                .thenReturn(new EstacionDTO(creada));
+        Map<String, Object> alta = datosAltaValidos(true);
+        alta.put("latitud", latitud);
+        alta.put("longitud", longitud);
+
+        enviarAlta(alta).andExpect(status().isCreated())
+                .andExpect(jsonPath("$.latitud").isNumber())
+                .andExpect(jsonPath("$.latitud").value(-53.123456))
+                .andExpect(jsonPath("$.longitud").isNumber())
+                .andExpect(jsonPath("$.longitud").value(-67.654321));
+        ArgumentCaptor<CrearEstacionDTO> captor = ArgumentCaptor.forClass(CrearEstacionDTO.class);
+        verify(estacionService).crearEstacion(captor.capture());
+        assertEquals(latitud, captor.getValue().getLatitud());
+        assertEquals(longitud, captor.getValue().getLongitud());
+    }
+
+    @Test
+    void edicionConservaSeisDecimalesSinConversionADouble() throws Exception {
+        BigDecimal latitud = new BigDecimal("-53.123456");
+        BigDecimal longitud = new BigDecimal("-67.654321");
+        Estacion editada = new Estacion("Plaza QA", "Calle QA", 6, latitud, longitud);
+        when(estacionService.actualizarEstacion(eq(1), any(ActualizarEstacionDTO.class)))
+                .thenReturn(new EstacionDTO(editada));
+        Map<String, Object> datos = datosValidos();
+        datos.put("latitud", latitud);
+        datos.put("longitud", longitud);
+
+        enviar(datos).andExpect(status().isOk())
+                .andExpect(jsonPath("$.latitud").isNumber())
+                .andExpect(jsonPath("$.longitud").isNumber());
+        ArgumentCaptor<ActualizarEstacionDTO> captor = ArgumentCaptor.forClass(ActualizarEstacionDTO.class);
+        verify(estacionService).actualizarEstacion(eq(1), captor.capture());
+        assertEquals(latitud, captor.getValue().getLatitud());
+        assertEquals(longitud, captor.getValue().getLongitud());
+    }
+
+    @Test
+    void altaYEdicionRechazanPrecisionExcesivaConMensajeDelCampo() throws Exception {
+        for (String campo : new String[]{"latitud", "longitud"}) {
+            for (Map<String, Object> datos : List.of(datosAltaValidos(true), datosValidos())) {
+                datos.put(campo, new BigDecimal("-53.1234567"));
+                ResultActions respuesta = datos.containsKey("version") ? enviar(datos) : enviarAlta(datos);
+                respuesta.andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.validationErrors",
+                                hasItem(campo + ": " + (campo.equals("latitud")
+                                        ? "La latitud" : "La longitud") + " admite hasta 6 decimales.")));
+            }
+        }
+        verifyNoInteractions(estacionService, estacionRepository);
+    }
+
     private ResultActions enviarAlta(Map<String, Object> alta)
             throws Exception {
 
@@ -588,8 +647,8 @@ class EstacionControllerTest {
         assertEquals("Plaza QA", recibido.getNombre());
         assertEquals("Calle QA", recibido.getDireccion());
         assertEquals(Integer.valueOf(6), recibido.getCapacidad());
-        assertEquals(Double.valueOf(0.0), recibido.getLatitud());
-        assertEquals(Double.valueOf(0.0), recibido.getLongitud());
+        assertEquals(new BigDecimal("0.0"), recibido.getLatitud());
+        assertEquals(new BigDecimal("0.0"), recibido.getLongitud());
         assertEquals(Boolean.valueOf(esPublica), recibido.getEsPublica());
 
         verifyNoMoreInteractions(estacionService);
@@ -602,7 +661,7 @@ class EstacionControllerTest {
             boolean esPublica
     ) {
         Estacion estacion = new Estacion(
-                nombre, "Calle QA", 6, 0.0, 0.0
+                nombre, "Calle QA", 6, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
 
         estacion.setEsPublica(esPublica);

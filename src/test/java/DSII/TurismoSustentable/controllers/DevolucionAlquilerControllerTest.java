@@ -192,7 +192,7 @@ class DevolucionAlquilerControllerTest {
         detalle.setBicicleta(bicicleta);
         detalle.setTipoBicicletaContratado(tipo);
         detalle.setEstado(new EstadoAlquilerDetalle("DEVUELTO"));
-        Estacion estacion = new Estacion("Destino QA", "Calle QA", 2, 0.0, 0.0);
+        Estacion estacion = new Estacion("Destino QA", "Calle QA", 2, new BigDecimal("0.0"), new BigDecimal("0.0"));
         ReflectionTestUtils.setField(estacion, "id", 200);
         detalle.setEstacionDevolucion(estacion);
         detalle.setFechaHoraDevolucionReal(LocalDateTime.of(2026, 11, 16, 10, 30));

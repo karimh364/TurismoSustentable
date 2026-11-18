@@ -30,8 +30,8 @@ BEGIN
         direccion VARCHAR(255) NOT NULL,
         capacidad INT NOT NULL,
         publica TINYINT NOT NULL,
-        latitud DOUBLE NOT NULL,
-        longitud DOUBLE NOT NULL
+        latitud DECIMAL(9,6) NOT NULL,
+        longitud DECIMAL(9,6) NOT NULL
     );
     CREATE TEMPORARY TABLE demo_rg_bicis_tmp (
         codigo VARCHAR(255) PRIMARY KEY,

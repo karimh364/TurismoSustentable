@@ -69,7 +69,7 @@ class LiquidacionAlquilerServiceTest {
         autenticar("CLIENTE");
 
         estacion = new Estacion(
-                "Destino QA", "Calle QA", 5, 0.0, 0.0
+                "Destino QA", "Calle QA", 5, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
         estacion.setEsPublica(true);
         ReflectionTestUtils.setField(estacion, "id", 9);

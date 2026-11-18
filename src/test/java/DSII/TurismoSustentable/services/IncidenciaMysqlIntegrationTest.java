@@ -64,8 +64,8 @@ class IncidenciaMysqlIntegrationTest {
         tx.executeWithoutResult(t->{
             catalogo(TipoBicicleta.class,"MONTANA").setPrecioPorHoraUsd(new BigDecimal("10.00"));
             clienteId=usuario("CLIENTE");adminId=usuario("ADMIN");otroId=usuario("CLIENTE");tecId=usuario("TECNICO");
-            Estacion p=new Estacion("Plaza Inc "+clienteId,"Calle QA",4,-31.4,-64.2);p.setEsPublica(true);em.persist(p);
-            Estacion e=new Estacion("Taller Inc "+clienteId,"Base QA",4,-31.4,-64.2);e.setEsPublica(false);em.persist(e);em.flush();publicaId=p.getId();tallerId=e.getId();
+            Estacion p=new Estacion("Plaza Inc "+clienteId,"Calle QA",4,new BigDecimal("-31.4"),new BigDecimal("-64.2"));p.setEsPublica(true);em.persist(p);
+            Estacion e=new Estacion("Taller Inc "+clienteId,"Base QA",4,new BigDecimal("-31.4"),new BigDecimal("-64.2"));e.setEsPublica(false);em.persist(e);em.flush();publicaId=p.getId();tallerId=e.getId();
             Bicicleta b=nuevaBici(p,"A");bici1=b.getId();b=nuevaBici(p,"B");bici2=b.getId();
         });sesion(clienteId);
     }

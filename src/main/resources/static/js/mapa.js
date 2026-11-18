@@ -72,9 +72,13 @@ document.addEventListener("DOMContentLoaded", function() {
                     shadowSize: [41, 41]
                 });
 
-                // Validamos coordenadas de la BD
-                let lat = estacion.latitud ? estacion.latitud : -53.7876;
-                let lng = estacion.longitud ? estacion.longitud : -67.7002;
+                // Cero es válido. No inventar una ubicación si falta el dato real.
+                const lat = estacion.latitud;
+                const lng = estacion.longitud;
+                if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
+                    lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    return;
+                }
 
                 // Crear marcador de la estación
                 L.marker([lat, lng], {icon: icon}).addTo(map)

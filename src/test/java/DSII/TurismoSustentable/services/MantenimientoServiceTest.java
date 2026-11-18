@@ -72,7 +72,7 @@ class MantenimientoServiceTest {
         );
         admin=usuario(1,"ADMIN"); tec=usuario(2,"TECNICO"); otro=usuario(3,"TECNICO"); cliente=usuario(4,"CLIENTE");
         cuentas=Map.of(1,admin,2,tec,3,otro,4,cliente);
-        estacion=new Estacion("Taller","Calle 1",10,-31.4,-64.2); ReflectionTestUtils.setField(estacion,"id",5); estacion.setEsPublica(false);
+        estacion=new Estacion("Taller","Calle 1",10,new BigDecimal("-31.4"),new BigDecimal("-64.2")); ReflectionTestUtils.setField(estacion,"id",5); estacion.setEsPublica(false);
         TipoBicicleta tipo=new TipoBicicleta("PASEO",new BigDecimal("8.00"),3);
         bici=new Bicicleta("MANT-01",tipo,new EstadoBicicleta("MANTENIMIENTO"),estacion);
         ReflectionTestUtils.setField(bici,"id",20); ReflectionTestUtils.setField(bici,"version",0); bici.setFechaAlta(ahora.toLocalDate().minusMonths(1));

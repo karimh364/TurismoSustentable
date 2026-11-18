@@ -166,11 +166,13 @@
                 </div>
                 <div class="mb-2">
                     <label>Latitud</label>
-                    <input type="number" step="any" class="form-control" id="estacion-latitud" placeholder="Ej: -53.7865">
+                    <input type="number" step="0.000001" min="-90" max="90" class="form-control" id="estacion-latitud" aria-describedby="estacion-latitud-ayuda" placeholder="Ej: -53.7865">
+                    <small id="estacion-latitud-ayuda" class="text-muted">Entre -90 y 90; hasta 6 decimales.</small>
                 </div>
                 <div class="mb-2">
                     <label>Longitud</label>
-                    <input type="number" step="any" class="form-control" id="estacion-longitud" placeholder="Ej: -67.7045">
+                    <input type="number" step="0.000001" min="-180" max="180" class="form-control" id="estacion-longitud" aria-describedby="estacion-longitud-ayuda" placeholder="Ej: -67.7045">
+                    <small id="estacion-longitud-ayuda" class="text-muted">Entre -180 y 180; hasta 6 decimales.</small>
                 </div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-success px-4" onclick="guardarEstacion()">Guardar</button></div>

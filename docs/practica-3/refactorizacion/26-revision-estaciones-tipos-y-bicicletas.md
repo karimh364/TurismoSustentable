@@ -22,8 +22,8 @@ La aplicación actual conserva tipos y estados como enums, precio por bicicleta,
 | capacidad | Entero positivo; nunca puede quedar por debajo de la ocupación física al modificarla |
 | borrado_estacion | Indicador de baja lógica; no borra la fila ni sus referencias históricas; recorrido aprobado RN-EST-01 en la sección 5 |
 | es_publica | Booleano obligatorio; true identifica una estación pública, false un Taller/depósito interno; RN-INV-01, sección 7 |
-| latitud | Decimal obligatorio; rango de -90 a 90; precisión SQL pendiente |
-| longitud | Decimal obligatorio; rango de -180 a 180; precisión SQL pendiente |
+| latitud | Decimal obligatorio; rango de -90 a 90; DECIMAL(9,6) aplicado y comprobado el 17/11 en entidad/DTO, BD y prueba manual |
+| longitud | Decimal obligatorio; rango de -180 a 180; DECIMAL(9,6) aplicado y comprobado el 17/11 en entidad/DTO, BD y prueba manual |
 | version | Control de concurrencia propuesto; no sustituye coordinar los ingresos y cambios de capacidad |
 
 No se agregan columnas espacios_libres, bicicletas_disponibles ni cantidad_ocupada: se calculan desde las bicicletas físicamente asociadas y las condiciones de disponibilidad. Tampoco se declara única la combinación de coordenadas: no se aprobó prohibir estaciones diferentes por proximidad o por coincidir en un punto.

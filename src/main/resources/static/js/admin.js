@@ -211,8 +211,8 @@ async function cargarEstaciones() {
                             ${e.esPublica ? 'Pública' : 'Uso interno'}
                         </span>
                     </td>
-                    <td>${e.latitud ? e.latitud : '-'}</td>
-                    <td>${e.longitud ? e.longitud : '-'}</td>
+                    <td>${e.latitud ?? '-'}</td>
+                    <td>${e.longitud ?? '-'}</td>
                     
                     <td>
                         <button class="btn btn-sm btn-warning" onclick="editarEstacion(${e.id})"><i class="fas fa-edit"></i></button>
@@ -263,13 +263,35 @@ async function editarEstacion(id) {
 async function guardarEstacion() {
     const id = document.getElementById('estacion-id').value;
 
+    const coordenadas = {};
+    for (const [campo, etiqueta, limite] of [
+        ['latitud', 'La latitud', 90],
+        ['longitud', 'La longitud', 180]
+    ]) {
+        const texto = document.getElementById(`estacion-${campo}`).value.trim();
+        const valor = Number(texto);
+        if (
+            texto === '' ||
+            !/^[+-]?(?:\d+(?:\.\d{0,6})?|\.\d{1,6})$/.test(texto) ||
+            !Number.isFinite(valor) || valor < -limite || valor > limite
+        ) {
+            Swal.fire(
+                'Revisá las coordenadas',
+                `${etiqueta} es obligatoria, admite hasta 6 decimales y debe estar entre -${limite} y ${limite}.`,
+                'warning'
+            );
+            return;
+        }
+        coordenadas[campo] = valor;
+    }
+
     const data = {
         nombre: document.getElementById('estacion-nombre').value,
         direccion: document.getElementById('estacion-direccion').value,
         capacidad: parseInt(document.getElementById('estacion-capacidad').value),
-        // Convertimos los valores a Float para que Java los reciba correctamente
-        latitud: parseFloat(document.getElementById('estacion-latitud').value),
-        longitud: parseFloat(document.getElementById('estacion-longitud').value)
+        // JSON conserva valores numéricos; el backend los recibe como BigDecimal.
+        latitud: coordenadas.latitud,
+        longitud: coordenadas.longitud
     };
 
     // La clasificación se envía únicamente al crear.

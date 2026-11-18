@@ -1,6 +1,7 @@
 package DSII.TurismoSustentable.dto;
 
 import javax.validation.constraints.*;
+import java.math.BigDecimal;
 
 public class ActualizarEstacionDTO {
 
@@ -19,12 +20,14 @@ public class ActualizarEstacionDTO {
     @NotNull(message = "La latitud es obligatoria.")
     @DecimalMin(value = "-90.0", message = "La latitud debe estar entre -90 y 90.")
     @DecimalMax(value = "90.0", message = "La latitud debe estar entre -90 y 90.")
-    private Double latitud;
+    @Digits(integer = 3, fraction = 6, message = "La latitud admite hasta 6 decimales.")
+    private BigDecimal latitud;
 
     @NotNull(message = "La longitud es obligatoria.")
     @DecimalMin(value = "-180.0", message = "La longitud debe estar entre -180 y 180.")
     @DecimalMax(value = "180.0", message = "La longitud debe estar entre -180 y 180.")
-    private Double longitud;
+    @Digits(integer = 3, fraction = 6, message = "La longitud admite hasta 6 decimales.")
+    private BigDecimal longitud;
 
     @NotNull(message = "Falta información de la estación. Recargá los datos antes de editar.")
     @PositiveOrZero(message = "La versión de la estación no es válida. Recargá los datos.")
@@ -61,19 +64,19 @@ public class ActualizarEstacionDTO {
         this.capacidad = capacidad;
     }
 
-    public Double getLatitud() {
+    public BigDecimal getLatitud() {
         return latitud;
     }
 
-    public void setLatitud(Double latitud) {
+    public void setLatitud(BigDecimal latitud) {
         this.latitud = latitud;
     }
 
-    public Double getLongitud() {
+    public BigDecimal getLongitud() {
         return longitud;
     }
 
-    public void setLongitud(Double longitud) {
+    public void setLongitud(BigDecimal longitud) {
         this.longitud = longitud;
     }
 

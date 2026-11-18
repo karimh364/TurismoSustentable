@@ -15,17 +15,25 @@ alquileres con sus detalles. Luego se reforzó la cabecera en Bean Validation/JP
 y se aplicó la migración 02: ocho columnas NOT NULL y seis opcionales conservadas.
 La FK del estado mantiene su relación/reglas con nombre fk_alquiler_estado_v5.
 Lectura posterior: 29 tablas, 55 FK, dos alquileres y cero cabeceras incompletas.
-El arranque del 17/11 a las 21:23 completó JPA/Tomcat con refactor y validate,
-sin error de esquema o mapeo.
+Después se aplicó la migración 03: password_hash/token_recuperacion_hash en
+USUARIO, conservando tipos, valores e índice único. Arranque del 17/11 a las
+21:44 correcto con refactor/validate y login de cliente.demo confirmado.
 
 El [SQL histórico y sus precauciones](../../../scripts/migraciones/README.md)
-quedan registrados; NO volver a importar ninguna de las dos migraciones en la
-base actual. La última tanda dirigida tuvo 144 casos Java aprobados en ocho
-suites, incluidos 17 de obligatoriedad; los 117 JS de limpieza web
+quedan registrados; NO volver a importar ninguna de las cuatro migraciones en la
+base actual. La última tanda dirigida tuvo 331 casos Java aprobados en once
+suites de coordenadas/HTTP y regresión; los 117 JS de limpieza web
 se aprobaron en otra ejecución. No sumar tandas solapadas ni declarar integración
 SQL nueva: esa regresión aislada sigue pendiente.
 
-No se declara cierre global: restan revisión física adicional, nombres/tipos, comprobantes
+Coordenadas BigDecimal/DECIMAL(9,6) verificadas en entidad/DTO/panel/mapa y BD;
+migración 04 aplicada. Prueba manual del usuario correcta y lectura posterior de
+QA Coordenadas #13 con seis decimales, versión 1 y auditorías de alta/edición de
+admin.demo. Conservadas 29 tablas y 55 FK; 13 estaciones tras la nueva prueba.
+JavaScript aprobado según confirmación del usuario. No atribuir a coordenadas el
+log de arranque anterior de las 21:44 ni declarar regresión SQL automatizada nueva.
+
+No se declara cierre global: restan revisión física adicional, comprobantes
 v5 por correo, controles transversales, gestión de roles, consultas administrativas
 y pulido según la guía. Las notas siguientes conservan antecedentes históricos.
 

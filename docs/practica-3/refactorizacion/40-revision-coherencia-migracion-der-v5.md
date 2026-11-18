@@ -10,7 +10,13 @@ lectura 29 tablas y 55 FK, con los dos alquileres y sus detalles conservados;
 arranque refactor/validate completado por el usuario. Después se reforzó la
 cabecera en Bean Validation/JPA y ocho columnas físicas pasaron a NOT NULL,
 con seis opcionales conservadas y FK de estado renombrada sin cambiar la relación.
-Última tanda dirigida: 144 Java aprobadas; nuevo arranque correcto a las 21:23.
+Luego se alinearon password_hash/token_recuperacion_hash en USUARIO, JPA y SQL
+demo sin recalcular hashes: seis usuarios conservados, índice único y login de
+cliente.demo comprobados. Después, migración 04 de coordenadas aplicada:
+BigDecimal/DECIMAL(9,6), 331 Java aprobadas en once suites y JavaScript aprobado
+según el usuario. Alta/edición, rechazo de siete decimales y mapa comprobados
+manualmente; lectura posterior de QA Coordenadas #13, versión 1 y auditorías
+16/17 de admin.demo. Se conservan 29 tablas y 55 FK; 13 estaciones tras el alta QA.
 El estado consolidado,
 evidencia por tanda y pendientes reales están en la
 [guía 44](44-diagnostico-y-guia-cierre-der-v5.md). SQL histórico y precauciones en

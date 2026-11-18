@@ -317,7 +317,7 @@ class RetiroAlquilerControllerTest {
         usuario.setActivo(true);
 
         Estacion origen = new Estacion(
-                "Plaza QA", "Calle QA", 10, 0.0, 0.0
+                "Plaza QA", "Calle QA", 10, new BigDecimal("0.0"), new BigDecimal("0.0")
         );
         origen.setEsPublica(true);
         ReflectionTestUtils.setField(origen, "id", 1);

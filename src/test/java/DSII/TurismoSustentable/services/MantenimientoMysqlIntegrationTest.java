@@ -69,7 +69,7 @@ class MantenimientoMysqlIntegrationTest {
         emails=new HashMap<>();nicks=new HashMap<>();bicis=new ArrayList<>();
         tx.executeWithoutResult(t->{
             adminId=usuario("ADMIN");tecId=usuario("TECNICO");otroId=usuario("TECNICO");clienteId=usuario("CLIENTE");
-            Estacion e=new Estacion("Taller QA "+adminId,"Calle QA",10,-31.4,-64.2);e.setEsPublica(false);em.persist(e);em.flush();estacionId=e.getId();
+            Estacion e=new Estacion("Taller QA "+adminId,"Calle QA",10,new BigDecimal("-31.4"),new BigDecimal("-64.2"));e.setEsPublica(false);em.persist(e);em.flush();estacionId=e.getId();
             for(int i=0;i<4;i++){
                 Bicicleta b=new Bicicleta("MANT-SQL-"+adminId+"-"+i,catalogo(TipoBicicleta.class,"MONTANA"),catalogo(EstadoBicicleta.class,"DISPONIBLE"),e);
                 b.setFechaAlta(LocalDate.ofInstant(instante,ZoneOffset.UTC));em.persist(b);em.flush();bicis.add(b.getId());

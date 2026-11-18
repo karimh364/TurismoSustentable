@@ -411,7 +411,7 @@ class BicicletaServiceTest {
     }
 
     private Estacion estacion(int id, boolean publica) {
-        Estacion e = new Estacion("QA-" + id, "Calle QA", 2, 0.0, 0.0);
+        Estacion e = new Estacion("QA-" + id, "Calle QA", 2, new BigDecimal("0.0"), new BigDecimal("0.0"));
         e.setEsPublica(publica);
         ReflectionTestUtils.setField(e, "id", id);
         return e;
